@@ -1,0 +1,7 @@
+:root > * {
+  --overturemaestro-brand-color: #111F3F;
+  --overturemaestro-text-color: #CAA14B;
+  --md-primary-fg-color: var(--overturemaestro-brand-color);
+  --md-primary-fg-color--light: var(--overturemaestro-brand-color);
+  --md-primary-fg-color--dark: var(--overturemaestro-brand-color);
+}

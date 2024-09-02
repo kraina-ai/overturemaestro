@@ -1,0 +1,66 @@
+.jp-InputArea-prompt,
+.jp-Cell-inputCollapser {
+  visibility: collapse;
+  display: none !important;
+}
+
+.jp-OutputArea-prompt {
+  visibility: hidden;
+  background-color: red;
+  position: absolute;
+  right: 0;
+}
+
+.jp-CodeCell>.jp-Cell-outputWrapper {
+  margin-top: -10px;
+  padding-top: 0;
+  display: table-cell;
+  text-align: left;
+}
+
+.jp-Cell-outputWrapper>.jp-Cell-outputCollapser {
+  margin-top: -17px;
+}
+
+.jupyter-wrapper table.dataframe tr,
+.jupyter-wrapper table.dataframe th,
+.jupyter-wrapper table.dataframe td {
+  text-align: left;
+}
+
+.jupyter-wrapper table.dataframe {
+  table-layout: auto;
+}
+
+.jp-RenderedImage.jp-OutputArea-output {
+  text-align: center;
+}
+
+.jupyter-wrapper .zeroclipboard-container {
+  z-index: 3 !important;
+}
+
+div.highlight pre code,
+div.jp-RenderedText.jp-OutputArea-output>pre,
+div.jp-RenderedText.jp-OutputArea-output.jp-OutputArea-executeResult>pre {
+  font-family: "Noto Sans Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace, SFMono-Regular, Consolas, Menlo,
+    monospace;
+  white-space: pre;
+  overflow-x: auto;
+  line-height: normal;
+}
+
+.jupyter-wrapper .jp-Notebook {
+  overflow: hidden !important;
+}
+
+div.admonition p {
+  margin-top: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.jupyter-wrapper .jp-RenderedText pre .ansi-bold {
+  font-weight: normal !important;
+  text-shadow: calc(-0.06ex) 0 0 currentColor, calc(0.06ex) 0 0 currentColor;
+}
