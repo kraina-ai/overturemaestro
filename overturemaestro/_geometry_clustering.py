@@ -33,7 +33,7 @@ def calculate_row_group_bounding_box(
         Birch(n_clusters=None, threshold=CLUSTERING_THRESHOLD).fit(df[["x_rad", "y_rad"]]).labels_
     )
 
-    aggregated_bounding_boxes = (
+    return (
         df.with_columns(pl.Series(name="label", values=cluster_labels))
         .group_by("label")
         .agg(
@@ -57,9 +57,7 @@ def calculate_row_group_bounding_box(
             .cast(pl.List(pl.List(pl.UInt32)))
             .alias("row_indexes_ranges"),
         )
-    )
-
-    return aggregated_bounding_boxes.to_arrow()
+    ).to_arrow()
 
 
 # https://stackoverflow.com/a/4629241

@@ -273,7 +273,7 @@ def _generate_release_index(
 
     cache_directory.mkdir(exist_ok=True, parents=True)
 
-    with tempfile.TemporaryDirectory(dir=Path(".").resolve()) as tmp_dir_name:
+    with tempfile.TemporaryDirectory(dir=Path.cwd()) as tmp_dir_name:
         tmp_dir_path = Path(tmp_dir_name)
         bounding_boxes_path = tmp_dir_path / "overture_bounding_boxes"
 
