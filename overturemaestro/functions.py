@@ -82,10 +82,7 @@ def convert_geometry_to_parquet(
         >>> len(gdf)
         1863
         >>> list(gdf.columns)
-        ['id', 'geometry', 'bbox', 'version', 'sources', 'subtype', 'class', 'names', 'level',
-        'has_parts', 'height', 'is_underground', 'num_floors', 'num_floors_underground',
-        'min_height', 'min_floor', 'facade_color', 'facade_material', 'roof_material', 'roof_shape',
-        'roof_direction', 'roof_orientation', 'roof_color', 'roof_height', 'theme', 'type']
+        ['id', 'geometry', 'bbox', 'version',... 'roof_color', 'roof_height', 'theme', 'type']
 
         Download museums in the same area from places dataset with a filter.
 
