@@ -219,7 +219,7 @@ def convert_geometry_to_geodataframe(
         08b194ad33db4fff0200cb2043a25c3c                                None    commercial
         08b194ad33db4fff0200f2ead15d53ac                                None   residential
         08b194ad33db5fff02005eaafd2ff033  {'primary': 'Cooper & Southwark...    commercial
-
+        <BLANKLINE>
         [1863 rows x 2 columns]
 
         Download museums in the same area from places dataset with a filter.
@@ -234,14 +234,14 @@ def convert_geometry_to_geodataframe(
         ...         ("confidence", ">", 0.95),
         ...     ]],
         ... ) # doctest: +IGNORE_RESULT
-        >>> gdf[["names", "confidence"]]
+        >>> gdf[["names", "confidence"]].sort_values(by='confidence', ascending=False)
                                                                        names  confidence
         id
-        08f194ad149044c6037575af3681766f  {'primary': 'Philip Simpson Des...    0.969941
+        08f194ad32a0d494030fdddc1b405fb1  {'primary': 'Shakespeare's Glob...    0.991993
         08f194ad1499c8b1038ff3e213d81456  {'primary': 'Florence Nightinga...    0.982253
         08f194ad30690a42034312e00c0254a2  {'primary': 'The Clink Prison M...    0.982253
+        08f194ad149044c6037575af3681766f  {'primary': 'Philip Simpson Des...    0.969941
         08f194ad30695784036410e184708927  {'primary': 'Clink Street Londo...    0.965185
-        08f194ad32a0d494030fdddc1b405fb1  {'primary': 'Shakespeare's Glob...    0.991993
     """
     parsed_geoparquet_file = download_data(
         release=release,
