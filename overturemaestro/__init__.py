@@ -14,7 +14,7 @@ from overturemaestro.functions import (
 from overturemaestro.release_index import get_available_theme_type_pairs
 
 __app_name__ = "OvertureMaestro"
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 __all__ = [
     "convert_geometry_to_geodataframe",

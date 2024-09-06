@@ -1,6 +1,6 @@
 [project]
 name = "OvertureMaestro"
-version = "0.0.1"
+version = "0.0.2"
 description = "An open-source tool for downloading Overture Maps data with quality of life features"
 authors = [
     {name = "Kamil Raczycki", email = "kraczycki@kraina.ai"},
@@ -173,7 +173,7 @@ close-quotes-on-newline = true
 wrap-one-line = true
 
 [tool.bumpver]
-current_version = "0.0.1"
+current_version = "0.0.2"
 version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 commit_message = "chore(CI/CD): bump version {old_version} -> {new_version}"
 commit = true
