@@ -26,6 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.0.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.0.1...HEAD
 
-[0.0.1]: https://github.com/kraina-ai/quackosm/releases/tag/0.0.1
+[0.0.1]: https://github.com/kraina-ai/overturemaestro/releases/tag/0.0.1
