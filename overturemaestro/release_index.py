@@ -187,7 +187,9 @@ def _download_existing_release_index(
 
     try:
         index_content_file_name = "release_index_content.json"
-        index_content_file_url = LFS_DIRECTORY_URL + str(cache_directory / index_content_file_name)
+        index_content_file_url = (
+            LFS_DIRECTORY_URL + (cache_directory / index_content_file_name).as_posix()
+        )
         retrieve(
             index_content_file_url,
             fname=index_content_file_name,
@@ -212,7 +214,7 @@ def _download_existing_release_index(
                 if theme_value == theme and type_value == type:
                     continue
 
-                index_file_url = LFS_DIRECTORY_URL + str(cache_directory / file_name)
+                index_file_url = LFS_DIRECTORY_URL + (cache_directory / file_name).as_posix()
                 retrieve(
                     index_file_url,
                     fname=file_name,

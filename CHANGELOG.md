@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added missing Pooch and geoarrow-rust-core dependencies
 - Cleaned other dependencies
+- Changed forward slashes in URLs on Windows
 
 ## [0.0.1] - 2024-09-02
 
