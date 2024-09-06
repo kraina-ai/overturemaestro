@@ -5,6 +5,7 @@ Functions used to download Overture Maps data before local filtering.
 """
 
 import multiprocessing
+import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
@@ -43,20 +44,17 @@ def download_data_for_multiple_types(
     Returns:
         list[Path]: List of saved Geoparquet files paths.
     """
-    paths = []
-    for theme_value, type_value in theme_type_pairs:
-        paths.append(
-            download_data(
-                release=release,
-                theme=theme_value,
-                type=type_value,
-                geometry_filter=geometry_filter,
-                ignore_cache=ignore_cache,
-                working_directory=working_directory,
-            )
+    return [
+        download_data(
+            release=release,
+            theme=theme_value,
+            type=type_value,
+            geometry_filter=geometry_filter,
+            ignore_cache=ignore_cache,
+            working_directory=working_directory,
         )
-
-    return paths
+        for theme_value, type_value in theme_type_pairs
+    ]
 
 
 def download_data(
@@ -281,8 +279,8 @@ def _generate_row_group_file_name(
 
     row_indexes_ranges_str = str(
         [
-            (int(range_pair[0]), int(range_pair[1]))
-            for range_pair in sorted(row_indexes_ranges, key=lambda x: x[0])
+            (int(range_pair[0]), int(range_pair[1]))  # noqa: FURB123
+            for range_pair in sorted(row_indexes_ranges, key=operator.itemgetter(0))
         ]
     )
     h = hashlib.new("sha256")
