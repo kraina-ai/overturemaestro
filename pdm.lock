@@ -5,7 +5,7 @@
 groups = ["default", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:96e8b5a1e78da282a22a3a313720f6bf9a5f90d2d39e022b59a30433a6564fbc"
+content_hash = "sha256:db3d590762456b49deeca44827938a875d97635c8e5cf7d8373b352efc8e642d"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -2915,6 +2915,32 @@ files = [
     {file = "pillow-10.4.0-pp39-pypy39_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:f7baece4ce06bade126fb84b8af1c33439a76d8a6fd818970215e0560ca28c27"},
     {file = "pillow-10.4.0-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:cfdd747216947628af7b259d274771d84db2268ca062dd5faf373639d00113a3"},
     {file = "pillow-10.4.0.tar.gz", hash = "sha256:166c1cd4d24309b30d61f79f4a9114b7b2313d7450912277855ff5dfd7cd4a06"},
+]
+
+[[package]]
+name = "pip"
+version = "24.2"
+requires_python = ">=3.8"
+summary = "The PyPA recommended tool for installing Python packages."
+groups = ["license"]
+files = [
+    {file = "pip-24.2-py3-none-any.whl", hash = "sha256:2cd581cf58ab7fcfca4ce8efa6dcacd0de5bf8d0a3eb9ec927e07405f4d9e2a2"},
+    {file = "pip-24.2.tar.gz", hash = "sha256:5b5e490b5e9cb275c879595064adce9ebd31b854e3e803740b72f9ccf34a45b8"},
+]
+
+[[package]]
+name = "pipdeptree"
+version = "2.23.1"
+requires_python = ">=3.8"
+summary = "Command line utility to show dependency tree of packages."
+groups = ["license"]
+dependencies = [
+    "packaging>=23.1",
+    "pip>=23.1.2",
+]
+files = [
+    {file = "pipdeptree-2.23.1-py3-none-any.whl", hash = "sha256:b610a1232eca8c2c0232fff03a88afe6fed01706c73a314615c368f023313a12"},
+    {file = "pipdeptree-2.23.1.tar.gz", hash = "sha256:ebc9b232d7e8ca061826f1875fd4ccc823930f84f327d302019d2ca856f50973"},
 ]
 
 [[package]]

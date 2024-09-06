@@ -98,7 +98,7 @@ docs = [
     "adjustText",
     "contextily",
 ]
-license = ["licensecheck"]
+license = ["licensecheck", "pipdeptree"]
 cli-dev = [
     "ipywidgets",
     "folium",
