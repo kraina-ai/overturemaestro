@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Alternative bounding box related functions for downloading data
+
 ## [0.0.2] - 2024-09-06
 
 ### Added

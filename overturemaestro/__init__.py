@@ -6,6 +6,10 @@ features.
 """
 
 from overturemaestro.functions import (
+    convert_bounding_box_to_geodataframe,
+    convert_bounding_box_to_geodataframe_for_multiple_types,
+    convert_bounding_box_to_parquet,
+    convert_bounding_box_to_parquet_for_multiple_types,
     convert_geometry_to_geodataframe,
     convert_geometry_to_geodataframe_for_multiple_types,
     convert_geometry_to_parquet,
@@ -17,6 +21,10 @@ __app_name__ = "OvertureMaestro"
 __version__ = "0.0.2"
 
 __all__ = [
+    "convert_bounding_box_to_geodataframe",
+    "convert_bounding_box_to_geodataframe_for_multiple_types",
+    "convert_bounding_box_to_parquet",
+    "convert_bounding_box_to_parquet_for_multiple_types",
     "convert_geometry_to_geodataframe",
     "convert_geometry_to_geodataframe_for_multiple_types",
     "convert_geometry_to_parquet",
