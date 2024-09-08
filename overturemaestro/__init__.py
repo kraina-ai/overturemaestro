@@ -18,7 +18,7 @@ from overturemaestro.functions import (
 from overturemaestro.release_index import get_available_theme_type_pairs
 
 __app_name__ = "OvertureMaestro"
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 __all__ = [
     "convert_bounding_box_to_geodataframe",
