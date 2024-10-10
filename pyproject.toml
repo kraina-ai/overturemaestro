@@ -2,9 +2,7 @@
 name = "OvertureMaestro"
 version = "0.0.3"
 description = "An open-source tool for downloading Overture Maps data with quality of life features"
-authors = [
-    {name = "Kamil Raczycki", email = "kraczycki@kraina.ai"},
-]
+authors = [{ name = "Kamil Raczycki", email = "kraczycki@kraina.ai" }]
 dependencies = [
     "overturemaps>=0.8.0",
     "geopandas>=0.6",
@@ -12,15 +10,17 @@ dependencies = [
     "pyarrow>=16.0.0",
     "polars>=0.19.4",
     "rich>=12.0.0",
-    "scikit-learn>=0.16", # move to dedicated group
+    "scikit-learn>=0.16",        # move to dedicated group
     "geoarrow-rust-core>=0.2.0", # move to dedicated group
     "pooch>=1.6.0",
     "aiohttp",
     "fsspec",
+    "geopy>=2.0.0",
+    "numpy>=1.26.0",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
-license = {text = "Apache-2.0"}
+license = { text = "Apache-2.0" }
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: Apache Software License",
@@ -38,14 +38,8 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
 ]
 
-# [project.optional-dependencies]
-# cli = [
-#     "typer[all]>=0.9.0",
-#     "h3>=4.0.0b1",
-#     "s2>=0.1.9",
-#     "python-geohash>=0.8",
-#     "geopy>=2.0.0",
-# ]
+[project.optional-dependencies]
+cli = ["typer[all]>=0.9.0", "h3>=4.0.0b1", "s2>=0.1.9", "python-geohash>=0.8"]
 
 # [project.scripts]
 # overturemaestro = "overturemaestro.__main__:main"
@@ -59,13 +53,9 @@ build-backend = "pdm.backend"
 [tool.pdm]
 [tool.pdm.dev-dependencies]
 # pdm add -d <library>
-dev = [
-    "bumpver",
-    "types-requests",
-    "setuptools>=45.0.0",
-]
+dev = ["bumpver", "types-requests", "setuptools>=45.0.0"]
 # pdm add -dG lint <library>
-lint = ["pre-commit", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
+lint = ["pre-commit>=4", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
 # pdm add -dG test <library>
 test = [
     "pytest>=7.0.0",
@@ -99,11 +89,13 @@ docs = [
     "contextily",
 ]
 license = ["licensecheck", "pipdeptree"]
-cli-dev = [
-    "ipywidgets",
-    "folium",
-    "matplotlib>=3.2.0",
-    "mapclassify",
+cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify"]
+benchmark = [
+    "psutil>=5.6.2",
+    "duckdb>=1.1.0",
+    "drawarrow",
+    "highlight-text",
+    "pypalettes",
 ]
 
 [tool.pdm.scripts]
@@ -191,14 +183,18 @@ push = false
 addopts = ["--import-mode=importlib"]
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 log_cli = true
-doctest_optionflags = ['ELLIPSIS', 'NORMALIZE_WHITESPACE', 'IGNORE_EXCEPTION_DETAIL']
+doctest_optionflags = [
+    'ELLIPSIS',
+    'NORMALIZE_WHITESPACE',
+    'IGNORE_EXCEPTION_DETAIL',
+]
 
 [tool.licensecheck]
 using = "requirements"
 zero = false
 ignore_licenses = ["UNKNOWN"]
 ignore_packages = [
-    'docformatter',             # uses MIT license, has mismatched license in analysis
-    'mkdocs-jupyter',           # uses Apache-2.0 license, has mismatched license in analysis
-    'python-geohash',           # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
+    'docformatter',   # uses MIT license, has mismatched license in analysis
+    'mkdocs-jupyter', # uses Apache-2.0 license, has mismatched license in analysis
+    'python-geohash', # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
 ]
