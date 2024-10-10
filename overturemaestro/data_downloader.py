@@ -7,7 +7,7 @@ Functions used to download Overture Maps data before local filtering.
 import multiprocessing
 import operator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
 if TYPE_CHECKING:
     from pyarrow.compute import Expression
@@ -22,10 +22,42 @@ __all__ = [
 ]
 
 
+@overload
 def download_data_for_multiple_types(
-    release: str,
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+) -> list[Path]: ...
+
+
+@overload
+def download_data_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: "BaseGeometry",
+    release: str,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+) -> list[Path]: ...
+
+@overload
+def download_data_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: "BaseGeometry",
+    release: Optional[str] = None,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+) -> list[Path]: ...
+
+
+def download_data_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: "BaseGeometry",
+    release: Optional[str] = None,
+    *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
 ) -> list[Path]:
@@ -33,9 +65,10 @@ def download_data_for_multiple_types(
     Downloads the data for the given release for multiple types.
 
     Args:
-        release (str): Release version.
         theme_type_pairs (list[tuple[str, str]]): Pairs of themes and types of the dataset.
         geometry_filter (BaseGeometry): Geometry used to filter data.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -46,10 +79,10 @@ def download_data_for_multiple_types(
     """
     return [
         download_data(
-            release=release,
             theme=theme_value,
             type=type_value,
             geometry_filter=geometry_filter,
+            release=release,
             ignore_cache=ignore_cache,
             working_directory=working_directory,
         )
@@ -57,11 +90,53 @@ def download_data_for_multiple_types(
     ]
 
 
+@overload
 def download_data(
-    release: str,
     theme: str,
     type: str,
     geometry_filter: "BaseGeometry",
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+) -> Path: ...
+
+
+@overload
+def download_data(
+    theme: str,
+    type: str,
+    geometry_filter: "BaseGeometry",
+    release: str,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+) -> Path: ...
+
+
+@overload
+def download_data(
+    theme: str,
+    type: str,
+    geometry_filter: "BaseGeometry",
+    release: Optional[str] = None,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+) -> Path: ...
+
+
+def download_data(
+    theme: str,
+    type: str,
+    geometry_filter: "BaseGeometry",
+    release: Optional[str] = None,
+    *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -71,10 +146,11 @@ def download_data(
     Downloads the data for the given release.
 
     Args:
-        release (str): Release version.
         theme (str): Theme of the dataset.
         type (str): Type of the dataset.
         geometry_filter (BaseGeometry): Geometry used to filter data.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
@@ -89,6 +165,11 @@ def download_data(
         Path: Saved Geoparquet file path.
     """
     import tempfile
+
+    from overturemaestro.release_index import get_newest_release_version
+
+    if not release:
+        release = get_newest_release_version()
 
     working_directory = Path(working_directory)
     working_directory.mkdir(parents=True, exist_ok=True)
@@ -145,7 +226,9 @@ def _download_data(
     from overturemaestro._rich_progress import TrackProgressBar
     from overturemaestro.release_index import load_release_index
 
-    dataset_index = load_release_index(release, theme, type, geometry_filter)
+    dataset_index = load_release_index(
+        release=release, theme=theme, type=type, geometry_filter=geometry_filter
+    )
 
     dataset_index = (
         dataset_index.explode("row_indexes_ranges")
