@@ -472,6 +472,7 @@ def convert_bounding_box_to_parquet(
     working_directory: Union[str, Path] = "files",
 ) -> Path: ...
 
+
 @overload
 def convert_bounding_box_to_parquet(
     theme: str,
@@ -603,6 +604,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
 ) -> list[Path]: ...
 
+
 @overload
 def convert_bounding_box_to_parquet_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
@@ -676,6 +678,7 @@ def convert_bounding_box_to_geodataframe(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
 ) -> gpd.GeoDataFrame: ...
+
 
 @overload
 def convert_bounding_box_to_geodataframe(
