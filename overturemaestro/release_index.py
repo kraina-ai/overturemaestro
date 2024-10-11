@@ -73,6 +73,18 @@ def get_newest_release_version() -> str:
     )
     return newest_release_version
 
+def get_all_available_release_versions() -> list[str]:
+    """
+    Get all available OvertureMaps release versions.
+
+    Checks available precalculated release indexes in the GitHub repository
+    and returns them.
+
+    Returns:
+        list[str]: Release versions.
+    """
+    return sorted(_load_all_available_release_versions_from_github())[::-1]
+
 
 @overload
 def load_release_indexes(
@@ -485,11 +497,14 @@ def _get_release_cache_directory(release: str) -> Path:
 def _get_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
 
-
-def _load_newest_release_version_from_github() -> str:
+def _load_all_available_release_versions_from_github() -> list[str]:
     gh_fs = GithubFileSystem(org="kraina-ai", repo="overturemaps-releases-indexes")
     release_versions = [file_path.split("/")[1] for file_path in gh_fs.ls("release_indexes")]
-    return cast(str, sorted(release_versions)[-1])
+    return release_versions
+
+def _load_newest_release_version_from_github() -> str:
+    release_versions = _load_all_available_release_versions_from_github()
+    return sorted(release_versions)[-1]
 
 
 def _consolidate_release_index_files(release: str, remove_other_files: bool = False) -> bool:
