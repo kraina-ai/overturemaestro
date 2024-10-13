@@ -10,8 +10,7 @@ dependencies = [
     "pyarrow>=16.0.0",
     "polars>=0.19.4",
     "rich>=12.0.0",
-    "scikit-learn>=0.16",        # move to dedicated group
-    "geoarrow-rust-core>=0.2.0", # move to dedicated group
+    "geoarrow-rust-core>=0.2.0",
     "pooch>=1.6.0",
     "aiohttp",
     "fsspec",
@@ -40,10 +39,11 @@ classifiers = [
 
 [project.optional-dependencies]
 cli = ["typer[all]>=0.9.0", "h3>=4.0.0b1", "s2>=0.1.9", "python-geohash>=0.8"]
+index-generation = ["scikit-learn>=0.16"]
 
-# [project.scripts]
-# overturemaestro = "overturemaestro.__main__:main"
-# OvertureMaestro = "overturemaestro.__main__:main"
+[project.scripts]
+overturemaestro = "overturemaestro.__main__:main"
+OvertureMaestro = "overturemaestro.__main__:main"
 
 [build-system]
 requires = ["pdm-backend"]

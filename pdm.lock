@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "benchmark", "cli-dev", "dev", "docs", "license", "lint", "test"]
+groups = ["default", "benchmark", "cli", "cli-dev", "dev", "docs", "index-generation", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:2b5029b3bca57b8e2b1d3e1d22afd624dbccdf245e7f054549d2004f3818add1"
+content_hash = "sha256:11d1551b2845163e6c95ca9ac9859abd41cc928a9154e4f1a4d5d43868174b77"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -721,7 +721,7 @@ name = "click"
 version = "8.1.7"
 requires_python = ">=3.7"
 summary = "Composable command line interface toolkit"
-groups = ["default", "dev", "docs"]
+groups = ["default", "cli", "dev", "docs"]
 dependencies = [
     "colorama; platform_system == \"Windows\"",
     "importlib-metadata; python_version < \"3.8\"",
@@ -763,7 +763,7 @@ name = "colorama"
 version = "0.4.6"
 requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
 summary = "Cross-platform colored terminal text."
-groups = ["default", "cli-dev", "dev", "docs", "license", "test"]
+groups = ["default", "cli", "cli-dev", "dev", "docs", "license", "test"]
 files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
@@ -1278,6 +1278,17 @@ files = [
 ]
 
 [[package]]
+name = "future"
+version = "1.0.0"
+requires_python = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+summary = "Clean single-source support for Python 3 and 2"
+groups = ["cli"]
+files = [
+    {file = "future-1.0.0-py3-none-any.whl", hash = "sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216"},
+    {file = "future-1.0.0.tar.gz", hash = "sha256:bd2968309307861edae1458a4f8a4f3598c03be43b97521076aebf5d94c07b05"},
+]
+
+[[package]]
 name = "geoarrow-rust-core"
 version = "0.3.0"
 requires_python = ">=3.8"
@@ -1388,6 +1399,40 @@ dependencies = [
 files = [
     {file = "h11-0.14.0-py3-none-any.whl", hash = "sha256:e3fe4ac4b851c468cc8363d500db52c2ead036020723024a109d37346efaa761"},
     {file = "h11-0.14.0.tar.gz", hash = "sha256:8f19fbbe99e72420ff35c00b27a34cb9937e902a8b810e2c88300c6f0a3b699d"},
+]
+
+[[package]]
+name = "h3"
+version = "4.1.0b3"
+requires_python = ">=3.8"
+summary = "Uber's hierarchical hexagonal geospatial indexing system"
+groups = ["cli"]
+files = [
+    {file = "h3-4.1.0b3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:f7725dc53ba6b173a0a0c1bed3c4bee775e04f57901491491fbecb9f677038a4"},
+    {file = "h3-4.1.0b3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:12b41e99b307a65018bb723527f63f9ae8f970dc42615cb56989b0c1771b795e"},
+    {file = "h3-4.1.0b3-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2c774f5270701d6c1ad9fdcee5ea148fa99d4efd91e23180a755ee7fb45d9a1f"},
+    {file = "h3-4.1.0b3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6e6d51a033ec6b33eb576649f329e3a32c797fe4c712cd45c03a1751b574253b"},
+    {file = "h3-4.1.0b3-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:15a32fd3e982d4411b0a216eeb54b4c371736e80fefa114b9f1ac93a62eb4fdb"},
+    {file = "h3-4.1.0b3-cp310-cp310-win_amd64.whl", hash = "sha256:68b326b039ae1d82cd5b13f5d051912e4f133af7b0027fdb77fff660ac8767d6"},
+    {file = "h3-4.1.0b3-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:69a944267314645995388f6b9c8e8e00a66e89d43872fb75dbeb7cfb580766c2"},
+    {file = "h3-4.1.0b3-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:012443cd560f72b27ea4a03d53ec8723c63bc7fb112a78bece69fef74691e17b"},
+    {file = "h3-4.1.0b3-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6fa7ef3eea83f9cf5edf063e3eac800eb99ebf71d2f386d12b7dd4187f13d119"},
+    {file = "h3-4.1.0b3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cded3a47819a5a8ea626c8806b10eafe7b16c4dd66dd944e4a79fe17c82ec526"},
+    {file = "h3-4.1.0b3-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:d8666ab1cc6a1d4c6cdf63964546d53276267c377b616c4877e0c5d232314cdc"},
+    {file = "h3-4.1.0b3-cp311-cp311-win_amd64.whl", hash = "sha256:cc373f67874209241dcc5d5eb2fb553ad91c264af29f0e25e5ab634fbb75c349"},
+    {file = "h3-4.1.0b3-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:8a06a202ad4a4d174b6528be0f61556aab3c508a3517fbbd41a89cb679f87941"},
+    {file = "h3-4.1.0b3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:8f50ad766171781ed8f75b5c5b4beff595793ca8bd05717eff81252727456d68"},
+    {file = "h3-4.1.0b3-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c7dd290371061aa02286ef02733856262479a6118a12f0661c48816143f6140d"},
+    {file = "h3-4.1.0b3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9685eb4d61910b3290468cf72e6a1408d7c4a4480a562fbeab8d3a9c24c4aa18"},
+    {file = "h3-4.1.0b3-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:d8738a631a5bf5d03f27afdf095bb3df78ee5aaa1e57323153a64a6ffbb5ded9"},
+    {file = "h3-4.1.0b3-cp312-cp312-win_amd64.whl", hash = "sha256:0e312f9e246cb282f489285746a98901ba0ad359a17fb8c63121a7f993cc606b"},
+    {file = "h3-4.1.0b3-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:1ad1b82908a164404ff6c14262f6a6fc99b8bad8b084e9fdf8fd2e173a5f8bdc"},
+    {file = "h3-4.1.0b3-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:730a9976b88d66e79f16d4dc8697d8a5ef2039d47c6472c40bb18db9f1ad2bf1"},
+    {file = "h3-4.1.0b3-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cc56ce7c10301e70f0154557ed1596c6a45af6d8cd85aaa19ff8324d24ca2778"},
+    {file = "h3-4.1.0b3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ba0777823378c495b375b367026e84e70d73f8ff7850a59566e198b3e1127499"},
+    {file = "h3-4.1.0b3-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:f7fa5f623df1475b30fac4ec665e4f67ac05616456115b0ab2995db194bcbf36"},
+    {file = "h3-4.1.0b3-cp39-cp39-win_amd64.whl", hash = "sha256:bff660853b2a504c7ad19a1cde673f20ba68a99131bdd151db5c88937c9f0272"},
+    {file = "h3-4.1.0b3.tar.gz", hash = "sha256:9c1b9d58967cf27ea8338d1f03d5f4ef5d625af3d17ed0861f1e2b87bf1fc396"},
 ]
 
 [[package]]
@@ -1613,7 +1658,7 @@ name = "joblib"
 version = "1.4.2"
 requires_python = ">=3.8"
 summary = "Lightweight pipelining with Python functions"
-groups = ["default", "cli-dev", "docs"]
+groups = ["cli-dev", "docs", "index-generation"]
 files = [
     {file = "joblib-1.4.2-py3-none-any.whl", hash = "sha256:06d478d5674cbc267e7496a410ee875abd68e4340feff4490bcb7afb88060ae6"},
     {file = "joblib-1.4.2.tar.gz", hash = "sha256:2382c5816b2636fbd20a09e0f4e9dad4736765fdfb7dca582943b9c1366b3f0e"},
@@ -2162,7 +2207,7 @@ name = "markdown-it-py"
 version = "3.0.0"
 requires_python = ">=3.8"
 summary = "Python port of markdown-it. Markdown parsing, done right!"
-groups = ["default", "docs", "license"]
+groups = ["default", "cli", "docs", "license"]
 dependencies = [
     "mdurl~=0.1",
 ]
@@ -2315,7 +2360,7 @@ name = "mdurl"
 version = "0.1.2"
 requires_python = ">=3.7"
 summary = "Markdown URL utilities"
-groups = ["default", "docs", "license"]
+groups = ["default", "cli", "docs", "license"]
 files = [
     {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
     {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
@@ -2870,7 +2915,7 @@ name = "numpy"
 version = "2.0.2"
 requires_python = ">=3.9"
 summary = "Fundamental package for array computing in Python"
-groups = ["default", "benchmark", "cli-dev", "docs"]
+groups = ["default", "benchmark", "cli", "cli-dev", "docs", "index-generation"]
 files = [
     {file = "numpy-2.0.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:51129a29dbe56f9ca83438b706e2e69a39892b5eda6cedcb6b0c9fdc9b0d3ece"},
     {file = "numpy-2.0.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f15975dfec0cf2239224d80e32c3170b1d168335eaedee69da84fbe9f1f9cd04"},
@@ -3384,7 +3429,7 @@ name = "pygments"
 version = "2.18.0"
 requires_python = ">=3.8"
 summary = "Pygments is a syntax highlighting package written in Python."
-groups = ["default", "cli-dev", "docs", "license"]
+groups = ["default", "cli", "cli-dev", "docs", "license"]
 files = [
     {file = "pygments-2.18.0-py3-none-any.whl", hash = "sha256:b8e6aca0523f3ab76fee51799c488e38782ac06eafcf95e7ba832985c8e7b13a"},
     {file = "pygments-2.18.0.tar.gz", hash = "sha256:786ff802f32e91311bff3889f6e9a86e81505fe99f2735bb6d60ae0c5004f199"},
@@ -3617,6 +3662,15 @@ dependencies = [
 files = [
     {file = "python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3"},
     {file = "python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"},
+]
+
+[[package]]
+name = "python-geohash"
+version = "0.8.5"
+summary = "Fast, accurate python geohashing library"
+groups = ["cli"]
+files = [
+    {file = "python-geohash-0.8.5.tar.gz", hash = "sha256:05a21fcf4eda1a5eddbd291890ade23fc5ddaa6bb98f2ee23d2d384ed14f086d"},
 ]
 
 [[package]]
@@ -4073,7 +4127,7 @@ name = "rich"
 version = "13.8.1"
 requires_python = ">=3.7.0"
 summary = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
-groups = ["default", "license"]
+groups = ["default", "cli", "license"]
 dependencies = [
     "markdown-it-py>=2.2.0",
     "pygments<3.0.0,>=2.13.0",
@@ -4211,11 +4265,39 @@ files = [
 ]
 
 [[package]]
+name = "s2"
+version = "0.1.9"
+requires_python = ">=3"
+summary = "Python bindings for S2, a hierarchical square geospatial indexing system."
+groups = ["cli"]
+dependencies = [
+    "s2sphere",
+    "shapely",
+]
+files = [
+    {file = "s2-0.1.9-py2.py3-none-any.whl", hash = "sha256:8f550c1f65a16a5e2efb64867d12356f20092a2d87b10575104563ef6379c192"},
+    {file = "s2-0.1.9.tar.gz", hash = "sha256:ad7a90d78f00dd9edf5002ebfa16163a6cbea582bba4ad8ea9d22df07a60851e"},
+]
+
+[[package]]
+name = "s2sphere"
+version = "0.2.5"
+summary = "Python implementation of the S2 Geometry Library"
+groups = ["cli"]
+dependencies = [
+    "future>=0.15",
+]
+files = [
+    {file = "s2sphere-0.2.5-py2.py3-none-any.whl", hash = "sha256:d2340c9cf458ddc9a89afd1d8048a4195ce6fa6b0095ab900d4be5271e537401"},
+    {file = "s2sphere-0.2.5.tar.gz", hash = "sha256:c2478c1ff7c601a59a7151a57b605435897514578fa6bdb8730721c182adbbaf"},
+]
+
+[[package]]
 name = "scikit-learn"
 version = "1.5.2"
 requires_python = ">=3.9"
 summary = "A set of python modules for machine learning and data mining"
-groups = ["default", "cli-dev"]
+groups = ["cli-dev", "index-generation"]
 dependencies = [
     "joblib>=1.2.0",
     "numpy>=1.19.5",
@@ -4251,7 +4333,7 @@ name = "scipy"
 version = "1.13.1"
 requires_python = ">=3.9"
 summary = "Fundamental algorithms for scientific computing in Python"
-groups = ["default", "cli-dev", "docs"]
+groups = ["cli-dev", "docs", "index-generation"]
 dependencies = [
     "numpy<2.3,>=1.22.4",
 ]
@@ -4326,7 +4408,7 @@ name = "shapely"
 version = "2.0.6"
 requires_python = ">=3.7"
 summary = "Manipulation and analysis of geometric objects"
-groups = ["default"]
+groups = ["default", "cli"]
 dependencies = [
     "numpy<3,>=1.14",
 ]
@@ -4362,6 +4444,17 @@ files = [
     {file = "shapely-2.0.6-cp39-cp39-win32.whl", hash = "sha256:44246d30124a4f1a638a7d5419149959532b99dfa25b54393512e6acc9c211ac"},
     {file = "shapely-2.0.6-cp39-cp39-win_amd64.whl", hash = "sha256:2b542d7f1dbb89192d3512c52b679c822ba916f93479fa5d4fc2fe4fa0b3c9e8"},
     {file = "shapely-2.0.6.tar.gz", hash = "sha256:997f6159b1484059ec239cacaa53467fd8b5564dabe186cd84ac2944663b0bf6"},
+]
+
+[[package]]
+name = "shellingham"
+version = "1.5.4"
+requires_python = ">=3.7"
+summary = "Tool to Detect Surrounding Shell"
+groups = ["cli"]
+files = [
+    {file = "shellingham-1.5.4-py2.py3-none-any.whl", hash = "sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686"},
+    {file = "shellingham-1.5.4.tar.gz", hash = "sha256:8dbca0739d487e5bd35ab3ca4b36e11c4078f3a234bfce294b0a0291363404de"},
 ]
 
 [[package]]
@@ -4433,7 +4526,7 @@ name = "threadpoolctl"
 version = "3.5.0"
 requires_python = ">=3.8"
 summary = "threadpoolctl"
-groups = ["default", "cli-dev"]
+groups = ["cli-dev", "index-generation"]
 files = [
     {file = "threadpoolctl-3.5.0-py3-none-any.whl", hash = "sha256:56c1e26c150397e58c4926da8eeee87533b1e32bef131bd4bf6a2f45f3185467"},
     {file = "threadpoolctl-3.5.0.tar.gz", hash = "sha256:082433502dd922bf738de0d8bcc4fdcbf0979ff44c42bd40f5af8a282f6fa107"},
@@ -4545,6 +4638,38 @@ files = [
 ]
 
 [[package]]
+name = "typer"
+version = "0.12.5"
+requires_python = ">=3.7"
+summary = "Typer, build great CLIs. Easy to code. Based on Python type hints."
+groups = ["cli"]
+dependencies = [
+    "click>=8.0.0",
+    "rich>=10.11.0",
+    "shellingham>=1.3.0",
+    "typing-extensions>=3.7.4.3",
+]
+files = [
+    {file = "typer-0.12.5-py3-none-any.whl", hash = "sha256:62fe4e471711b147e3365034133904df3e235698399bc4de2b36c8579298d52b"},
+    {file = "typer-0.12.5.tar.gz", hash = "sha256:f592f089bedcc8ec1b974125d64851029c3b1af145f04aca64d69410f0c9b722"},
+]
+
+[[package]]
+name = "typer"
+version = "0.12.5"
+extras = ["all"]
+requires_python = ">=3.7"
+summary = "Typer, build great CLIs. Easy to code. Based on Python type hints."
+groups = ["cli"]
+dependencies = [
+    "typer==0.12.5",
+]
+files = [
+    {file = "typer-0.12.5-py3-none-any.whl", hash = "sha256:62fe4e471711b147e3365034133904df3e235698399bc4de2b36c8579298d52b"},
+    {file = "typer-0.12.5.tar.gz", hash = "sha256:f592f089bedcc8ec1b974125d64851029c3b1af145f04aca64d69410f0c9b722"},
+]
+
+[[package]]
 name = "types-python-dateutil"
 version = "2.9.0.20240906"
 requires_python = ">=3.8"
@@ -4585,7 +4710,7 @@ name = "typing-extensions"
 version = "4.12.2"
 requires_python = ">=3.8"
 summary = "Backported and Experimental Type Hints for Python 3.8+"
-groups = ["default", "cli-dev", "docs", "license", "lint"]
+groups = ["default", "cli", "cli-dev", "docs", "license", "lint"]
 files = [
     {file = "typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d"},
     {file = "typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8"},
