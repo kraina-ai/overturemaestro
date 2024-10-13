@@ -388,11 +388,11 @@ def _filter_data_properly(
 ) -> Any:
     import geopandas as gpd
     import numpy as np
-    from geoarrow.rust.core import WKBArray
+    from geoarrow.rust.core import GeometryArray
     from shapely import Point, STRtree, get_coordinates
 
     geoseries = gpd.GeoSeries.from_arrow(
-        WKBArray.from_arrow(pyarrow_table["geometry"].combine_chunks())
+        GeometryArray.from_arrow(pyarrow_table["geometry"].combine_chunks())
     )
 
     # First pass - find all simple examples - any point inside geometry filter

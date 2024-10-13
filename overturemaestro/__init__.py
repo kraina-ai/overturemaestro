@@ -16,7 +16,7 @@ from overturemaestro.functions import (
     convert_geometry_to_parquet_for_multiple_types,
 )
 from overturemaestro.release_index import (
-    get_all_available_release_versions,
+    get_available_release_versions,
     get_available_theme_type_pairs,
     get_newest_release_version,
 )
@@ -33,7 +33,7 @@ __all__ = [
     "convert_geometry_to_geodataframe_for_multiple_types",
     "convert_geometry_to_parquet",
     "convert_geometry_to_parquet_for_multiple_types",
-    "get_all_available_release_versions",
+    "get_available_release_versions",
     "get_available_theme_type_pairs",
     "get_newest_release_version",
 ]
