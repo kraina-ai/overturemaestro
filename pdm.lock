@@ -5,7 +5,7 @@
 groups = ["default", "benchmark", "cli", "cli-dev", "dev", "docs", "index-generation", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:11d1551b2845163e6c95ca9ac9859abd41cc928a9154e4f1a4d5d43868174b77"
+content_hash = "sha256:4510fd6a035f4705e0a2efb29667c0c4f01263dd45f6a940eccbc75a1e8a2b7a"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -3255,7 +3255,7 @@ name = "polars"
 version = "1.8.2"
 requires_python = ">=3.8"
 summary = "Blazingly fast DataFrame library"
-groups = ["default"]
+groups = ["index-generation"]
 files = [
     {file = "polars-1.8.2-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:114be1ebfb051b794fb9e1f15999430c79cc0824595e237d3f45632be3e56d73"},
     {file = "polars-1.8.2-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:e4fc36cfe48972d4c5be21a7cb119d6378fb7af0bb3eeb61456b66a1f43228e3"},
