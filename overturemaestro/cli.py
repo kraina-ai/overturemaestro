@@ -306,14 +306,8 @@ def main(
                 "Geometry to use as a filter in the"
                 " [bold dark_orange]bounding box[/bold dark_orange] format - 4 floating point"
                 " numbers separated by commas."
-                " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=BboxGeometryParser(),
             show_default=False,
@@ -326,14 +320,8 @@ def main(
                 "Geometry to use as a filter in the"
                 " [bold dark_orange]file[/bold dark_orange] format - any that can be opened by"
                 " GeoPandas. Will return the unary union of the geometries in the file."
-                " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-bbox[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeoFileGeometryParser(),
             show_default=False,
@@ -346,14 +334,8 @@ def main(
                 "Geometry to use as a filter in the"
                 " [bold dark_orange]string to geocode[/bold dark_orange] format - it will be"
                 " geocoded to the geometry using Nominatim API (GeoPy library)."
-                " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-bbox[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeocodeGeometryParser(),
             show_default=False,
@@ -365,14 +347,8 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]GeoJSON[/bold dark_orange]"
                 " format."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-bbox[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeoJsonGeometryParser(),
             show_default=False,
@@ -385,14 +361,8 @@ def main(
                 "Geometry to use as a filter in the"
                 " [bold dark_orange]Geohash index[/bold dark_orange]"
                 " format. Separate multiple values with a comma."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-bbox[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeohashGeometryParser(),
             show_default=False,
@@ -404,14 +374,8 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]H3 index[/bold dark_orange]"
                 " format. Separate multiple values with a comma."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-bbox[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=H3GeometryParser(),
             show_default=False,
@@ -423,14 +387,8 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]S2 index[/bold dark_orange]"
                 " format. Separate multiple values with a comma."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-bbox[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=S2GeometryParser(),
             show_default=False,
@@ -442,14 +400,8 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]WKT[/bold dark_orange]"
                 " format."
-                " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-bbox[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=WktGeometryParser(),
             show_default=False,
