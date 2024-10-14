@@ -6,7 +6,6 @@ from typing import Annotated, Optional, cast
 
 import click
 import typer
-from shapely import box
 
 from overturemaestro._geopandas_api_version import GEOPANDAS_NEW_API
 
@@ -95,6 +94,7 @@ class BboxGeometryParser(click.ParamType):  # type: ignore
     def convert(self, value, param=None, ctx=None):  # type: ignore
         """Convert parameter value."""
         try:
+            from shapely import box
             bbox_values = [float(x.strip()) for x in value.split(",")]
             return box(*bbox_values)
         except ValueError:  # ValueError raised when passing non-numbers to float()
@@ -519,7 +519,7 @@ def main(
         raise UsageError(
             message=(
                 "OvertureMaestro requires theme, type and a geometry filter"
-                " (one of --geom-filter-file, --geom-filter-geocode,"
+                " (one of --geom-filter-bbox --geom-filter-file, --geom-filter-geocode,"
                 " --geom-filter-geojson, --geom-filter-index-geohash,"
                 " --geom-filter-index-h3, --geom-filter-index-s2, --geom-filter-wkt)"
                 " to download the data."
