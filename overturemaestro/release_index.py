@@ -9,14 +9,16 @@ import json
 import tempfile
 import urllib.error
 import urllib.request
+from datetime import date
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, cast, overload
 
-import fsspec.implementations.http
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pyarrow.fs as fs
+from fsspec.implementations.github import GithubFileSystem
+from fsspec.implementations.http import HTTPFileSystem
 from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
 from rich import print as rprint
@@ -31,6 +33,7 @@ __all__ = [
     "download_existing_release_index",
     "generate_release_index",
     "get_available_theme_type_pairs",
+    "get_newest_release_version",
     "load_release_index",
     "load_release_indexes",
 ]
@@ -47,9 +50,76 @@ LFS_DIRECTORY_URL = (
 class ReleaseVersionNotSupportedError(ValueError): ...  # noqa: D101
 
 
+def get_newest_release_version() -> str:
+    """
+    Get newest available OvertureMaps release version.
+
+    Checks available precalculated release indexes in the GitHub repository
+    and returns the newest available version.
+
+    Returns:
+        str: Release version.
+    """
+    release_version_cache_file = Path("release_indexes/_newest_release_version.json")
+    current_date = date.today()
+    if release_version_cache_file.exists():
+        cache_value = json.loads(release_version_cache_file.read_text())
+        if date.fromisoformat(cache_value["date"]) >= current_date:
+            return cast(str, cache_value["release_version"])
+
+    newest_release_version = _load_newest_release_version_from_github()
+    release_version_cache_file.write_text(
+        json.dumps(dict(date=current_date.isoformat(), release_version=newest_release_version))
+    )
+    return newest_release_version
+
+
+def get_available_release_versions() -> list[str]:
+    """
+    Get available OvertureMaps release versions.
+
+    Checks available precalculated release indexes in the GitHub repository
+    and returns them.
+
+    Returns:
+        list[str]: Release versions.
+    """
+    return sorted(_load_all_available_release_versions_from_github())[::-1]
+
+
+@overload
 def load_release_indexes(
-    release: str,
     theme_type_pairs: list[tuple[str, str]],
+    *,
+    geometry_filter: Optional[BaseGeometry] = None,
+    remote_index: bool = False,
+) -> gpd.GeoDataFrame: ...
+
+
+@overload
+def load_release_indexes(
+    theme_type_pairs: list[tuple[str, str]],
+    release: str,
+    *,
+    geometry_filter: Optional[BaseGeometry] = None,
+    remote_index: bool = False,
+) -> gpd.GeoDataFrame: ...
+
+
+@overload
+def load_release_indexes(
+    theme_type_pairs: list[tuple[str, str]],
+    release: Optional[str] = None,
+    *,
+    geometry_filter: Optional[BaseGeometry] = None,
+    remote_index: bool = False,
+) -> gpd.GeoDataFrame: ...
+
+
+def load_release_indexes(
+    theme_type_pairs: list[tuple[str, str]],
+    release: Optional[str] = None,
+    *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
 ) -> gpd.GeoDataFrame:
@@ -57,8 +127,9 @@ def load_release_indexes(
     Load multiple release indexes as a GeoDataFrame.
 
     Args:
-        release (str): Release version.
         theme_type_pairs (list[tuple[str, str]]): Pairs of themes and types of the dataset.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         geometry_filter (Optional[BaseGeometry], optional): Geometry to pre-filter resulting rows.
             Defaults to None.
         remote_index (bool, optional): Avoid downloading the index and stream it from remote source.
@@ -68,33 +139,79 @@ def load_release_indexes(
         gpd.GeoDataFrame: Index with bounding boxes for each row group for each parquet file.
     """
     return gpd.pd.concat(
-        load_release_index(release, theme_value, type_value, geometry_filter, remote_index)
+        load_release_index(
+            theme=theme_value,
+            type=type_value,
+            release=release,
+            geometry_filter=geometry_filter,
+            remote_index=remote_index,
+        )
         for theme_value, type_value in theme_type_pairs
     )
 
 
+@overload
 def load_release_index(
-    release: str,
     theme: str,
     type: str,
+    *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+) -> gpd.GeoDataFrame: ...
+
+
+@overload
+def load_release_index(
+    theme: str,
+    type: str,
+    release: str,
+    *,
+    geometry_filter: Optional[BaseGeometry] = None,
+    remote_index: bool = False,
+) -> gpd.GeoDataFrame: ...
+
+
+@overload
+def load_release_index(
+    theme: str,
+    type: str,
+    release: Optional[str] = None,
+    *,
+    geometry_filter: Optional[BaseGeometry] = None,
+    remote_index: bool = False,
+) -> gpd.GeoDataFrame: ...
+
+
+def load_release_index(
+    theme: str,
+    type: str,
+    release: Optional[str] = None,
+    *,
+    geometry_filter: Optional[BaseGeometry] = None,
+    remote_index: bool = False,
+    skip_index_download: bool = True,
 ) -> gpd.GeoDataFrame:
     """
     Load release index as a GeoDataFrame.
 
     Args:
-        release (str): Release version.
         theme (str): Theme of the dataset.
         type (str): Type of the dataset.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         geometry_filter (Optional[BaseGeometry], optional): Geometry to pre-filter resulting rows.
             Defaults to None.
         remote_index (bool, optional): Avoid downloading the index and stream it from remote source.
             Defaults to False.
+        skip_index_download (bool, optional): Avoid downloading the index if doesn't exist locally
+            and generate it instead. Defaults to False.
 
     Returns:
         gpd.GeoDataFrame: Index with bounding boxes for each row group for each parquet file.
     """
+    if not release:
+        release = get_newest_release_version()
+
     _check_release_version(release)
     cache_directory = _get_release_cache_directory(release)
     index_file_path: Union[Path, str] = cache_directory / _get_index_file_name(theme, type)
@@ -104,10 +221,13 @@ def load_release_index(
 
     if not file_exists:
         if remote_index:
-            filesystem = fsspec.implementations.http.HTTPFileSystem()
+            filesystem = HTTPFileSystem()
             index_file_path = LFS_DIRECTORY_URL + str(index_file_path)
+        elif skip_index_download:
+            # Generate the index and skip download
+            generate_release_index(release)
         else:
-            # Download or generate the index if cannot be downloaded
+            # Try to download the index or generate it if cannot be downloaded
             download_existing_release_index(release) or generate_release_index(release)
 
     if geometry_filter is None:
@@ -122,39 +242,73 @@ def load_release_index(
     return df
 
 
-def get_available_theme_type_pairs(release: str) -> list[tuple[str, str]]:
+@overload
+def get_available_theme_type_pairs() -> list[tuple[str, str]]: ...
+
+
+@overload
+def get_available_theme_type_pairs(release: str) -> list[tuple[str, str]]: ...
+
+
+def get_available_theme_type_pairs(release: Optional[str] = None) -> list[tuple[str, str]]:
     """
     Get a list of available theme and type objects for a given release.
 
     Args:
-        release (str): Release version.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
 
     Returns:
         list[tuple[str, str]]: List of theme and type pairs.
     """
+    if not release:
+        release = get_newest_release_version()
+
     _check_release_version(release)
 
     cache_directory = _get_release_cache_directory(release)
     release_index_path = cache_directory / "release_index_content.json"
-    if not release_index_path.exists():
-        raise FileNotFoundError(
-            f"Index for release {release} isn't cached locally. "
-            "Please download or generate the index first using "
-            "download_existing_release_index or generate_release_index function."
+
+    if release_index_path.exists():
+        index_content = pd.read_json(release_index_path)
+    else:
+        index_content_file_name = "release_index_content.json"
+        index_content_file_url = (
+            LFS_DIRECTORY_URL + (cache_directory / index_content_file_name).as_posix()
         )
-    theme_type_tuples = json.loads(release_index_path.read_text())
-    return sorted(
-        (theme_type_tuple["theme"], theme_type_tuple["type"])
-        for theme_type_tuple in theme_type_tuples
-    )
+        index_content = pd.read_json(index_content_file_url)
+
+    # if not release_index_path.exists():
+    #     raise FileNotFoundError(
+    #         f"Index for release {release} isn't cached locally. "
+    #         "Please download or generate the index first using "
+    #         "download_existing_release_index or generate_release_index function."
+    #     )
+
+    return sorted(index_content[["theme", "type"]].itertuples(index=False, name=None))
+
+    # theme_type_tuples = json.loads(release_index_path.read_text())
+    # return sorted(
+    #     (theme_type_tuple["theme"], theme_type_tuple["type"])
+    #     for theme_type_tuple in theme_type_tuples
+    # )
 
 
-def download_existing_release_index(release: str) -> bool:
+@overload
+def download_existing_release_index() -> bool: ...
+
+
+@overload
+def download_existing_release_index(release: str) -> bool: ...
+
+
+def download_existing_release_index(release: Optional[str] = None) -> bool:
     """
     Download a pregenerated index for an Overture Maps dataset release.
 
     Args:
-        release (str): Release version.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
 
     Returns:
         bool: Information whether index have been downloaded or not.
@@ -163,19 +317,23 @@ def download_existing_release_index(release: str) -> bool:
 
 
 def _download_existing_release_index(
-    release: str, theme: Optional[str] = None, type: Optional[str] = None
+    release: Optional[str] = None, theme: Optional[str] = None, type: Optional[str] = None
 ) -> bool:
     """
     Download a pregenerated index for an Overture Maps dataset release.
 
     Args:
-        release (str): Release version.
         theme (Optional[str], optional): Specify a theme to be downloaded. Defaults to None.
         type (Optional[str], optional): Specify a type to be downloaded. Defaults to None.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
 
     Returns:
         bool: Information whether index have been downloaded or not.
     """
+    if not release:
+        release = get_newest_release_version()
+
     _check_release_version(release)
     if (theme is None and type is not None) or (theme is not None and type is None):
         raise ValueError("Theme and type both have to be present or None.")
@@ -197,7 +355,6 @@ def _download_existing_release_index(
             progressbar=False,
             known_hash=None,
         )
-        rprint("Downloaded index metadata file")
 
         theme_type_tuples = json.loads((cache_directory / index_content_file_name).read_text())
 
@@ -222,7 +379,6 @@ def _download_existing_release_index(
                     progressbar=False,
                     known_hash=sha_value,
                 )
-                rprint(f"Downloaded index file {release}/{file_name}")
 
     except urllib.error.HTTPError as ex:
         if ex.code == 404:
@@ -358,6 +514,17 @@ def _get_release_cache_directory(release: str) -> Path:
 
 def _get_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
+
+
+def _load_all_available_release_versions_from_github() -> list[str]:
+    gh_fs = GithubFileSystem(org="kraina-ai", repo="overturemaps-releases-indexes")
+    release_versions = [file_path.split("/")[1] for file_path in gh_fs.ls("release_indexes")]
+    return release_versions
+
+
+def _load_newest_release_version_from_github() -> str:
+    release_versions = _load_all_available_release_versions_from_github()
+    return sorted(release_versions)[-1]
 
 
 def _consolidate_release_index_files(release: str, remove_other_files: bool = False) -> bool:
