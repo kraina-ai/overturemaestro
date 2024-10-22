@@ -42,6 +42,7 @@ def download_data_for_multiple_types(
     working_directory: Union[str, Path] = "files",
 ) -> list[Path]: ...
 
+
 @overload
 def download_data_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],

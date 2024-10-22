@@ -189,7 +189,7 @@ def load_release_index(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
-    skip_index_download: bool = True,
+    skip_index_download: bool = False,
 ) -> gpd.GeoDataFrame:
     """
     Load release index as a GeoDataFrame.
