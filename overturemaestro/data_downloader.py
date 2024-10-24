@@ -412,7 +412,7 @@ def _filter_data_properly(
         non_matching_geometries.intersects(geometry_filter)
     ]
 
-    joined_matching_indexes = np.concat([matching_indexes, matching_geometries["index"]])
+    joined_matching_indexes = np.concatenate([matching_indexes, matching_geometries["index"]])
     return pyarrow_table.take(joined_matching_indexes)
 
 
