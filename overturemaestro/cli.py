@@ -20,17 +20,6 @@ def _version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
-# def _display_osm_extracts_callback(ctx: typer.Context, value: bool) -> None:
-#     if value:
-#         from quackosm.osm_extracts import display_available_extracts
-
-#         param_values = {p.name: p.default for p in ctx.command.params}
-#         param_values.update(ctx.params)
-#         osm_source = cast(str, param_values.get("osm_extract_source"))
-#         display_available_extracts(source=osm_source, use_full_names=True, use_pager=True)
-#         raise typer.Exit()
-
-
 def _display_release_versions_callback(ctx: typer.Context, value: bool) -> None:
     if value:
         from rich import print as rprint
@@ -60,7 +49,7 @@ def _display_theme_type_pairs_callback(ctx: typer.Context, value: bool) -> None:
         param_values = {p.name: p.default for p in ctx.command.params}
         param_values.update(ctx.params)
         release_version = cast(
-            str, param_values.get("release_version", get_newest_release_version())
+            str, param_values.get("release_version") or get_newest_release_version()
         )
         theme_type_pairs = get_available_theme_type_pairs(release=release_version)
 
@@ -87,7 +76,7 @@ def _empty_path_callback(ctx: typer.Context, value: Path) -> Optional[Path]:
 
 
 class BboxGeometryParser(click.ParamType):  # type: ignore
-    """Parser for geometry in WKT form."""
+    """Parser for geometry in bounding box form."""
 
     name = "BBOX"
 
@@ -95,6 +84,7 @@ class BboxGeometryParser(click.ParamType):  # type: ignore
         """Convert parameter value."""
         try:
             from shapely import box
+
             bbox_values = [float(x.strip()) for x in value.split(",")]
             return box(*bbox_values)
         except ValueError:  # ValueError raised when passing non-numbers to float()
@@ -555,7 +545,7 @@ def main(
     from overturemaestro import convert_geometry_to_parquet, get_available_theme_type_pairs
 
     if (theme_value, type_value) not in get_available_theme_type_pairs(
-        release=release_version # type: ignore[arg-type]
+        release=release_version  # type: ignore[arg-type]
     ):
         raise typer.BadParameter(
             f"Dataset of theme = {theme_value} and type = {type_value} doesn't exist."

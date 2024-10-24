@@ -278,13 +278,6 @@ def get_available_theme_type_pairs(release: Optional[str] = None) -> list[tuple[
         )
         index_content = pd.read_json(index_content_file_url)
 
-    # if not release_index_path.exists():
-    #     raise FileNotFoundError(
-    #         f"Index for release {release} isn't cached locally. "
-    #         "Please download or generate the index first using "
-    #         "download_existing_release_index or generate_release_index function."
-    #     )
-
     return sorted(index_content[["theme", "type"]].itertuples(index=False, name=None))
 
     # theme_type_tuples = json.loads(release_index_path.read_text())
@@ -517,7 +510,7 @@ def _get_index_file_name(theme_value: str, type_value: str) -> str:
 
 
 def _load_all_available_release_versions_from_github() -> list[str]:
-    gh_fs = GithubFileSystem(org="kraina-ai", repo="overturemaps-releases-indexes")
+    gh_fs = GithubFileSystem(org="kraina-ai", repo="overturemaps-releases-indexes", sha="main")
     release_versions = [file_path.split("/")[1] for file_path in gh_fs.ls("release_indexes")]
     return release_versions
 
