@@ -2,9 +2,6 @@ import itertools
 from collections.abc import Generator, Iterable
 from typing import Any
 
-import polars as pl
-from sklearn.cluster import Birch
-
 EARTH_RADIUS_KM = 6371
 CLUSTERING_THRESHOLD = 20 / EARTH_RADIUS_KM  # calculate 20 kilometers threshold
 
@@ -12,6 +9,9 @@ CLUSTERING_THRESHOLD = 20 / EARTH_RADIUS_KM  # calculate 20 kilometers threshold
 def calculate_row_group_bounding_box(
     parquet_filename: str, parquet_row_group: int, pyarrow_table: Any
 ) -> Any:
+    import polars as pl
+    from sklearn.cluster import Birch
+
     df = (
         pl.from_arrow(pyarrow_table)
         .with_row_index(name="row_index")
