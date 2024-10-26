@@ -11,11 +11,12 @@ import urllib.error
 import urllib.request
 from datetime import date
 from pathlib import Path
-from typing import Optional, Union, cast, overload
+from typing import Literal, Optional, Union, cast, overload
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+import platformdirs
 import pyarrow.fs as fs
 from fsspec.implementations.github import GithubFileSystem
 from fsspec.implementations.http import HTTPFileSystem
@@ -60,7 +61,12 @@ def get_newest_release_version() -> str:
     Returns:
         str: Release version.
     """
-    release_version_cache_file = Path("release_indexes/_newest_release_version.json")
+    release_version_cache_file = (
+        Path(platformdirs.user_cache_dir("OvertureMaestro"))
+        / "release_indexes"
+        / "_newest_release_version.json"
+    )
+
     current_date = date.today()
     if release_version_cache_file.exists():
         cache_value = json.loads(release_version_cache_file.read_text())
@@ -213,7 +219,7 @@ def load_release_index(
         release = get_newest_release_version()
 
     _check_release_version(release)
-    cache_directory = _get_release_cache_directory(release)
+    cache_directory = _get_global_release_cache_directory(release)
     index_file_path: Union[Path, str] = cache_directory / _get_index_file_name(theme, type)
 
     file_exists = Path(index_file_path).exists()
@@ -266,7 +272,7 @@ def get_available_theme_type_pairs(release: Optional[str] = None) -> list[tuple[
 
     _check_release_version(release)
 
-    cache_directory = _get_release_cache_directory(release)
+    cache_directory = _get_global_release_cache_directory(release)
     release_index_path = cache_directory / "release_index_content.json"
 
     if release_index_path.exists():
@@ -331,7 +337,8 @@ def _download_existing_release_index(
     if (theme is None and type is not None) or (theme is not None and type is None):
         raise ValueError("Theme and type both have to be present or None.")
 
-    cache_directory = _get_release_cache_directory(release)
+    global_cache_directory = _get_global_release_cache_directory(release)
+    local_cache_directory = _get_local_release_cache_directory(release)
 
     logger = get_pooch_logger()
     logger.setLevel("WARNING")
@@ -339,17 +346,19 @@ def _download_existing_release_index(
     try:
         index_content_file_name = "release_index_content.json"
         index_content_file_url = (
-            LFS_DIRECTORY_URL + (cache_directory / index_content_file_name).as_posix()
+            LFS_DIRECTORY_URL + (local_cache_directory / index_content_file_name).as_posix()
         )
         retrieve(
             index_content_file_url,
             fname=index_content_file_name,
-            path=cache_directory,
+            path=global_cache_directory,
             progressbar=False,
             known_hash=None,
         )
 
-        theme_type_tuples = json.loads((cache_directory / index_content_file_name).read_text())
+        theme_type_tuples = json.loads(
+            (global_cache_directory / index_content_file_name).read_text()
+        )
 
         with TrackProgressBar() as progress:
             for theme_type_tuple in progress.track(
@@ -364,11 +373,11 @@ def _download_existing_release_index(
                 if theme_value == theme and type_value == type:
                     continue
 
-                index_file_url = LFS_DIRECTORY_URL + (cache_directory / file_name).as_posix()
+                index_file_url = LFS_DIRECTORY_URL + (local_cache_directory / file_name).as_posix()
                 retrieve(
                     index_file_url,
                     fname=file_name,
-                    path=cache_directory,
+                    path=global_cache_directory,
                     progressbar=False,
                     known_hash=sha_value,
                 )
@@ -396,7 +405,12 @@ def generate_release_index(release: str) -> bool:
 
 
 def _generate_release_index(
-    release: str, theme: Optional[str] = None, type: Optional[str] = None
+    release: str,
+    theme: Optional[str] = None,
+    type: Optional[str] = None,
+    dataset_path: str = "overturemaps-us-west-2/release",
+    dataset_fs: Literal["local", "s3"] = "s3",
+    index_location_path: Optional[Path] = None,
 ) -> bool:
     """
     Generate an index for an Overture Maps dataset release.
@@ -405,6 +419,12 @@ def _generate_release_index(
         release (str): Release version.
         theme (Optional[str], optional): Specify a theme to be generated. Defaults to None.
         type (Optional[str], optional): Specify a type to be generated. Defaults to None.
+        dataset_path (str, optional): Specify dataset path.
+            Defaults to "overturemaps-us-west-2/release/".
+        dataset_fs (Literal["local", "s3"], optional): Which filesystem use in PyArrow operations.
+            Defaults to "s3".
+        index_location_path (Path, optional): Specify index location path. If not, will generate to
+            the global cache location. Defaults to None.
 
     Returns:
         bool: Information whether index have been generated or not.
@@ -413,7 +433,7 @@ def _generate_release_index(
     if (theme is None and type is not None) or (theme is not None and type is None):
         raise ValueError("Theme and type both have to be present or None.")
 
-    cache_directory = _get_release_cache_directory(release)
+    cache_directory = Path(index_location_path or _get_global_release_cache_directory(release))
     release_index_path = cache_directory / "release_index_content.json"
     if theme is not None and type is not None:
         release_index_path = cache_directory / f"release_index_content_{theme}_{type}.json"
@@ -428,7 +448,7 @@ def _generate_release_index(
         tmp_dir_path = Path(tmp_dir_name)
         bounding_boxes_path = tmp_dir_path / "overture_bounding_boxes"
 
-        dataset_path = f"overturemaps-us-west-2/release/{release}"
+        dataset_path = f"{dataset_path}/{release}"
         if theme is not None and type is not None:
             dataset_path += f"/theme={theme}/type={type}"
 
@@ -440,13 +460,19 @@ def _generate_release_index(
             columns=["bbox"],
             filesystem=fs.S3FileSystem(
                 anonymous=True, region="us-west-2", request_timeout=30, connect_timeout=10
-            ),
+            )
+            if dataset_fs == "s3"
+            else None,
         )
 
         df = pd.read_parquet(bounding_boxes_path)
         df["split_filename"] = df["filename"].str.split("/")
-        df["theme"] = df["split_filename"].apply(lambda x: x[3].split("=")[1])
-        df["type"] = df["split_filename"].apply(lambda x: x[4].split("=")[1])
+        df["theme"] = df["split_filename"].apply(
+            lambda path_parts: next(filter(lambda x: "theme=" in x, path_parts)).split("=")[1]
+        )
+        df["type"] = df["split_filename"].apply(
+            lambda path_parts: next(filter(lambda x: "type=" in x, path_parts)).split("=")[1]
+        )
         df = gpd.GeoDataFrame(
             df,
             geometry=np.apply_along_axis(
@@ -501,8 +527,12 @@ def _check_release_version(release: str) -> None:
         )
 
 
-def _get_release_cache_directory(release: str) -> Path:
-    return Path(f"release_indexes/{release}")
+def _get_global_release_cache_directory(release: str) -> Path:
+    return Path(platformdirs.user_cache_dir("OvertureMaestro")) / "release_indexes" / release
+
+
+def _get_local_release_cache_directory(release: str) -> Path:
+    return Path("release_indexes") / release
 
 
 def _get_index_file_name(theme_value: str, type_value: str) -> str:
@@ -523,7 +553,7 @@ def _load_newest_release_version_from_github() -> str:
 def _consolidate_release_index_files(release: str, remove_other_files: bool = False) -> bool:
     _check_release_version(release)
 
-    cache_directory = _get_release_cache_directory(release)
+    cache_directory = _get_global_release_cache_directory(release)
     release_index_path = cache_directory / "release_index_content.json"
     if release_index_path.exists():
         rprint("Cache exists. Skipping generation.")
