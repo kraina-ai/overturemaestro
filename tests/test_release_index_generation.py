@@ -39,7 +39,9 @@ def test_generate_release_indexes(test_release_version: str) -> None:
 
     # Generate local index
     test_index_path = Path("test_index")
-    shutil.rmtree(test_index_path)
+    if test_index_path.exists():
+        shutil.rmtree(test_index_path)
+
     _generate_release_index(
         release=test_release_version,
         dataset_path="files",
