@@ -28,12 +28,13 @@ from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._geometry_clustering import calculate_row_group_bounding_box
 from overturemaestro._parquet_multiprocessing import map_parquet_dataset
-from overturemaestro._rich_progress import TrackProgressBar
+from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
 
 __all__ = [
     "download_existing_release_index",
     "generate_release_index",
     "get_available_theme_type_pairs",
+    "get_global_release_cache_directory",
     "get_newest_release_version",
     "load_release_index",
     "load_release_indexes",
@@ -99,6 +100,7 @@ def load_release_indexes(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -109,6 +111,7 @@ def load_release_indexes(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -119,6 +122,7 @@ def load_release_indexes(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -128,6 +132,7 @@ def load_release_indexes(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame:
     """
     Load multiple release indexes as a GeoDataFrame.
@@ -140,6 +145,10 @@ def load_release_indexes(
             Defaults to None.
         remote_index (bool, optional): Avoid downloading the index and stream it from remote source.
             Defaults to False.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         gpd.GeoDataFrame: Index with bounding boxes for each row group for each parquet file.
@@ -151,6 +160,7 @@ def load_release_indexes(
             release=release,
             geometry_filter=geometry_filter,
             remote_index=remote_index,
+            verbosity_mode=verbosity_mode,
         )
         for theme_value, type_value in theme_type_pairs
     )
@@ -163,6 +173,7 @@ def load_release_index(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -174,6 +185,7 @@ def load_release_index(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -185,6 +197,7 @@ def load_release_index(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -196,6 +209,7 @@ def load_release_index(
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
     skip_index_download: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame:
     """
     Load release index as a GeoDataFrame.
@@ -211,6 +225,10 @@ def load_release_index(
             Defaults to False.
         skip_index_download (bool, optional): Avoid downloading the index if doesn't exist locally
             and generate it instead. Defaults to False.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         gpd.GeoDataFrame: Index with bounding boxes for each row group for each parquet file.
@@ -228,13 +246,25 @@ def load_release_index(
     if not file_exists:
         if remote_index:
             filesystem = HTTPFileSystem()
-            index_file_path = LFS_DIRECTORY_URL + str(index_file_path)
+            local_cache_path = _get_local_release_cache_directory(release)
+            index_file_path = LFS_DIRECTORY_URL + str(
+                local_cache_path / _get_index_file_name(theme, type)
+            )
         elif skip_index_download:
             # Generate the index and skip download
-            generate_release_index(release)
+            generate_release_index(
+                release,
+                verbosity_mode=verbosity_mode,
+            )
         else:
             # Try to download the index or generate it if cannot be downloaded
-            download_existing_release_index(release) or generate_release_index(release)
+            download_existing_release_index(
+                release,
+                verbosity_mode=verbosity_mode,
+            ) or generate_release_index(
+                release,
+                verbosity_mode=verbosity_mode,
+            )
 
     if geometry_filter is None:
         return gpd.read_parquet(path=index_file_path, filesystem=filesystem)
@@ -278,45 +308,56 @@ def get_available_theme_type_pairs(release: Optional[str] = None) -> list[tuple[
     if release_index_path.exists():
         index_content = pd.read_json(release_index_path)
     else:
+        local_cache_directory = _get_local_release_cache_directory(release)
         index_content_file_name = "release_index_content.json"
         index_content_file_url = (
-            LFS_DIRECTORY_URL + (cache_directory / index_content_file_name).as_posix()
+            LFS_DIRECTORY_URL + (local_cache_directory / index_content_file_name).as_posix()
         )
         index_content = pd.read_json(index_content_file_url)
 
     return sorted(index_content[["theme", "type"]].itertuples(index=False, name=None))
 
-    # theme_type_tuples = json.loads(release_index_path.read_text())
-    # return sorted(
-    #     (theme_type_tuple["theme"], theme_type_tuple["type"])
-    #     for theme_type_tuple in theme_type_tuples
-    # )
+
+@overload
+def download_existing_release_index(
+    *,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> bool: ...
 
 
 @overload
-def download_existing_release_index() -> bool: ...
+def download_existing_release_index(
+    release: str, *, verbosity_mode: VERBOSITY_MODE = "transient"
+) -> bool: ...
 
 
-@overload
-def download_existing_release_index(release: str) -> bool: ...
-
-
-def download_existing_release_index(release: Optional[str] = None) -> bool:
+def download_existing_release_index(
+    release: Optional[str] = None,
+    *,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> bool:
     """
     Download a pregenerated index for an Overture Maps dataset release.
 
     Args:
         release (Optional[str], optional): Release version. If not provided, will automatically load
             newest available release version. Defaults to None.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         bool: Information whether index have been downloaded or not.
     """
-    return _download_existing_release_index(release=release)
+    return _download_existing_release_index(release=release, verbosity_mode=verbosity_mode)
 
 
 def _download_existing_release_index(
-    release: Optional[str] = None, theme: Optional[str] = None, type: Optional[str] = None
+    release: Optional[str] = None,
+    theme: Optional[str] = None,
+    type: Optional[str] = None,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> bool:
     """
     Download a pregenerated index for an Overture Maps dataset release.
@@ -326,6 +367,10 @@ def _download_existing_release_index(
         type (Optional[str], optional): Specify a type to be downloaded. Defaults to None.
         release (Optional[str], optional): Release version. If not provided, will automatically load
             newest available release version. Defaults to None.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         bool: Information whether index have been downloaded or not.
@@ -360,7 +405,7 @@ def _download_existing_release_index(
             (global_cache_directory / index_content_file_name).read_text()
         )
 
-        with TrackProgressBar() as progress:
+        with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
             for theme_type_tuple in progress.track(
                 theme_type_tuples,
                 description="Downloading release indexes",
@@ -391,17 +436,24 @@ def _download_existing_release_index(
     return True
 
 
-def generate_release_index(release: str) -> bool:
+def generate_release_index(
+    release: str,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> bool:
     """
     Generate an index for an Overture Maps dataset release.
 
     Args:
         release (str): Release version.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         bool: Information whether index have been generated or not.
     """
-    return _generate_release_index(release=release)
+    return _generate_release_index(release=release, verbosity_mode=verbosity_mode)
 
 
 def _generate_release_index(
@@ -411,6 +463,7 @@ def _generate_release_index(
     dataset_path: str = "overturemaps-us-west-2/release",
     dataset_fs: Literal["local", "s3"] = "s3",
     index_location_path: Optional[Path] = None,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> bool:
     """
     Generate an index for an Overture Maps dataset release.
@@ -425,6 +478,10 @@ def _generate_release_index(
             Defaults to "s3".
         index_location_path (Path, optional): Specify index location path. If not, will generate to
             the global cache location. Defaults to None.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         bool: Information whether index have been generated or not.
@@ -463,6 +520,7 @@ def _generate_release_index(
             )
             if dataset_fs == "s3"
             else None,
+            verbosity_mode=verbosity_mode,
         )
 
         df = pd.read_parquet(bounding_boxes_path)
@@ -481,7 +539,7 @@ def _generate_release_index(
             crs=4326,
         )
 
-        with TrackProgressBar() as progress:
+        with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
             theme_type_tuples = df[["theme", "type"]].drop_duplicates().reset_index(drop=True)
             file_hashes = []
             for value_tuple in progress.track(
@@ -527,8 +585,13 @@ def _check_release_version(release: str) -> None:
         )
 
 
+def get_global_release_cache_directory() -> Path:
+    """Get global index cache location path."""
+    return Path(platformdirs.user_cache_dir("OvertureMaestro")) / "release_indexes"
+
+
 def _get_global_release_cache_directory(release: str) -> Path:
-    return Path(platformdirs.user_cache_dir("OvertureMaestro")) / "release_indexes" / release
+    return get_global_release_cache_directory() / release
 
 
 def _get_local_release_cache_directory(release: str) -> Path:

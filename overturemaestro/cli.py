@@ -2,12 +2,15 @@
 
 import logging
 from pathlib import Path
-from typing import Annotated, Optional, cast
+from typing import TYPE_CHECKING, Annotated, Optional, cast
 
 import click
 import typer
 
 from overturemaestro._geopandas_api_version import GEOPANDAS_NEW_API
+
+if TYPE_CHECKING:
+    from overturemaestro._rich_progress import VERBOSITY_MODE
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
 
@@ -429,22 +432,22 @@ def main(
             ),
         ),
     ] = "files",  # type: ignore
-    # silent_mode: Annotated[
-    #     bool,
-    #     typer.Option(
-    #         "--silent/",
-    #         help="Whether to disable progress reporting.",
-    #         show_default=False,
-    #     ),
-    # ] = False,
-    # transient_mode: Annotated[
-    #     bool,
-    #     typer.Option(
-    #         "--transient/",
-    #         help="Whether to make more transient (concise) progress reporting.",
-    #         show_default=False,
-    #     ),
-    # ] = False,
+    silent_mode: Annotated[
+        bool,
+        typer.Option(
+            "--silent/",
+            help="Whether to disable progress reporting.",
+            show_default=False,
+        ),
+    ] = False,
+    transient_mode: Annotated[
+        bool,
+        typer.Option(
+            "--transient/",
+            help="Whether to make more transient (concise) progress reporting.",
+            show_default=False,
+        ),
+    ] = False,
     # allow_uncovered_geometry: Annotated[
     #     bool,
     #     typer.Option(
@@ -532,15 +535,15 @@ def main(
 
     logging.disable(logging.CRITICAL)
 
-    # if transient_mode and silent_mode:
-    #     raise typer.BadParameter("Cannot pass both silent and transient mode at once.")
+    if transient_mode and silent_mode:
+        raise typer.BadParameter("Cannot pass both silent and transient mode at once.")
 
-    # verbosity_mode: Literal["silent", "transient", "verbose"] = "verbose"
+    verbosity_mode: VERBOSITY_MODE = "verbose"
 
-    # if transient_mode:
-    #     verbosity_mode = "transient"
-    # elif silent_mode:
-    #     verbosity_mode = "silent"
+    if transient_mode:
+        verbosity_mode = "transient"
+    elif silent_mode:
+        verbosity_mode = "silent"
 
     from overturemaestro import convert_geometry_to_parquet, get_available_theme_type_pairs
 
@@ -559,7 +562,7 @@ def main(
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         result_file_path=result_file_path,
-        # verbosity_mode=verbosity_mode,
+        verbosity_mode=verbosity_mode,
     )
 
     typer.secho(geoparquet_path, fg="green")

@@ -6,12 +6,15 @@ Functions used to download Overture Maps data before local filtering.
 
 import multiprocessing
 import operator
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
 if TYPE_CHECKING:
     from pyarrow.compute import Expression
     from shapely.geometry.base import BaseGeometry
+
+    from overturemaestro._rich_progress import VERBOSITY_MODE
 
 pyarrow_expression = tuple[Any, Any, Any]
 pyarrow_filters = Union["Expression", list[pyarrow_expression], list[list[pyarrow_expression]]]
@@ -29,6 +32,7 @@ def download_data_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: "VERBOSITY_MODE" = "transient",
 ) -> list[Path]: ...
 
 
@@ -40,6 +44,7 @@ def download_data_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: "VERBOSITY_MODE" = "transient",
 ) -> list[Path]: ...
 
 
@@ -51,6 +56,7 @@ def download_data_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: "VERBOSITY_MODE" = "transient",
 ) -> list[Path]: ...
 
 
@@ -61,6 +67,7 @@ def download_data_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: "VERBOSITY_MODE" = "transient",
 ) -> list[Path]:
     """
     Downloads the data for the given release for multiple types.
@@ -74,6 +81,10 @@ def download_data_for_multiple_types(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         list[Path]: List of saved Geoparquet files paths.
@@ -86,6 +97,7 @@ def download_data_for_multiple_types(
             release=release,
             ignore_cache=ignore_cache,
             working_directory=working_directory,
+            verbosity_mode=verbosity_mode,
         )
         for theme_value, type_value in theme_type_pairs
     ]
@@ -101,6 +113,7 @@ def download_data(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: "VERBOSITY_MODE" = "transient",
 ) -> Path: ...
 
 
@@ -115,6 +128,7 @@ def download_data(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: "VERBOSITY_MODE" = "transient",
 ) -> Path: ...
 
 
@@ -129,6 +143,7 @@ def download_data(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: "VERBOSITY_MODE" = "transient",
 ) -> Path: ...
 
 
@@ -142,6 +157,7 @@ def download_data(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: "VERBOSITY_MODE" = "transient",
 ) -> Path:
     """
     Downloads the data for the given release.
@@ -161,6 +177,10 @@ def download_data(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         Path: Saved Geoparquet file path.
@@ -204,6 +224,7 @@ def download_data(
                 pyarrow_filter=pyarrow_filter,
                 result_file_path=result_file_path,
                 work_directory=tmp_dir_path,
+                verbosity_mode=verbosity_mode,
             )
     return result_file_path
 
@@ -216,7 +237,9 @@ def _download_data(
     pyarrow_filter: Optional["Expression"],
     result_file_path: Path,
     work_directory: Path,
+    verbosity_mode: "VERBOSITY_MODE",
 ) -> None:
+    import time
     from concurrent.futures import ProcessPoolExecutor
     from functools import partial
 
@@ -224,17 +247,27 @@ def _download_data(
     import pyarrow.parquet as pq
 
     from overturemaestro._parquet_multiprocessing import map_parquet_dataset
-    from overturemaestro._rich_progress import TrackProgressBar
+    from overturemaestro._rich_progress import (
+        TrackProgressBar,
+        TrackProgressSpinner,
+        show_total_elapsed_time,
+    )
     from overturemaestro.release_index import load_release_index
 
+    start_time = time.time()
+
     dataset_index = load_release_index(
-        release=release, theme=theme, type=type, geometry_filter=geometry_filter
+        release=release,
+        theme=theme,
+        type=type,
+        geometry_filter=geometry_filter,
+        verbosity_mode=verbosity_mode,
     )
 
     dataset_index = (
         dataset_index.explode("row_indexes_ranges")
         .groupby(["filename", "row_group"])["row_indexes_ranges"]
-        .apply(list)
+        .apply(lambda x: [pair.tolist() for pair in x.values])
         .reset_index()
     )
 
@@ -242,21 +275,24 @@ def _download_data(
         orient="records"
     )
 
-    no_cpus = multiprocessing.cpu_count()
-    min_no_workers = 32 if no_cpus >= 8 else 16
+    min_no_workers = 8
     no_workers = min(
-        max(min_no_workers, multiprocessing.cpu_count() + 4), 64
-    )  # minimum 16 / 32 workers, but not more than 64
+        max(min_no_workers, multiprocessing.cpu_count() + 4), 32
+    )  # minimum 8 workers, but not more than 32
 
-    with TrackProgressBar() as progress:
+    with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
         total_row_groups = len(row_groups_to_download)
-        with ProcessPoolExecutor(max_workers=min(no_workers, total_row_groups)) as ex:
-            fn = partial(
-                _download_single_parquet_row_group_multiprocessing,
-                bbox=geometry_filter.bounds,
-                pyarrow_filter=pyarrow_filter,
-                work_directory=work_directory,
-            )
+        fn = partial(
+            _download_single_parquet_row_group_multiprocessing,
+            bbox=geometry_filter.bounds,
+            pyarrow_filter=pyarrow_filter,
+            work_directory=work_directory,
+        )
+        with ProcessPoolExecutor(
+            max_workers=min(no_workers, total_row_groups),
+            # max_tasks_per_child=1 if total_row_groups > no_workers else None,
+            mp_context=multiprocessing.get_context("spawn"),
+        ) as ex:
             downloaded_parquet_files = list(
                 progress.track(
                     ex.map(
@@ -271,7 +307,6 @@ def _download_data(
 
     if not geometry_filter.equals(geometry_filter.envelope):
         destination_path = work_directory / Path("intersected_data")
-
         fn = partial(_filter_data_properly, geometry_filter=geometry_filter)
         map_parquet_dataset(
             dataset_path=downloaded_parquet_files,
@@ -279,6 +314,7 @@ def _download_data(
             function=fn,
             progress_description=f"Filtering data by geometry ({theme}/{type})",
             report_progress_as_text=False,
+            verbosity_mode=verbosity_mode,
         )
 
         filtered_parquet_files = list(destination_path.glob("*.parquet"))
@@ -289,9 +325,15 @@ def _download_data(
 
     result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
-    with pq.ParquetWriter(result_file_path, final_dataset.schema) as writer:
-        for batch in final_dataset.to_batches():
-            writer.write_batch(batch)
+    with TrackProgressSpinner("Saving final geoparquet file", verbosity_mode=verbosity_mode):
+        with pq.ParquetWriter(result_file_path, final_dataset.schema) as writer:
+            for batch in final_dataset.to_batches():
+                writer.write_batch(batch)
+
+    if not verbosity_mode == "silent":
+        end_time = time.time()
+        elapsed_seconds = end_time - start_time
+        show_total_elapsed_time(elapsed_seconds)
 
 
 def _download_single_parquet_row_group_multiprocessing(
@@ -300,9 +342,21 @@ def _download_single_parquet_row_group_multiprocessing(
     pyarrow_filter: Optional["Expression"],
     work_directory: Path,
 ) -> Path:
-    return _download_single_parquet_row_group(
-        **params, bbox=bbox, pyarrow_filter=pyarrow_filter, work_directory=work_directory
-    )
+    retries = 10
+    while retries > 0:
+        try:
+            downloaded_path = _download_single_parquet_row_group(
+                **params, bbox=bbox, pyarrow_filter=pyarrow_filter, work_directory=work_directory
+            )
+            return downloaded_path
+        except Exception as ex:
+            retries -= 1
+            if retries == 0:
+                raise
+            else:
+                warnings.warn(str(ex), stacklevel=2)
+
+    raise Exception()
 
 
 def _download_single_parquet_row_group(
@@ -379,41 +433,6 @@ def _generate_row_group_file_name(
     stem = stripped_filename_part.stem.split(".")[0]
     stem = f"{stem}_{row_group}_{row_indexes_ranges_hash_part[:8]}_{bbox_hash_part[:8]}"
     return stripped_filename_part.with_stem(stem)
-
-
-def _filter_data_properly(
-    parquet_filename: str,
-    parquet_row_group: int,
-    pyarrow_table: Any,
-    geometry_filter: "BaseGeometry",
-) -> Any:
-    import geopandas as gpd
-    import numpy as np
-    from geoarrow.rust.core import GeometryArray
-    from shapely import Point, STRtree, get_coordinates
-
-    geoseries = gpd.GeoSeries.from_arrow(
-        GeometryArray.from_arrow(pyarrow_table["geometry"].combine_chunks())
-    )
-
-    # First pass - find all simple examples - any point inside geometry filter
-    exploded_coords = (
-        geoseries.apply(get_coordinates).rename("coords").reset_index().explode("coords")
-    )
-    tree = STRtree(exploded_coords["coords"].apply(Point))
-    matching_indexes = (
-        exploded_coords["index"].iloc[tree.query(geometry_filter, predicate="intersects")].unique()
-    )
-
-    # Second pass - find harder examples - geometries bigger than filter or cross intersecting
-    non_matching_indexes = np.setdiff1d(exploded_coords["index"].unique(), matching_indexes)
-    non_matching_geometries = geoseries.iloc[non_matching_indexes].reset_index()
-    matching_geometries = non_matching_geometries[
-        non_matching_geometries.intersects(geometry_filter)
-    ]
-
-    joined_matching_indexes = np.concatenate([matching_indexes, matching_geometries["index"]])
-    return pyarrow_table.take(joined_matching_indexes)
 
 
 def _generate_result_file_path(
@@ -502,3 +521,22 @@ def _get_oriented_geometry_filter(geometry_filter: "BaseGeometry") -> "BaseGeome
         )
 
     return geometry
+
+
+def _filter_data_properly(
+    parquet_filename: str,
+    parquet_row_group: int,
+    pyarrow_table: Any,
+    geometry_filter: "BaseGeometry",
+) -> Any:
+    import geopandas as gpd
+    from geoarrow.rust.core import GeometryArray
+    from shapely import STRtree
+
+    index = STRtree(
+        gpd.GeoSeries.from_arrow(
+            GeometryArray.from_arrow(pyarrow_table["geometry"].combine_chunks())
+        )
+    )
+    matching_indexes = index.query(geometry_filter, predicate="intersects")
+    return pyarrow_table.take(matching_indexes)

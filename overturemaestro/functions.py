@@ -11,6 +11,7 @@ import geopandas as gpd
 from shapely import box
 from shapely.geometry.base import BaseGeometry
 
+from overturemaestro._rich_progress import VERBOSITY_MODE
 from overturemaestro.data_downloader import (
     download_data,
     download_data_for_multiple_types,
@@ -42,6 +43,7 @@ def convert_geometry_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> Path: ...
 
 
@@ -56,6 +58,7 @@ def convert_geometry_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> Path: ...
 
 
@@ -70,6 +73,7 @@ def convert_geometry_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> Path: ...
 
 
@@ -83,6 +87,7 @@ def convert_geometry_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> Path:
     """
     Get a GeoParquet file with Overture Maps data within given geometry.
@@ -105,6 +110,10 @@ def convert_geometry_to_parquet(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -167,6 +176,7 @@ def convert_geometry_to_parquet(
         result_file_path=result_file_path,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
 
 
@@ -177,6 +187,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[Path]: ...
 
 
@@ -188,6 +199,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[Path]: ...
 
 
@@ -199,6 +211,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[Path]: ...
 
 
@@ -209,6 +222,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[Path]:
     """
     Get GeoParquet files with Overture Maps data within given geometry for multiple types.
@@ -227,6 +241,10 @@ def convert_geometry_to_parquet_for_multiple_types(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         list[Path]: List of paths to the generated GeoParquet files.
@@ -237,6 +255,7 @@ def convert_geometry_to_parquet_for_multiple_types(
         release=release,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
 
 
@@ -249,6 +268,7 @@ def convert_geometry_to_geodataframe(
     pyarrow_filter: Optional[pyarrow_filters] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -262,6 +282,7 @@ def convert_geometry_to_geodataframe(
     pyarrow_filter: Optional[pyarrow_filters] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -275,6 +296,7 @@ def convert_geometry_to_geodataframe(
     pyarrow_filter: Optional[pyarrow_filters] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -287,6 +309,7 @@ def convert_geometry_to_geodataframe(
     pyarrow_filter: Optional[pyarrow_filters] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame:
     """
     Get a GeoDataFrame with Overture Maps data within given geometry.
@@ -306,6 +329,10 @@ def convert_geometry_to_geodataframe(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -368,6 +395,7 @@ def convert_geometry_to_geodataframe(
         pyarrow_filter=pyarrow_filter,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
     return gpd.read_parquet(parsed_geoparquet_file).set_index("id")
 
@@ -379,6 +407,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -390,6 +419,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -401,6 +431,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -411,6 +442,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[gpd.GeoDataFrame]:
     """
     Get GeoDataFrames list with Overture Maps data within given geometry for multiple types.
@@ -429,6 +461,10 @@ def convert_geometry_to_geodataframe_for_multiple_types(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         list[gpd.GeoDataFrame]: List of GeoDataFrames with Overture Maps features.
@@ -439,6 +475,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
         release=release,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
     return [
         gpd.read_parquet(parsed_geoparquet_file).set_index("id")
@@ -456,6 +493,7 @@ def convert_bounding_box_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> Path: ...
 
 
@@ -470,6 +508,7 @@ def convert_bounding_box_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> Path: ...
 
 
@@ -484,6 +523,7 @@ def convert_bounding_box_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> Path: ...
 
 
@@ -497,6 +537,7 @@ def convert_bounding_box_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> Path:
     """
     Get a GeoParquet file with Overture Maps data within given bounding box.
@@ -520,6 +561,10 @@ def convert_bounding_box_to_parquet(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -581,6 +626,7 @@ def convert_bounding_box_to_parquet(
         result_file_path=result_file_path,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
 
 
@@ -591,6 +637,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[Path]: ...
 
 
@@ -602,6 +649,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[Path]: ...
 
 
@@ -613,6 +661,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[Path]: ...
 
 
@@ -623,6 +672,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[Path]:
     """
     Get GeoParquet files with Overture Maps data within given bounding box for multiple types.
@@ -642,6 +692,10 @@ def convert_bounding_box_to_parquet_for_multiple_types(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         list[Path]: List of paths to the generated GeoParquet files.
@@ -652,6 +706,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
         release=release,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
 
 
@@ -664,6 +719,7 @@ def convert_bounding_box_to_geodataframe(
     pyarrow_filter: Optional[pyarrow_filters] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -677,6 +733,7 @@ def convert_bounding_box_to_geodataframe(
     pyarrow_filter: Optional[pyarrow_filters] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -690,6 +747,7 @@ def convert_bounding_box_to_geodataframe(
     pyarrow_filter: Optional[pyarrow_filters] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -702,6 +760,7 @@ def convert_bounding_box_to_geodataframe(
     pyarrow_filter: Optional[pyarrow_filters] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame:
     """
     Get a GeoDataFrame with Overture Maps data within given bounding box.
@@ -722,6 +781,10 @@ def convert_bounding_box_to_geodataframe(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -783,6 +846,7 @@ def convert_bounding_box_to_geodataframe(
         pyarrow_filter=pyarrow_filter,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
 
 
@@ -793,6 +857,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -804,6 +869,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -815,6 +881,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -825,6 +892,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[gpd.GeoDataFrame]:
     """
     Get GeoDataFrames list with Overture Maps data within given bounding box for multiple types.
@@ -844,6 +912,10 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         list[gpd.GeoDataFrame]: List of GeoDataFrames with Overture Maps features.
@@ -854,4 +926,5 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
         release=release,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
