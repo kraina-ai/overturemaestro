@@ -6,7 +6,6 @@ Functions used to download Overture Maps data before local filtering.
 
 import multiprocessing
 import operator
-import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
@@ -349,12 +348,10 @@ def _download_single_parquet_row_group_multiprocessing(
                 **params, bbox=bbox, pyarrow_filter=pyarrow_filter, work_directory=work_directory
             )
             return downloaded_path
-        except Exception as ex:
+        except Exception:
             retries -= 1
             if retries == 0:
                 raise
-            else:
-                warnings.warn(str(ex), stacklevel=2)
 
     raise Exception()
 
