@@ -89,7 +89,7 @@ docs = [
     "contextily",
 ]
 license = ["licensecheck", "pipdeptree"]
-cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify"]
+cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify", "lonboard"]
 benchmark = [
     "psutil>=5.6.2",
     "duckdb>=1.1.0",
