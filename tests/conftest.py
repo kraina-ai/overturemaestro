@@ -1,13 +1,20 @@
 """Common components for tests."""
 
+import os
 from pathlib import Path
 
 import pytest
+from pytest import Item
 from shapely import Polygon, box, to_geojson, to_wkt
 
 from overturemaestro.release_index import download_existing_release_index
 
 TEST_RELEASE_VERSION = "2024-08-20.0"
+
+
+def pytest_runtest_setup(item: Item) -> None:
+    """Setup python encoding before `pytest_runtest_call(item)`."""
+    os.environ["PYTHONIOENCODING"] = "utf-8"
 
 
 @pytest.fixture(scope="session")  # type: ignore
