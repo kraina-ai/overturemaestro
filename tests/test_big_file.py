@@ -1,9 +1,8 @@
 """Test big file pipeline."""
 
 from parametrization import Parametrization as P
-from quackosm import geocode_to_geometry
 
-from overturemaestro.functions import convert_geometry_to_parquet
+from overturemaestro import convert_geometry_to_parquet, geocode_to_geometry
 
 
 @P.parameters("geocode_filter", "theme_type_pair")  # type: ignore

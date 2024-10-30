@@ -23,7 +23,7 @@ def optional_packages() -> list[str]:
 def cleanup_imports():
     """Clean imports."""
     yield
-    sys.modules.pop("quackosm", None)
+    sys.modules.pop("overturemaestro", None)
 
 
 class PackageDiscarder:
