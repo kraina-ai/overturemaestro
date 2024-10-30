@@ -530,10 +530,9 @@ def _filter_data_properly(
     from geoarrow.rust.core import GeometryArray
     from shapely import STRtree
 
-    index = STRtree(
+    matching_indexes = STRtree(
         gpd.GeoSeries.from_arrow(
             GeometryArray.from_arrow(pyarrow_table["geometry"].combine_chunks())
         )
-    )
-    matching_indexes = index.query(geometry_filter, predicate="intersects")
+    ).query(geometry_filter, predicate="intersects")
     return pyarrow_table.take(matching_indexes)
