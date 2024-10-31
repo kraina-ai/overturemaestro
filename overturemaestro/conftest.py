@@ -30,12 +30,13 @@ def pandas_terminal_width() -> None:
     pandas.set_option("display.max_colwidth", 35)
 
 
-@pytest.fixture(autouse=True, scope="session")  # type: ignore
-def patch_get_available_versions(session_mocker: MockerFixture) -> None:
+@pytest.fixture(autouse=True, scope="function")  # type: ignore
+def patch_get_available_versions(mocker: MockerFixture) -> None:
     """Mock getting available release versions without GitHub."""
-    session_mocker.patch(
+    mocker.patch(
         "overturemaestro.release_index._load_all_available_release_versions_from_github",
         return_value=[
+            "2024-01-01-test",
             "2024-04-16-beta.0",
             "2024-05-16-beta.0",
             "2024-06-13-beta.0",
