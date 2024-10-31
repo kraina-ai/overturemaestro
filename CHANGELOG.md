@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2024-10-31
+
 ### Added
 
 - CLI [#3](https://github.com/kraina-ai/overturemaestro/issues/3)
@@ -60,7 +62,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.0.3...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.1.0...HEAD
+
+[0.1.0]: https://github.com/kraina-ai/overturemaestro/compare/0.0.3...0.1.0
 
 [0.0.3]: https://github.com/kraina-ai/overturemaestro/compare/0.0.2...0.0.3
 
