@@ -507,6 +507,32 @@ def test_proper_args(args: list[str], expected_result: str) -> None:
         random_str(),
     ],
 )  # type: ignore
+@P.case(
+    "PyArrow filter with random strings",
+    [
+        "--release",
+        TEST_RELEASE_VERSION,
+        "--geom-filter-bbox",
+        geometry_bbox_str(),
+        "buildings",
+        "building",
+        "--filter",
+        f"{random_str()} = {random_str()}",
+    ],
+)  # type: ignore
+@P.case(
+    "PyArrow filter with wrong columns filter",
+    [
+        "--release",
+        TEST_RELEASE_VERSION,
+        "--geom-filter-bbox",
+        geometry_bbox_str(),
+        "buildings",
+        "building",
+        "--filter",
+        "confidence > 0.9",
+    ],
+)  # type: ignore
 def test_wrong_args(args: list[str], capsys: pytest.CaptureFixture) -> None:
     """Test if doesn't run properly with options."""
     # Fix for the I/O error from the Click repository
