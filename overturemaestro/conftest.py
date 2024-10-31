@@ -22,12 +22,6 @@ class CustomOutputChecker(OutputChecker):
 doctest.OutputChecker = CustomOutputChecker  # type: ignore
 
 
-# @pytest.fixture(autouse=True, scope="session")
-# def install_spatial_extension():  # type: ignore
-#     """Install duckdb spatial extension."""
-#     duckdb.install_extension("spatial")
-
-
 @pytest.fixture(autouse=True, scope="session")  # type: ignore
 def pandas_terminal_width() -> None:
     """Change pandas dataframe display options."""

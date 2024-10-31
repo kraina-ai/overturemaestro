@@ -4,6 +4,8 @@ from queue import Empty, Queue
 from time import sleep, time
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
+from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
+
 if TYPE_CHECKING:
     from multiprocessing.managers import ValueProxy
     from threading import Lock
@@ -119,6 +121,7 @@ def map_parquet_dataset(
     columns: Optional[list[str]] = None,
     filesystem: Optional["fs.FileSystem"] = None,
     report_progress_as_text: bool = True,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> None:
     """
     Apply a function over parquet dataset in a multiprocessing environment.
@@ -132,34 +135,40 @@ def map_parquet_dataset(
             and a row group table. Will save resulting table in a new parquet file.
         progress_description (str): Progress bar description.
         columns (Optional[list[str]], optional): List of columns to read. Defaults to `None`.
-        progress_bar (Optional[TaskProgressBar], optional): Progress bar to show task status.
-            Defaults to `None`.
         filesystem (Optional[fs.FileSystem], optional): Filesystem for the dataset.
             Defaults to `None`.
         report_progress_as_text (bool, optional): Whether to report task progress every minute.
             Defaults to `True`.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
     """
-    from concurrent.futures import ProcessPoolExecutor
-    from functools import partial
+    with TrackProgressSpinner(
+        "Preparing multiprocessing environment", verbosity_mode=verbosity_mode
+    ):
+        from concurrent.futures import ProcessPoolExecutor
+        from functools import partial
 
-    import pyarrow.parquet as pq
+        import pyarrow.parquet as pq
 
-    from overturemaestro._rich_progress import TrackProgressBar
+        from overturemaestro._rich_progress import TrackProgressBar
 
-    manager = ctx.Manager()
-    queue: Queue[tuple[str, int]] = manager.Queue()
-    tracker: ValueProxy[int] = manager.Value("i", 0)
-    tracker_lock: Lock = manager.Lock()
+        manager = ctx.Manager()
 
-    dataset = pq.ParquetDataset(dataset_path, filesystem=filesystem)
+        queue: Queue[tuple[str, int]] = manager.Queue()
+        tracker: ValueProxy[int] = manager.Value("i", 0)
+        tracker_lock: Lock = manager.Lock()
 
-    no_cpus = multiprocessing.cpu_count()
-    min_no_workers = 32 if no_cpus >= 8 else 16
-    no_workers = min(
-        max(min_no_workers, multiprocessing.cpu_count() + 4), 64
-    )  # minimum 16 / 32 workers, but not more than 64
+        dataset = pq.ParquetDataset(dataset_path, filesystem=filesystem)
 
-    with TrackProgressBar() as progress:
+        no_cpus = multiprocessing.cpu_count()
+        min_no_workers = 32 if no_cpus >= 8 else 16
+        no_workers = min(
+            max(min_no_workers, no_cpus + 4), 64
+        )  # minimum 16 / 32 workers, but not more than 64
+
+    with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
         total_files = len(dataset.files)
         with ProcessPoolExecutor(max_workers=min(no_workers, total_files)) as ex:
             fn = partial(_read_row_group_number, filesystem=dataset.filesystem)
@@ -193,9 +202,9 @@ def map_parquet_dataset(
                     dataset.filesystem,
                 ),
             )
-            for _ in range(min(no_workers, total))
+            for _ in range(min(no_cpus, total))
         ]
-        with TrackProgressBar() as progress_bar:
+        with TrackProgressBar(verbosity_mode=verbosity_mode) as progress_bar:
             progress_bar.add_task(description=progress_description, total=total)
             _run_processes(
                 processes=processes,

@@ -1,4 +1,4 @@
-"""Tests related to release indexes."""
+"""Tests related to using pregenerated release indexes."""
 
 from contextlib import nullcontext as does_not_raise
 from typing import Optional

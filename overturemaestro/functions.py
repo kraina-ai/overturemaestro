@@ -5,12 +5,13 @@ This module contains helper functions to simplify the usage.
 """
 
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, overload
 
 import geopandas as gpd
 from shapely import box
 from shapely.geometry.base import BaseGeometry
 
+from overturemaestro._rich_progress import VERBOSITY_MODE
 from overturemaestro.data_downloader import (
     download_data,
     download_data_for_multiple_types,
@@ -32,15 +33,61 @@ __all__ = [
 # TODO: prepare examples
 
 
+@overload
 def convert_geometry_to_parquet(
-    release: str,
     theme: str,
     type: str,
     geometry_filter: BaseGeometry,
+    *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> Path: ...
+
+
+@overload
+def convert_geometry_to_parquet(
+    theme: str,
+    type: str,
+    geometry_filter: BaseGeometry,
+    release: str,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> Path: ...
+
+
+@overload
+def convert_geometry_to_parquet(
+    theme: str,
+    type: str,
+    geometry_filter: BaseGeometry,
+    release: Optional[str] = None,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> Path: ...
+
+
+def convert_geometry_to_parquet(
+    theme: str,
+    type: str,
+    geometry_filter: BaseGeometry,
+    release: Optional[str] = None,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> Path:
     """
     Get a GeoParquet file with Overture Maps data within given geometry.
@@ -49,10 +96,11 @@ def convert_geometry_to_parquet(
     in a concurrent manner and returns a single file as a result.
 
     Args:
-        release (str): Release version.
         theme (str): Theme of the dataset.
         type (str): Type of the dataset.
         geometry_filter (BaseGeometry): Geometry used to filter data.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
@@ -62,6 +110,10 @@ def convert_geometry_to_parquet(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -124,15 +176,53 @@ def convert_geometry_to_parquet(
         result_file_path=result_file_path,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
 
 
+@overload
 def convert_geometry_to_parquet_for_multiple_types(
-    release: str,
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
+    *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[Path]: ...
+
+
+@overload
+def convert_geometry_to_parquet_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: BaseGeometry,
+    release: str,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[Path]: ...
+
+
+@overload
+def convert_geometry_to_parquet_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: BaseGeometry,
+    release: Optional[str] = None,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[Path]: ...
+
+
+def convert_geometry_to_parquet_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: BaseGeometry,
+    release: Optional[str] = None,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[Path]:
     """
     Get GeoParquet files with Overture Maps data within given geometry for multiple types.
@@ -143,39 +233,83 @@ def convert_geometry_to_parquet_for_multiple_types(
     Order of paths is the same as the input theme_type_pairs list.
 
     Args:
-        release (str): Release version.
         theme_type_pairs (list[tuple[str, str]]): Pairs of themes and types of the dataset.
         geometry_filter (BaseGeometry): Geometry used to filter data.
-        pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
-            Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
-        result_file_path (Union[str, Path], optional): Where to save
-            the geoparquet file. If not provided, will be generated based on hashes
-            from filters. Defaults to `None`.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         list[Path]: List of paths to the generated GeoParquet files.
     """
     return download_data_for_multiple_types(
-        release=release,
         theme_type_pairs=theme_type_pairs,
         geometry_filter=geometry_filter,
+        release=release,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
 
 
+@overload
 def convert_geometry_to_geodataframe(
-    release: str,
     theme: str,
     type: str,
     geometry_filter: BaseGeometry,
+    *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> gpd.GeoDataFrame: ...
+
+
+@overload
+def convert_geometry_to_geodataframe(
+    theme: str,
+    type: str,
+    geometry_filter: BaseGeometry,
+    release: str,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> gpd.GeoDataFrame: ...
+
+
+@overload
+def convert_geometry_to_geodataframe(
+    theme: str,
+    type: str,
+    geometry_filter: BaseGeometry,
+    release: Optional[str] = None,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> gpd.GeoDataFrame: ...
+
+
+def convert_geometry_to_geodataframe(
+    theme: str,
+    type: str,
+    geometry_filter: BaseGeometry,
+    release: Optional[str] = None,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame:
     """
     Get a GeoDataFrame with Overture Maps data within given geometry.
@@ -184,16 +318,21 @@ def convert_geometry_to_geodataframe(
     in a concurrent manner and returns a single GeoDataFrame as a result.
 
     Args:
-        release (str): Release version.
         theme (str): Theme of the dataset.
         type (str): Type of the dataset.
         geometry_filter (BaseGeometry): Geometry used to filter data.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -249,23 +388,61 @@ def convert_geometry_to_geodataframe(
         08f194ad30695784036410e184708927  {'primary': 'Clink Street Londo...    0.965185
     """
     parsed_geoparquet_file = download_data(
-        release=release,
         theme=theme,
         type=type,
         geometry_filter=geometry_filter,
+        release=release,
         pyarrow_filter=pyarrow_filter,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
     return gpd.read_parquet(parsed_geoparquet_file).set_index("id")
 
 
+@overload
 def convert_geometry_to_geodataframe_for_multiple_types(
-    release: str,
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
+    *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[gpd.GeoDataFrame]: ...
+
+
+@overload
+def convert_geometry_to_geodataframe_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: BaseGeometry,
+    release: str,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[gpd.GeoDataFrame]: ...
+
+
+@overload
+def convert_geometry_to_geodataframe_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: BaseGeometry,
+    release: Optional[str] = None,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[gpd.GeoDataFrame]: ...
+
+
+def convert_geometry_to_geodataframe_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: BaseGeometry,
+    release: Optional[str] = None,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[gpd.GeoDataFrame]:
     """
     Get GeoDataFrames list with Overture Maps data within given geometry for multiple types.
@@ -276,25 +453,29 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     Order of GeoDataFrames is the same as the input theme_type_pairs list.
 
     Args:
-        release (str): Release version.
         theme_type_pairs (list[tuple[str, str]]): Pairs of themes and types of the dataset.
         geometry_filter (BaseGeometry): Geometry used to filter data.
-        pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
-            Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         list[gpd.GeoDataFrame]: List of GeoDataFrames with Overture Maps features.
     """
     parsed_geoparquet_files = download_data_for_multiple_types(
-        release=release,
         theme_type_pairs=theme_type_pairs,
         geometry_filter=geometry_filter,
+        release=release,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
     return [
         gpd.read_parquet(parsed_geoparquet_file).set_index("id")
@@ -302,15 +483,61 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     ]
 
 
+@overload
 def convert_bounding_box_to_parquet(
-    release: str,
     theme: str,
     type: str,
     bbox: tuple[float, float, float, float],
+    *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> Path: ...
+
+
+@overload
+def convert_bounding_box_to_parquet(
+    theme: str,
+    type: str,
+    bbox: tuple[float, float, float, float],
+    release: str,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> Path: ...
+
+
+@overload
+def convert_bounding_box_to_parquet(
+    theme: str,
+    type: str,
+    bbox: tuple[float, float, float, float],
+    release: Optional[str] = None,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> Path: ...
+
+
+def convert_bounding_box_to_parquet(
+    theme: str,
+    type: str,
+    bbox: tuple[float, float, float, float],
+    release: Optional[str] = None,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> Path:
     """
     Get a GeoParquet file with Overture Maps data within given bounding box.
@@ -319,11 +546,12 @@ def convert_bounding_box_to_parquet(
     in a concurrent manner and returns a single file as a result.
 
     Args:
-        release (str): Release version.
         theme (str): Theme of the dataset.
         type (str): Type of the dataset.
         bbox (tuple[float, float, float, float]): Bounding box used to filter data.
             Order of values: xmin, ymin, xmax, ymax.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
@@ -333,6 +561,10 @@ def convert_bounding_box_to_parquet(
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -386,23 +618,61 @@ def convert_bounding_box_to_parquet(
         4  08f194ad30690a42034312e00c0254a2  {'primary': 'The Clink Prison M...    0.982253
     """
     return convert_geometry_to_parquet(
-        release=release,
         theme=theme,
         type=type,
         geometry_filter=box(*bbox),
+        release=release,
         pyarrow_filter=pyarrow_filter,
         result_file_path=result_file_path,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
 
 
+@overload
 def convert_bounding_box_to_parquet_for_multiple_types(
-    release: str,
     theme_type_pairs: list[tuple[str, str]],
     bbox: tuple[float, float, float, float],
+    *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[Path]: ...
+
+
+@overload
+def convert_bounding_box_to_parquet_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    bbox: tuple[float, float, float, float],
+    release: str,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[Path]: ...
+
+
+@overload
+def convert_bounding_box_to_parquet_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    bbox: tuple[float, float, float, float],
+    release: Optional[str] = None,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[Path]: ...
+
+
+def convert_bounding_box_to_parquet_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    bbox: tuple[float, float, float, float],
+    release: Optional[str] = None,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[Path]:
     """
     Get GeoParquet files with Overture Maps data within given bounding box for multiple types.
@@ -413,40 +683,84 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     Order of paths is the same as the input theme_type_pairs list.
 
     Args:
-        release (str): Release version.
         theme_type_pairs (list[tuple[str, str]]): Pairs of themes and types of the dataset.
         bbox (tuple[float, float, float, float]): Bounding box used to filter data.
             Order of values: xmin, ymin, xmax, ymax.
-        pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
-            Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
-        result_file_path (Union[str, Path], optional): Where to save
-            the geoparquet file. If not provided, will be generated based on hashes
-            from filters. Defaults to `None`.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         list[Path]: List of paths to the generated GeoParquet files.
     """
     return convert_geometry_to_parquet_for_multiple_types(
-        release=release,
         theme_type_pairs=theme_type_pairs,
         geometry_filter=box(*bbox),
+        release=release,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
 
 
+@overload
 def convert_bounding_box_to_geodataframe(
-    release: str,
     theme: str,
     type: str,
     bbox: tuple[float, float, float, float],
+    *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> gpd.GeoDataFrame: ...
+
+
+@overload
+def convert_bounding_box_to_geodataframe(
+    theme: str,
+    type: str,
+    bbox: tuple[float, float, float, float],
+    release: str,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> gpd.GeoDataFrame: ...
+
+
+@overload
+def convert_bounding_box_to_geodataframe(
+    theme: str,
+    type: str,
+    bbox: tuple[float, float, float, float],
+    release: Optional[str] = None,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> gpd.GeoDataFrame: ...
+
+
+def convert_bounding_box_to_geodataframe(
+    theme: str,
+    type: str,
+    bbox: tuple[float, float, float, float],
+    release: Optional[str] = None,
+    *,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame:
     """
     Get a GeoDataFrame with Overture Maps data within given bounding box.
@@ -455,17 +769,22 @@ def convert_bounding_box_to_geodataframe(
     in a concurrent manner and returns a single GeoDataFrame as a result.
 
     Args:
-        release (str): Release version.
         theme (str): Theme of the dataset.
         type (str): Type of the dataset.
         bbox (tuple[float, float, float, float]): Bounding box used to filter data.
             Order of values: xmin, ymin, xmax, ymax.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -520,22 +839,60 @@ def convert_bounding_box_to_geodataframe(
         08f194ad30695784036410e184708927  {'primary': 'Clink Street Londo...    0.965185
     """
     return convert_geometry_to_geodataframe(
-        release=release,
         theme=theme,
         type=type,
         geometry_filter=box(*bbox),
+        release=release,
         pyarrow_filter=pyarrow_filter,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
 
 
+@overload
 def convert_bounding_box_to_geodataframe_for_multiple_types(
-    release: str,
     theme_type_pairs: list[tuple[str, str]],
     bbox: tuple[float, float, float, float],
+    *,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[gpd.GeoDataFrame]: ...
+
+
+@overload
+def convert_bounding_box_to_geodataframe_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    bbox: tuple[float, float, float, float],
+    release: str,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[gpd.GeoDataFrame]: ...
+
+
+@overload
+def convert_bounding_box_to_geodataframe_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    bbox: tuple[float, float, float, float],
+    release: Optional[str] = None,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[gpd.GeoDataFrame]: ...
+
+
+def convert_bounding_box_to_geodataframe_for_multiple_types(
+    theme_type_pairs: list[tuple[str, str]],
+    bbox: tuple[float, float, float, float],
+    release: Optional[str] = None,
+    *,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[gpd.GeoDataFrame]:
     """
     Get GeoDataFrames list with Overture Maps data within given bounding box for multiple types.
@@ -546,24 +903,28 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     Order of GeoDataFrames is the same as the input theme_type_pairs list.
 
     Args:
-        release (str): Release version.
         theme_type_pairs (list[tuple[str, str]]): Pairs of themes and types of the dataset.
         bbox (tuple[float, float, float, float]): Bounding box used to filter data.
             Order of values: xmin, ymin, xmax, ymax.
-        pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
-            Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
             the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         list[gpd.GeoDataFrame]: List of GeoDataFrames with Overture Maps features.
     """
     return convert_geometry_to_geodataframe_for_multiple_types(
-        release=release,
         theme_type_pairs=theme_type_pairs,
         geometry_filter=box(*bbox),
+        release=release,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
