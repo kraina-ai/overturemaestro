@@ -7,7 +7,7 @@ import pytest
 from pytest import Item
 from shapely import Polygon, box, to_geojson, to_wkt
 
-from overturemaestro.conftest import patch_get_available_versions
+from overturemaestro.conftest import TEST_RELEASE_VERSIONS_LIST, patch_get_available_versions
 from overturemaestro.release_index import download_existing_release_index
 
 TEST_RELEASE_VERSION = "2024-08-20.0"
@@ -16,6 +16,7 @@ __all__ = [
     "patch_get_available_versions",
     "test_release_version",
     "TEST_RELEASE_VERSION",
+    "TEST_RELEASE_VERSIONS_LIST",
     "bbox",
     "geometry_bbox_str",
     "geometry_box",
