@@ -1,7 +1,9 @@
+import os
 from datetime import timedelta
 from typing import Any, Literal
 
 from rich import print as rprint
+from rich.console import Console
 from rich.progress import (
     BarColumn,
     MofNCompleteColumn,
@@ -16,6 +18,7 @@ from rich.progress import (
 )
 
 VERBOSITY_MODE = Literal["silent", "transient", "verbose"]
+FORCE_TERMINAL = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
 
 
 def show_total_elapsed_time(elapsed_seconds: float) -> None:
@@ -39,6 +42,9 @@ class TrackProgressSpinner(Progress):  # type: ignore[misc]
             speed_estimate_period=3600,
             transient=verbosity_mode == "transient",
             disable=verbosity_mode == "silent",
+            console=Console(force_interactive=False, force_jupyter=False, force_terminal=True)
+            if FORCE_TERMINAL
+            else None,
             **kwargs,
         )
         self.task_name = task_name
@@ -85,6 +91,9 @@ class TrackProgressBar(Progress):  # type: ignore[misc]
             speed_estimate_period=3600,
             transient=verbosity_mode == "transient",
             disable=verbosity_mode == "silent",
+            console=Console(force_interactive=False, force_jupyter=False, force_terminal=True)
+            if FORCE_TERMINAL
+            else None,
             **kwargs,
         )
         self.verbosity_mode = verbosity_mode
