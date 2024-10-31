@@ -46,12 +46,20 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
+      - name: Prepare DuckDB dependency
+        run: |
+          wget https://github.com/duckdb/duckdb/releases/download/v1.1.0/duckdb_cli-linux-amd64.zip
+          unzip duckdb_cli-linux-amd64.zip
+          chmod a+x ./duckdb
       - name: Test required commands
         run: |
+          ./duckdb :memory: "SELECT 1"
           OvertureMaestro -h
       - name: Execute jupyter notebooks
         run: |
+          mv ./duckdb ./examples/duckdb
           jupyter nbconvert --to notebook --inplace --execute $(find examples/ -type f -name "*.ipynb") --ExecutePreprocessor.kernel_name='python3'
+          rm ./examples/duckdb
       - uses: jannekem/run-python-script-action@v1
         name: Replace copyright date
         with:

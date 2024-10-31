@@ -260,6 +260,48 @@ class S2GeometryParser(click.ParamType):  # type: ignore
             raise typer.BadParameter(f"Cannot parse provided S2 value: {s2_index}") from None
 
 
+class PyArrowExpressionParser(click.ParamType):  # type: ignore
+    """Parser for geometry in string Nominatim query form."""
+
+    name = "FILTER"
+
+    def convert(self, value, param=None, ctx=None):  # type: ignore
+        """Convert parameter value."""
+        if not value:
+            return None
+
+        try:
+            parts = value.split()
+
+            if len(parts) != 3:
+                raise typer.BadParameter(
+                    "Provided expression is not in a required format (3 elements in a string)."
+                ) from None
+
+            from pyarrow.parquet import filters_to_expression
+
+            # Parse numbers
+            if parts[2].replace(".", "", 1).isdigit():
+                parts[2] = float(parts[2])
+
+            # TODO: optional - add support for "in" operator with list of values
+
+            # Check if columns are nested
+            column_part = parts[0]
+            if "," in column_part:
+                columns = tuple(column_part.split(","))
+                parts = [[columns, parts[1], parts[2]]]
+
+            pyarrow_filter = filters_to_expression([parts])
+            return pyarrow_filter
+
+        except Exception as ex:
+            raise typer.BadParameter(
+                f"Cannot parse provided PyArrow Expression: {value}."
+                " Required format: <column_name> <operator> <value>."
+            ) from ex
+
+
 @app.command()  # type: ignore
 def main(
     theme_value: Annotated[
@@ -397,6 +439,21 @@ def main(
                 " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=WktGeometryParser(),
+            show_default=False,
+        ),
+    ] = None,
+    pyarrow_filters: Annotated[
+        Optional[list[str]],
+        typer.Option(
+            "--filter",
+            "--pyarrow-filter",
+            help=(
+                "Filters to apply on a pyarrow dataset."
+                " Required format: <column(s)> <operator> <value>."
+                " Nested column names should be passed separated by a comma."
+                " Can pass multiple filters."
+            ),
+            click_type=PyArrowExpressionParser(),
             show_default=False,
         ),
     ] = None,
@@ -554,6 +611,14 @@ def main(
             f"Dataset of theme = {theme_value} and type = {type_value} doesn't exist."
         )
 
+    pyarrow_filter = None
+
+    if pyarrow_filters:
+        import functools
+        import operator
+
+        pyarrow_filter = functools.reduce(operator.and_, pyarrow_filters)
+
     geoparquet_path = convert_geometry_to_parquet(
         theme=theme_value,
         type=type_value,
@@ -563,6 +628,7 @@ def main(
         working_directory=working_directory,
         result_file_path=result_file_path,
         verbosity_mode=verbosity_mode,
+        pyarrow_filter=pyarrow_filter,
     )
 
     typer.secho(geoparquet_path, fg="green")
