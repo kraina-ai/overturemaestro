@@ -38,7 +38,7 @@ An open-source tool for reading OvertureMaps data with multiprocessing and addit
 - Is based on top of `PyArrow`[^1].
 - Saves files in the `GeoParquet`[^2] file format for easier integration with modern cloud stacks.
 - Filters data based on geometry.
-- Can filter data based using PyArrow expressions.
+- Can filter data using PyArrow expressions.
 - Utilizes multiprocessing for faster data download.
 - Utilizes dedicated index of all features in the Overture Maps dataset to download only specific parts based on the geometry filter.
 - Utilizes caching to reduce repeatable computations.
@@ -84,7 +84,7 @@ Required:
 
 - `rich (>=12.0.0)`: For showing progress bars
 
-- `fsspec` & `aiohttp`: For accessing AWS S3 datasets in PyArrow and GitHub files for precalculated datasets
+- `fsspec (>=2021.04.0)` & `aiohttp (>=3.7.0)`: For accessing AWS S3 datasets in PyArrow and GitHub files for precalculated datasets
 
 - `geopy (>=2.0.0)`: For geocoding of strings
 
