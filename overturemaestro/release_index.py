@@ -74,6 +74,7 @@ def get_newest_release_version() -> str:
         if date.fromisoformat(cache_value["date"]) >= current_date:
             return cast(str, cache_value["release_version"])
 
+    release_version_cache_file.parent.mkdir(parents=True, exist_ok=True)
     newest_release_version = _load_newest_release_version_from_github()
     release_version_cache_file.write_text(
         json.dumps(dict(date=current_date.isoformat(), release_version=newest_release_version))
