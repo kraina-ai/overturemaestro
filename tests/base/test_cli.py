@@ -281,6 +281,21 @@ def test_transient_mode(test_release_version: str) -> None:
     "files/monaco_output.parquet",
 )  # type: ignore
 @P.case(
+    "PyArrow filtering",
+    [
+        "--release",
+        TEST_RELEASE_VERSION,
+        "--geom-filter-bbox",
+        geometry_bbox_str(),
+        "buildings",
+        "building",
+        "--filter",
+        "subtype = residential",
+    ],
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/"
+    f"{_generate_geometry_hash(geometry_box())}_b22759b51edd150209b17a03319daa6796f574478c5f4f79ae2efa62e65e3ba1.parquet",
+)  # type: ignore
+@P.case(
     "Geometry WKT filter",
     [
         "--release",
