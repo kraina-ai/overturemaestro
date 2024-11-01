@@ -431,7 +431,6 @@ def test_proper_args(args: list[str], expected_result: str) -> None:
     result = runner.invoke(cli.app, args)
     print(result.stdout)
     if result.exception:
-        print(result.stderr)
         print(result.exception)
 
     assert result.exit_code == 0
