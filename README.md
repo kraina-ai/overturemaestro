@@ -78,7 +78,7 @@ Required:
 
 - `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and filtering data with STRIndex
 
-- `geoarrow-rust-core (>=0.2.0)`: For transforming Arrow data to Shapely objects
+- `geoarrow-rust-core (>=0.3.0)`: For transforming Arrow data to Shapely objects
 
 - `pooch (>=1.6.0)`: For downloading precalculated dataset indexes
 
