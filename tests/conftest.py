@@ -5,12 +5,25 @@ from pathlib import Path
 
 import pytest
 from pytest import Item
-from pytest_mock import MockerFixture
 from shapely import Polygon, box, to_geojson, to_wkt
 
+from overturemaestro.conftest import TEST_RELEASE_VERSIONS_LIST, patch_get_available_versions
 from overturemaestro.release_index import download_existing_release_index
 
 TEST_RELEASE_VERSION = "2024-08-20.0"
+
+__all__ = [
+    "patch_get_available_versions",
+    "test_release_version",
+    "TEST_RELEASE_VERSION",
+    "TEST_RELEASE_VERSIONS_LIST",
+    "bbox",
+    "geometry_bbox_str",
+    "geometry_box",
+    "geometry_wkt",
+    "geometry_geojson",
+    "geometry_boundary_file_path",
+]
 
 
 def pytest_runtest_setup(item: Item) -> None:
@@ -28,24 +41,6 @@ def test_release_version() -> str:
 def download_release_index(test_release_version: str) -> None:
     """Download release index for testing purposes."""
     download_existing_release_index(release=test_release_version)
-
-
-@pytest.fixture(autouse=True, scope="session")  # type: ignore
-def patch_get_available_versions(session_mocker: MockerFixture) -> None:
-    """Mock getting available release versions without GitHub."""
-    session_mocker.patch(
-        "overturemaestro.release_index._load_all_available_release_versions_from_github",
-        return_value=[
-            "2024-04-16-beta.0",
-            "2024-05-16-beta.0",
-            "2024-06-13-beta.0",
-            "2024-06-13-beta.1",
-            "2024-07-22.0",
-            "2024-08-20.0",
-            "2024-09-18.0",
-            "2024-10-23.0",
-        ],
-    )
 
 
 def bbox() -> tuple[float, float, float, float]:

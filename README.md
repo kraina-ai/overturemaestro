@@ -38,7 +38,7 @@ An open-source tool for reading OvertureMaps data with multiprocessing and addit
 - Is based on top of `PyArrow`[^1].
 - Saves files in the `GeoParquet`[^2] file format for easier integration with modern cloud stacks.
 - Filters data based on geometry.
-- Can filter data based using PyArrow expressions.
+- Can filter data using PyArrow expressions.
 - Utilizes multiprocessing for faster data download.
 - Utilizes dedicated index of all features in the Overture Maps dataset to download only specific parts based on the geometry filter.
 - Utilizes caching to reduce repeatable computations.
@@ -74,17 +74,17 @@ Required:
 
 - `pyarrow (>=16.0.0)`: For OvertureMaps GeoParquet dataset wrangling
 
-- `geopandas (>=0.6)`: For returning GeoDataFrames and reading Geo files
+- `geopandas (>=1.0)`: For returning GeoDataFrames and reading Geo files
 
 - `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and filtering data with STRIndex
 
-- `geoarrow-rust-core (>=0.2.0)`: For transforming Arrow data to Shapely objects
+- `geoarrow-rust-core (>=0.3.0)`: For transforming Arrow data to Shapely objects
 
 - `pooch (>=1.6.0)`: For downloading precalculated dataset indexes
 
 - `rich (>=12.0.0)`: For showing progress bars
 
-- `fsspec` & `aiohttp`: For accessing AWS S3 datasets in PyArrow and GitHub files for precalculated datasets
+- `fsspec (>=2021.04.0)` & `aiohttp (>=3.8.0)`: For accessing AWS S3 datasets in PyArrow and GitHub files for precalculated datasets
 
 - `geopy (>=2.0.0)`: For geocoding of strings
 
@@ -98,9 +98,9 @@ Optional:
 
 - `python-geohash (>=0.8)`: For transforming GeoHash indexes into geometries. Required in CLI
 
-- `scikit-learn (>=0.16)`: For clustering geometries when generating release index. Required for generating release index
+- `scikit-learn (>=1.0)`: For clustering geometries when generating release index. Required for generating release index
 
-- `polars (>=0.19.4)`: For calculating total bounding box from many bounding boxes. Required for generating release index
+- `polars (>=0.20.4)`: For calculating total bounding box from many bounding boxes. Required for generating release index
 
 ## Usage
 

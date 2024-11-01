@@ -9,6 +9,7 @@ from parametrization import Parametrization as P
 from typer.testing import CliRunner
 
 from overturemaestro import __app_name__, __version__, cli
+from overturemaestro.conftest import TEST_RELEASE_VERSIONS_LIST
 from overturemaestro.data_downloader import _generate_geometry_hash
 from overturemaestro.release_index import get_available_theme_type_pairs, get_newest_release_version
 from tests.conftest import (
@@ -186,7 +187,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{get_newest_release_version()}/"
+    f"files/{TEST_RELEASE_VERSIONS_LIST[-1]}/"
     f"theme=buildings/type=building/{_generate_geometry_hash(geometry_box())}_nofilter.parquet",
 )  # type: ignore
 @P.case(
@@ -429,6 +430,8 @@ def test_proper_args(args: list[str], expected_result: str) -> None:
     """Test if runs properly with options."""
     result = runner.invoke(cli.app, args)
     print(result.stdout)
+    if result.exception:
+        print(result.exception)
 
     assert result.exit_code == 0
     assert str(Path(expected_result)) in result.stdout
