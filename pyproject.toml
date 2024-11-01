@@ -5,7 +5,7 @@ description = "An open-source tool for downloading Overture Maps data with quali
 authors = [{ name = "Kamil Raczycki", email = "kraczycki@kraina.ai" }]
 dependencies = [
     "overturemaps>=0.8.0",
-    "geopandas>=0.8",
+    "geopandas>=1.0",
     "shapely>=2.0.6",
     "pyarrow>=16.0.0",
     "rich>=12.0.0",
