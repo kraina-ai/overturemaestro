@@ -84,7 +84,7 @@ Required:
 
 - `rich (>=12.0.0)`: For showing progress bars
 
-- `fsspec (>=2021.04.0)` & `aiohttp (>=3.7.0)`: For accessing AWS S3 datasets in PyArrow and GitHub files for precalculated datasets
+- `fsspec (>=2021.04.0)` & `aiohttp (>=3.8.0)`: For accessing AWS S3 datasets in PyArrow and GitHub files for precalculated datasets
 
 - `geopy (>=2.0.0)`: For geocoding of strings
 
