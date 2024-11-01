@@ -5,7 +5,7 @@
 groups = ["default", "benchmark", "cli", "cli-dev", "dev", "docs", "index-generation", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:8f4903e2cf643c65521fb761bded0498cd4e451b709c2ef4cd0581dd2c94dae1"
+content_hash = "sha256:56c1c2057e0f05f9acd393287507e0c7cd9d26bf712af1d88ab0b9a12a1db082"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -3542,13 +3542,13 @@ files = [
 
 [[package]]
 name = "pixel-map"
-version = "0.2.2"
+version = "0.2.3"
 requires_python = ">=3.9"
 summary = "A Python CLI tool for plotting geo files in the terminal"
 groups = ["cli-dev"]
 dependencies = [
     "contextily>=1",
-    "geopandas>=0.6",
+    "geopandas>=0.8",
     "img2unicode>=0.1a11; sys_platform == \"win32\" or sys_platform == \"darwin\"",
     "img2unicode[n2]>=0.1a11; sys_platform != \"win32\" and sys_platform != \"darwin\"",
     "matplotlib>=3.2.0",
@@ -3558,8 +3558,8 @@ dependencies = [
     "typer[all]>=0.9.0",
 ]
 files = [
-    {file = "pixel_map-0.2.2-py3-none-any.whl", hash = "sha256:2cb84afaf96983e7feed7161b2f06a97f7748a6d75f9f493983c1102ea82a1cd"},
-    {file = "pixel_map-0.2.2.tar.gz", hash = "sha256:74cde7196fcf48dc3d27c61391b72a453838a7b7718dbcbd3bedbc0c81ab0823"},
+    {file = "pixel_map-0.2.3-py3-none-any.whl", hash = "sha256:24ac6100df2c9bf069944b1297a5890116350a7bbf5d19cdb2f4cd32afcffdbb"},
+    {file = "pixel_map-0.2.3.tar.gz", hash = "sha256:3646f9e8b67abe854319179624530549990e657cdd869630f21fcf948a8fb910"},
 ]
 
 [[package]]

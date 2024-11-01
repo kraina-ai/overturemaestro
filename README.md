@@ -74,7 +74,7 @@ Required:
 
 - `pyarrow (>=16.0.0)`: For OvertureMaps GeoParquet dataset wrangling
 
-- `geopandas (>=0.6)`: For returning GeoDataFrames and reading Geo files
+- `geopandas (>=0.8)`: For returning GeoDataFrames and reading Geo files
 
 - `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and filtering data with STRIndex
 
