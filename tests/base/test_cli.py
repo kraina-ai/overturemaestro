@@ -430,6 +430,9 @@ def test_proper_args(args: list[str], expected_result: str) -> None:
     """Test if runs properly with options."""
     result = runner.invoke(cli.app, args)
     print(result.stdout)
+    if result.exception:
+        print(result.stderr)
+        print(result.exception)
 
     assert result.exit_code == 0
     assert str(Path(expected_result)) in result.stdout
