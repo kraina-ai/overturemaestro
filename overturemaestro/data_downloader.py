@@ -9,6 +9,8 @@ import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
+from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
+
 if TYPE_CHECKING:
     from pyarrow.compute import Expression
     from shapely.geometry.base import BaseGeometry
@@ -59,6 +61,7 @@ def download_data_for_multiple_types(
 ) -> list[Path]: ...
 
 
+@show_total_elapsed_time_decorator
 def download_data_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
@@ -146,6 +149,7 @@ def download_data(
 ) -> Path: ...
 
 
+@show_total_elapsed_time_decorator
 def download_data(
     theme: str,
     type: str,
@@ -228,6 +232,7 @@ def download_data(
     return result_file_path
 
 
+@show_total_elapsed_time_decorator
 def _download_data(
     release: str,
     theme: str,
@@ -238,7 +243,6 @@ def _download_data(
     work_directory: Path,
     verbosity_mode: "VERBOSITY_MODE",
 ) -> None:
-    import time
     from concurrent.futures import ProcessPoolExecutor
     from functools import partial
 
@@ -249,11 +253,8 @@ def _download_data(
     from overturemaestro._rich_progress import (
         TrackProgressBar,
         TrackProgressSpinner,
-        show_total_elapsed_time,
     )
     from overturemaestro.release_index import load_release_index
-
-    start_time = time.time()
 
     dataset_index = load_release_index(
         release=release,
@@ -328,11 +329,6 @@ def _download_data(
         with pq.ParquetWriter(result_file_path, final_dataset.schema) as writer:
             for batch in final_dataset.to_batches():
                 writer.write_batch(batch)
-
-    if not verbosity_mode == "silent":
-        end_time = time.time()
-        elapsed_seconds = end_time - start_time
-        show_total_elapsed_time(elapsed_seconds)
 
 
 def _download_single_parquet_row_group_multiprocessing(

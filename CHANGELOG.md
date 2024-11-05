@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Automatic total time wrapper decorator to aggregate nested function calls
+
 ### Changed
 
 - Refactored available release versions caching [#24](https://github.com/kraina-ai/overturemaestro/issues/24)
