@@ -9,6 +9,7 @@ import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
+from overturemaestro._exceptions import MissingColumnError
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 
 if TYPE_CHECKING:
@@ -112,6 +113,7 @@ def download_data(
     geometry_filter: "BaseGeometry",
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -127,6 +129,7 @@ def download_data(
     release: str,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -142,6 +145,7 @@ def download_data(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -157,6 +161,7 @@ def download_data(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -173,6 +178,9 @@ def download_data(
             newest available release version. Defaults to None.
         pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
+        columns_to_download (Optional[list[str]], optional): List of columns to download.
+            Automatically adds geometry column to the list. If None, will download all columns.
+            Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to `None`.
@@ -210,6 +218,7 @@ def download_data(
             type=type,
             geometry_filter=geometry_filter,
             pyarrow_filter=pyarrow_filter,
+            columns_to_download=columns_to_download,
         )
 
     result_file_path = Path(result_file_path)
@@ -225,6 +234,7 @@ def download_data(
                 type=type,
                 geometry_filter=geometry_filter,
                 pyarrow_filter=pyarrow_filter,
+                columns_to_download=columns_to_download,
                 result_file_path=result_file_path,
                 work_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
@@ -239,6 +249,7 @@ def _download_data(
     type: str,
     geometry_filter: "BaseGeometry",
     pyarrow_filter: Optional["Expression"],
+    columns_to_download: Optional[list[str]],
     result_file_path: Path,
     work_directory: Path,
     verbosity_mode: "VERBOSITY_MODE",
@@ -286,6 +297,7 @@ def _download_data(
             _download_single_parquet_row_group_multiprocessing,
             bbox=geometry_filter.bounds,
             pyarrow_filter=pyarrow_filter,
+            columns_to_download=columns_to_download,
             work_directory=work_directory,
         )
         with ProcessPoolExecutor(
@@ -335,15 +347,22 @@ def _download_single_parquet_row_group_multiprocessing(
     params: dict[str, Any],
     bbox: tuple[float, float, float, float],
     pyarrow_filter: Optional["Expression"],
+    columns_to_download: Optional[list[str]],
     work_directory: Path,
 ) -> Path:
     retries = 10
     while retries > 0:
         try:
             downloaded_path = _download_single_parquet_row_group(
-                **params, bbox=bbox, pyarrow_filter=pyarrow_filter, work_directory=work_directory
+                **params,
+                bbox=bbox,
+                user_defined_pyarrow_filter=pyarrow_filter,
+                columns_to_download=columns_to_download,
+                work_directory=work_directory,
             )
             return downloaded_path
+        except MissingColumnError:
+            raise
         except Exception:
             retries -= 1
             if retries == 0:
@@ -357,7 +376,8 @@ def _download_single_parquet_row_group(
     row_group: int,
     row_indexes_ranges: list[list[int]],
     bbox: tuple[float, float, float, float],
-    pyarrow_filter: Optional["Expression"],
+    user_defined_pyarrow_filter: Optional["Expression"],
+    columns_to_download: Optional[list[str]],
     work_directory: Path,
 ) -> Path:
     import pyarrow.compute as pc
@@ -370,31 +390,76 @@ def _download_single_parquet_row_group(
 
     row_indexes = decompress_ranges(row_indexes_ranges)
     xmin, ymin, xmax, ymax = bbox
-    bbox_filter = (
+    pyarrow_filter = (
         (pc.field("bbox", "xmin") < xmax)
         & (pc.field("bbox", "xmax") > xmin)
         & (pc.field("bbox", "ymin") < ymax)
         & (pc.field("bbox", "ymax") > ymin)
     )
 
-    if pyarrow_filter is not None:
-        bbox_filter = bbox_filter & pyarrow_filter
+    if user_defined_pyarrow_filter is not None:
+        pyarrow_filter = pyarrow_filter & user_defined_pyarrow_filter
 
     fragment_manual = ds.ParquetFileFormat().make_fragment(
         file=filename,
         filesystem=fs.S3FileSystem(anonymous=True, region="us-west-2"),
         row_groups=[row_group],
     )
-    geoarrow_schema = geoarrow_schema_adapter(fragment_manual.physical_schema)
+    geoarrow_full_schema = geoarrow_schema_adapter(fragment_manual.physical_schema)
+    geoarrow_schema_filtered = geoarrow_full_schema
+
+    filtering_columns = None
+
+    columns_to_remove = set()
+
+    if columns_to_download:
+        nonexistent_columns = set(columns_to_download).difference(geoarrow_full_schema.names)
+
+        if nonexistent_columns:
+            raise MissingColumnError(
+                f"Cannot download given columns: {', '.join(sorted(nonexistent_columns))}"
+            )
+
+        if "geometry" not in columns_to_download:
+            columns_to_download.append("geometry")
+
+        # Create list of columns used to filter data by bbox
+        filtering_columns = [
+            column_name
+            for column_name in geoarrow_full_schema.names
+            if column_name in columns_to_download or column_name == "bbox"
+        ]
+
+        # Reorder list of columns to download to match pyarrow schema
+        columns_to_download = [
+            column_name
+            for column_name in geoarrow_full_schema.names
+            if column_name in columns_to_download
+        ]
+
+        # Remove unused columns from schema
+        for column_name in geoarrow_schema_filtered.names:
+            if column_name in columns_to_download:
+                continue
+            geoarrow_schema_filtered = geoarrow_schema_filtered.remove(
+                geoarrow_schema_filtered.get_field_index(column_name)
+            )
+
+        columns_to_remove = set(filtering_columns).difference(columns_to_download)
 
     file_path = work_directory / _generate_row_group_file_name(
         filename, row_group, row_indexes_ranges, bbox
     )
     file_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with get_writer(output_format="geoparquet", path=file_path, schema=geoarrow_schema) as writer:
+    with get_writer(
+        output_format="geoparquet", path=file_path, schema=geoarrow_schema_filtered
+    ) as writer:
         writer.write_table(
-            fragment_manual.scanner(schema=geoarrow_schema).take(row_indexes).filter(bbox_filter)
+            fragment_manual.scanner(schema=geoarrow_full_schema, columns=filtering_columns)
+            .take(row_indexes)
+            .filter(pyarrow_filter)
+            .drop_columns(list(columns_to_remove))
         )
 
     return file_path
@@ -434,6 +499,7 @@ def _generate_result_file_path(
     type: str,
     geometry_filter: "BaseGeometry",
     pyarrow_filter: Optional["Expression"],
+    columns_to_download: Optional[list[str]],
     # keep_all_tags: bool,
     # explode_tags: bool,
     # filter_osm_ids: list[str],
@@ -449,11 +515,17 @@ def _generate_result_file_path(
         h.update(str(pyarrow_filter).encode())
         pyarrow_filter_hash_part = h.hexdigest()
 
+    columns_hash_part = ""
+    if columns_to_download is not None:
+        h = hashlib.new("sha256")
+        h.update(str(sorted(columns_to_download)).encode())
+        columns_hash_part = f"_{h.hexdigest()}"
+
     return (
         Path(release)
         / f"theme={theme}"
         / f"type={type}"
-        / f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}.parquet"
+        / f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}{columns_hash_part}.parquet"
     )
 
 

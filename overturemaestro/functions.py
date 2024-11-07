@@ -17,6 +17,7 @@ from overturemaestro.data_downloader import (
     download_data_for_multiple_types,
     pyarrow_filters,
 )
+from overturemaestro.geopandas_io import geodataframe_from_parquet
 
 __all__ = [
     "convert_bounding_box_to_parquet",
@@ -40,6 +41,7 @@ def convert_geometry_to_parquet(
     geometry_filter: BaseGeometry,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -55,6 +57,7 @@ def convert_geometry_to_parquet(
     release: str,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -70,6 +73,7 @@ def convert_geometry_to_parquet(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -84,6 +88,7 @@ def convert_geometry_to_parquet(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -103,6 +108,9 @@ def convert_geometry_to_parquet(
             newest available release version. Defaults to None.
         pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
+        columns_to_download (Optional[list[str]], optional): List of columns to download.
+            Automatically adds geometry column to the list. If None, will download all columns.
+            Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to `None`.
@@ -173,6 +181,7 @@ def convert_geometry_to_parquet(
         type=type,
         geometry_filter=geometry_filter,
         pyarrow_filter=pyarrow_filter,
+        columns_to_download=columns_to_download,
         result_file_path=result_file_path,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
@@ -266,6 +275,7 @@ def convert_geometry_to_geodataframe(
     geometry_filter: BaseGeometry,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -280,6 +290,7 @@ def convert_geometry_to_geodataframe(
     release: str,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -294,6 +305,7 @@ def convert_geometry_to_geodataframe(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -307,6 +319,7 @@ def convert_geometry_to_geodataframe(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -325,6 +338,9 @@ def convert_geometry_to_geodataframe(
             newest available release version. Defaults to None.
         pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
+        columns_to_download (Optional[list[str]], optional): List of columns to download.
+            Automatically adds geometry column to the list. If None, will download all columns.
+            Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -393,11 +409,12 @@ def convert_geometry_to_geodataframe(
         geometry_filter=geometry_filter,
         release=release,
         pyarrow_filter=pyarrow_filter,
+        columns_to_download=columns_to_download,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
     )
-    return gpd.read_parquet(parsed_geoparquet_file).set_index("id")
+    return geodataframe_from_parquet(parsed_geoparquet_file)
 
 
 @overload
@@ -478,7 +495,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
         verbosity_mode=verbosity_mode,
     )
     return [
-        gpd.read_parquet(parsed_geoparquet_file).set_index("id")
+        geodataframe_from_parquet(parsed_geoparquet_file)
         for parsed_geoparquet_file in parsed_geoparquet_files
     ]
 
@@ -490,6 +507,7 @@ def convert_bounding_box_to_parquet(
     bbox: tuple[float, float, float, float],
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -505,6 +523,7 @@ def convert_bounding_box_to_parquet(
     release: str,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -520,6 +539,7 @@ def convert_bounding_box_to_parquet(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -534,6 +554,7 @@ def convert_bounding_box_to_parquet(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -554,6 +575,9 @@ def convert_bounding_box_to_parquet(
             newest available release version. Defaults to None.
         pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
+        columns_to_download (Optional[list[str]], optional): List of columns to download.
+            Automatically adds geometry column to the list. If None, will download all columns.
+            Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to `None`.
@@ -623,6 +647,7 @@ def convert_bounding_box_to_parquet(
         geometry_filter=box(*bbox),
         release=release,
         pyarrow_filter=pyarrow_filter,
+        columns_to_download=columns_to_download,
         result_file_path=result_file_path,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
@@ -717,6 +742,7 @@ def convert_bounding_box_to_geodataframe(
     bbox: tuple[float, float, float, float],
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -731,6 +757,7 @@ def convert_bounding_box_to_geodataframe(
     release: str,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -745,6 +772,7 @@ def convert_bounding_box_to_geodataframe(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -758,6 +786,7 @@ def convert_bounding_box_to_geodataframe(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -777,6 +806,9 @@ def convert_bounding_box_to_geodataframe(
             newest available release version. Defaults to None.
         pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
+        columns_to_download (Optional[list[str]], optional): List of columns to download.
+            Automatically adds geometry column to the list. If None, will download all columns.
+            Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -844,6 +876,7 @@ def convert_bounding_box_to_geodataframe(
         geometry_filter=box(*bbox),
         release=release,
         pyarrow_filter=pyarrow_filter,
+        columns_to_download=columns_to_download,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
