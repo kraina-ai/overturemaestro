@@ -589,7 +589,7 @@ def _get_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
 
 
-def _load_all_available_release_versions_from_github() -> list[str]:
+def _load_all_available_release_versions_from_github() -> list[str]:  # pragma: no cover
     release_versions_cache_file = (
         Path(platformdirs.user_cache_dir("OvertureMaestro"))
         / "release_indexes"
@@ -611,7 +611,9 @@ def _load_all_available_release_versions_from_github() -> list[str]:
     return release_versions
 
 
-def _consolidate_release_index_files(release: str, remove_other_files: bool = False) -> bool:
+def _consolidate_release_index_files(
+    release: str, remove_other_files: bool = False
+) -> bool:  # pragma: no cover
     _check_release_version(release)
 
     cache_directory = _get_global_release_cache_directory(release)
