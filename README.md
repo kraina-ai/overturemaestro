@@ -80,6 +80,8 @@ Required:
 
 - `geoarrow-rust-core (>=0.3.0)`: For transforming Arrow data to Shapely objects
 
+- `duckdb (>=1.1.0)`: For transforming downloaded data to the wide format
+
 - `pooch (>=1.6.0)`: For downloading precalculated dataset indexes
 
 - `rich (>=12.0.0)`: For showing progress bars
