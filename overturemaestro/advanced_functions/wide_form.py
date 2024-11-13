@@ -1,22 +1,18 @@
 """Functions for retrieving Overture Maps features in a wide form."""
 
 # TODO: replace with dedicated DuckDB functions - POI can have multiple values at once
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from typing import Optional, Union, overload
 
 import duckdb
-
-from overturemaestro._rich_progress import VERBOSITY_MODE
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._rich_progress import VERBOSITY_MODE
 from overturemaestro.data_downloader import (
     download_data,
-    download_data_for_multiple_types,
     pyarrow_filters,
 )
-
 
 THEME_TYPE_CLASSIFICATION = {
     ("base", "infrastructure"): ["subtype", "class"],
@@ -153,7 +149,7 @@ def _get_transform_to_wide_form_function():
 
             connection = set_up_duckdb_connection(tmp_dir_path)
 
-            joined_hierarchy_columns = ','.join(hierarchy_columns)
+            joined_hierarchy_columns = ",".join(hierarchy_columns)
 
             wide_column_definitions = (
                 connection.sql(
