@@ -614,10 +614,14 @@ def _load_newest_release_version_from_github() -> str:
     return sorted(release_versions)[-1]
 
 
-def _consolidate_release_index_files(release: str, remove_other_files: bool = False) -> bool:
+def _consolidate_release_index_files(
+    release: str,
+    remove_other_files: bool = False,
+    index_location_path: Optional[Path] = None,
+) -> bool:
     _check_release_version(release)
 
-    cache_directory = _get_global_release_cache_directory(release)
+    cache_directory = Path(index_location_path or _get_global_release_cache_directory(release))
     release_index_path = cache_directory / "release_index_content.json"
     if release_index_path.exists():
         rprint("Cache exists. Skipping generation.")
