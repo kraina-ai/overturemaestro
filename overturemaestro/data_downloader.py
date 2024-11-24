@@ -224,9 +224,7 @@ def download_data(
     result_file_path = Path(result_file_path)
 
     if not result_file_path.exists() or ignore_cache:
-        with tempfile.TemporaryDirectory(
-            dir=Path(Path(working_directory)).resolve()
-        ) as tmp_dir_name:
+        with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
             tmp_dir_path = Path(tmp_dir_name)
             _download_data(
                 release=release,
@@ -261,10 +259,7 @@ def _download_data(
     import pyarrow.parquet as pq
 
     from overturemaestro._parquet_multiprocessing import map_parquet_dataset
-    from overturemaestro._rich_progress import (
-        TrackProgressBar,
-        TrackProgressSpinner,
-    )
+    from overturemaestro._rich_progress import TrackProgressBar, TrackProgressSpinner
     from overturemaestro.release_index import load_release_index
 
     dataset_index = load_release_index(
