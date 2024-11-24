@@ -1,8 +1,9 @@
 import multiprocessing
+from multiprocessing.managers import SyncManager
 from pathlib import Path
 from queue import Empty, Queue
 from time import sleep, time
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
 
@@ -107,6 +108,13 @@ class WorkerProcess(ctx.Process):  # type: ignore[name-defined,misc]
         return self._exception
 
 
+class SingletonContextManager(SyncManager):
+    def __new__(cls, ctx: multiprocessing.context.SpawnContext) -> "SingletonContextManager":
+        if not hasattr(cls, "instance"):
+            cls.instance = ctx.Manager()
+        return cast(SingletonContextManager, cls.instance)
+
+
 def _read_row_group_number(path: str, filesystem: "fs.FileSystem") -> int:
     import pyarrow.parquet as pq
 
@@ -154,7 +162,7 @@ def map_parquet_dataset(
 
         from overturemaestro._rich_progress import TrackProgressBar
 
-        manager = ctx.Manager()
+        manager = SingletonContextManager(ctx=ctx)
 
         queue: Queue[tuple[str, int]] = manager.Queue()
         tracker: ValueProxy[int] = manager.Value("i", 0)
