@@ -32,13 +32,14 @@ def _job(
     columns: Optional[list[str]],
     filesystem: "fs.FileSystem",
 ) -> None:  # pragma: no cover
+    import hashlib
+
     import pyarrow.dataset as ds
     import pyarrow.parquet as pq
 
     current_pid = multiprocessing.current_process().pid
 
-    filepath = save_path / f"{current_pid}.parquet"
-    writer = None
+    writers = {}
     while not queue.empty():
         try:
             file_name, row_group_index = None, None
@@ -62,10 +63,16 @@ def _job(
                     tracker.value += 1
                 continue
 
-            if not writer:
-                writer = pq.ParquetWriter(filepath, result_table.schema)
+            h = hashlib.new("sha256")
+            h.update(result_table.schema.to_string().encode())
+            schema_hash = h.hexdigest()
 
-            writer.write_table(result_table)
+            if schema_hash not in writers:
+                filepath = save_path / str(current_pid) / f"{schema_hash}.parquet"
+                filepath.parent.mkdir(exist_ok=True, parents=True)
+                writers[schema_hash] = pq.ParquetWriter(filepath, result_table.schema)
+
+            writers[schema_hash].write_table(result_table)
 
             with tracker_lock:
                 tracker.value += 1
@@ -81,7 +88,7 @@ def _job(
             )
             raise MultiprocessingRuntimeError(msg) from ex
 
-    if writer:
+    for writer in writers.values():
         writer.close()
 
 
