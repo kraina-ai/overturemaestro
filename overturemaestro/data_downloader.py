@@ -235,7 +235,7 @@ def download_data(
                 theme_type_pairs=[(theme, type)],
                 geometry_filter=geometry_filter,
                 pyarrow_filter=[pyarrow_filter],
-                columns_to_download=[columns_to_download] if columns_to_download else None,
+                columns_to_download=[columns_to_download],
                 work_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
             )
@@ -260,7 +260,7 @@ def _download_data(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
     pyarrow_filter: Optional[list["Expression"]],
-    columns_to_download: Optional[list[list[str]]],
+    columns_to_download: Optional[list[Union[list[str], None]]],
     work_directory: Path,
     verbosity_mode: "VERBOSITY_MODE",
 ) -> list[Path]:

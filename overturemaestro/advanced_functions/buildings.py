@@ -9,11 +9,16 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Union, overload
 
+import pyarrow.parquet as pq
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._duckdb import _set_up_duckdb_connection
 from overturemaestro._rich_progress import VERBOSITY_MODE
-from overturemaestro.data_downloader import _generate_geometry_hash, download_data, pyarrow_filters
+from overturemaestro.data_downloader import (
+    _download_data,
+    _generate_geometry_hash,
+    pyarrow_filters,
+)
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 from overturemaestro.release_index import get_newest_release_version
 
@@ -21,7 +26,6 @@ if TYPE_CHECKING:
     from pyarrow.compute import Expression
 
 # TODO: write test for checking if geometries of buildings without parts are untouched
-# TODO: remove hive partitioning from reading parquet
 
 
 @overload
@@ -107,38 +111,31 @@ def convert_geometry_to_buildings_parquet(
     Returns:
         Path: Path to the generated GeoParquet file.
     """
-    # download buildings
-    # download building_parts
-
-    # combine geometries using duckdb
     with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
         tmp_dir_path = Path(tmp_dir_name)
 
         if not release:
             release = get_newest_release_version()
 
-        downloaded_buildings_parquet_path = download_data(
+        all_building_parquet_files = _download_data(
             release=release,
-            theme="buildings",
-            type="building",
+            theme_type_pairs=[("buildings", "building"), ("buildings", "building_part")],
             geometry_filter=geometry_filter,
-            pyarrow_filter=pyarrow_filter,
-            columns_to_download=columns_to_download,
-            ignore_cache=ignore_cache,
-            working_directory=tmp_dir_path,
+            pyarrow_filter=[pyarrow_filter, None],
+            columns_to_download=[columns_to_download, ["building_id", "geometry"]],
+            work_directory=tmp_dir_path,
             verbosity_mode=verbosity_mode,
         )
 
-        downloaded_building_parts_parquet_path = download_data(
-            release=release,
-            theme="buildings",
-            type="building_part",
-            geometry_filter=geometry_filter,
-            columns_to_download=["building_id", "geometry"],
-            ignore_cache=ignore_cache,
-            working_directory=tmp_dir_path,
-            verbosity_mode=verbosity_mode,
-        )
+        downloaded_buildings_parquet_paths = []
+        downloaded_building_parts_parquet_paths = []
+
+        for downloaded_file_path in all_building_parquet_files:
+            schema = pq.read_schema(downloaded_file_path)
+            if "building_id" in schema.names:
+                downloaded_building_parts_parquet_paths.append(downloaded_file_path)
+            else:
+                downloaded_buildings_parquet_paths.append(downloaded_file_path)
 
         if result_file_path is None:
             result_file_path = working_directory / _generate_result_file_path(
@@ -151,11 +148,16 @@ def convert_geometry_to_buildings_parquet(
 
         result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
+        joined_building_paths = ",".join(f"'{p}'" for p in downloaded_buildings_parquet_paths)
+        joined_building_part_paths = ",".join(
+            f"'{p}'" for p in downloaded_building_parts_parquet_paths
+        )
+
         join_sql = f"""
         WITH buildings_properties AS (
             SELECT buildings.* EXCLUDE (geometry)
             FROM read_parquet(
-                '{downloaded_buildings_parquet_path}',
+                [{joined_building_paths}],
                 hive_partitioning=false
             ) buildings
         ), buildings_with_parts AS (
@@ -168,11 +170,11 @@ def convert_geometry_to_buildings_parquet(
                     END
                 ) AS geometry
             FROM read_parquet(
-                '{downloaded_buildings_parquet_path}',
+                [{joined_building_paths}],
                 hive_partitioning=false
             ) buildings
             LEFT JOIN read_parquet(
-                '{downloaded_building_parts_parquet_path}',
+                [{joined_building_part_paths}],
                 hive_partitioning=false
             ) building_parts
             ON buildings.id = building_parts.building_id
@@ -189,7 +191,6 @@ def convert_geometry_to_buildings_parquet(
         COPY ({join_sql}) TO '{result_file_path}' (
             FORMAT 'parquet',
             PER_THREAD_OUTPUT false
-            -- ROW_GROUP_SIZE 25000,
         )
         """
 
