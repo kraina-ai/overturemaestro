@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored available release versions caching [#24](https://github.com/kraina-ai/overturemaestro/issues/24)
 - Removed hive partitioned parquet schema columns from GeoDataFrame loading
 
+## [0.1.1] - 2024-11-24
+
+### Changed
+
+- Modified release index consolidation script
+
 ## [0.1.0] - 2024-10-31
 
 ### Added
@@ -72,7 +78,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.1.1...HEAD
+
+[0.1.1]: https://github.com/kraina-ai/overturemaestro/compare/0.1.0...0.1.1
 
 [0.1.0]: https://github.com/kraina-ai/overturemaestro/compare/0.0.3...0.1.0
 

@@ -612,11 +612,13 @@ def _load_all_available_release_versions_from_github() -> list[str]:  # pragma: 
 
 
 def _consolidate_release_index_files(
-    release: str, remove_other_files: bool = False
+    release: str,
+    remove_other_files: bool = False,
+    index_location_path: Optional[Path] = None,
 ) -> bool:  # pragma: no cover
     _check_release_version(release)
 
-    cache_directory = _get_global_release_cache_directory(release)
+    cache_directory = Path(index_location_path or _get_global_release_cache_directory(release))
     release_index_path = cache_directory / "release_index_content.json"
     if release_index_path.exists():
         rprint("Cache exists. Skipping generation.")
