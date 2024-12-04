@@ -336,8 +336,6 @@ def _download_data(
                 )
             )
 
-    print(downloaded_parquet_files)
-
     if not geometry_filter.equals(geometry_filter.envelope):
         destination_path = work_directory / Path("intersected_data")
         fn = partial(_filter_data_properly, geometry_filter=geometry_filter)
@@ -353,8 +351,6 @@ def _download_data(
         filtered_parquet_files = list(destination_path.glob("**/*.parquet"))
     else:
         filtered_parquet_files = downloaded_parquet_files
-
-    print(filtered_parquet_files)
 
     return filtered_parquet_files
 

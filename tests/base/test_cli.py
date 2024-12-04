@@ -107,12 +107,14 @@ def test_silent_mode(test_release_version: str) -> None:
 
     geometry_hash = _generate_geometry_hash(geometry_box())
 
+    print(result.stdout)
+
     assert result.exit_code == 0
     assert (
-        str(
+        (
             Path(f"files/{test_release_version}/theme={theme_value}/type={type_value}")
             / f"{geometry_hash}_nofilter.parquet"
-        )
+        ).as_posix()
         == result.stdout.strip()
     )
 
