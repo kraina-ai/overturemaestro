@@ -264,6 +264,7 @@ def _download_data(
     work_directory: Path,
     verbosity_mode: "VERBOSITY_MODE",
 ) -> list[Path]:
+    # TODO: add option to keep theme_type metadata in the downloaded parquet files
     from concurrent.futures import ProcessPoolExecutor
     from functools import partial
 
@@ -300,6 +301,8 @@ def _download_data(
         _columns_to_download = columns_to_download[idx] if columns_to_download else None
 
         for row_group_to_download in row_groups_to_download:
+            row_group_to_download["theme"] = theme_value
+            row_group_to_download["type"] = type_value
             row_group_to_download["user_defined_pyarrow_filter"] = _pyarrow_filter
             row_group_to_download["columns_to_download"] = _columns_to_download
 
@@ -380,6 +383,8 @@ def _download_single_parquet_row_group_multiprocessing(
 
 
 def _download_single_parquet_row_group(
+    theme: str,
+    type: str,
     filename: str,
     row_group: int,
     row_indexes_ranges: list[list[int]],
@@ -414,6 +419,10 @@ def _download_single_parquet_row_group(
         row_groups=[row_group],
     )
     geoarrow_full_schema = geoarrow_schema_adapter(fragment_manual.physical_schema)
+    metadata = geoarrow_full_schema.metadata or {}
+    metadata["_theme"] = theme
+    metadata["_type"] = type
+    geoarrow_full_schema = geoarrow_full_schema.with_metadata(metadata)
     geoarrow_schema_filtered = geoarrow_full_schema
 
     filtering_columns = None
