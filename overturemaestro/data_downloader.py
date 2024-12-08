@@ -9,6 +9,9 @@ import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
+from overturemaestro._exceptions import MissingColumnError
+from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
+
 if TYPE_CHECKING:
     from pyarrow.compute import Expression
     from shapely.geometry.base import BaseGeometry
@@ -59,6 +62,7 @@ def download_data_for_multiple_types(
 ) -> list[Path]: ...
 
 
+@show_total_elapsed_time_decorator
 def download_data_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
@@ -109,6 +113,7 @@ def download_data(
     geometry_filter: "BaseGeometry",
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -124,6 +129,7 @@ def download_data(
     release: str,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -139,6 +145,7 @@ def download_data(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -146,6 +153,7 @@ def download_data(
 ) -> Path: ...
 
 
+@show_total_elapsed_time_decorator
 def download_data(
     theme: str,
     type: str,
@@ -153,6 +161,7 @@ def download_data(
     release: Optional[str] = None,
     *,
     pyarrow_filter: Optional[pyarrow_filters] = None,
+    columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -169,6 +178,9 @@ def download_data(
             newest available release version. Defaults to None.
         pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
+        columns_to_download (Optional[list[str]], optional): List of columns to download.
+            Automatically adds geometry column to the list. If None, will download all columns.
+            Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to `None`.
@@ -186,6 +198,10 @@ def download_data(
     """
     import tempfile
 
+    import pyarrow.dataset as ds
+    import pyarrow.parquet as pq
+
+    from overturemaestro._rich_progress import TrackProgressSpinner
     from overturemaestro.release_index import get_newest_release_version
 
     if not release:
@@ -206,85 +222,104 @@ def download_data(
             type=type,
             geometry_filter=geometry_filter,
             pyarrow_filter=pyarrow_filter,
+            columns_to_download=columns_to_download,
         )
 
     result_file_path = Path(result_file_path)
 
     if not result_file_path.exists() or ignore_cache:
-        with tempfile.TemporaryDirectory(
-            dir=Path(Path(working_directory)).resolve()
-        ) as tmp_dir_name:
+        with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
             tmp_dir_path = Path(tmp_dir_name)
-            _download_data(
+            raw_parquet_files = _download_data(
                 release=release,
-                theme=theme,
-                type=type,
+                theme_type_pairs=[(theme, type)],
                 geometry_filter=geometry_filter,
-                pyarrow_filter=pyarrow_filter,
-                result_file_path=result_file_path,
+                pyarrow_filter=[pyarrow_filter],
+                columns_to_download=[columns_to_download],
                 work_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
             )
+
+            final_dataset = ds.dataset(raw_parquet_files)
+
+            result_file_path.parent.mkdir(exist_ok=True, parents=True)
+
+            with TrackProgressSpinner(
+                "Saving final geoparquet file", verbosity_mode=verbosity_mode
+            ):
+                with pq.ParquetWriter(result_file_path, final_dataset.schema) as writer:
+                    for batch in final_dataset.to_batches():
+                        writer.write_batch(batch)
+
     return result_file_path
 
 
+@show_total_elapsed_time_decorator
 def _download_data(
     release: str,
-    theme: str,
-    type: str,
+    theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
-    pyarrow_filter: Optional["Expression"],
-    result_file_path: Path,
+    pyarrow_filter: Optional[list["Expression"]],
+    columns_to_download: Optional[list[Union[list[str], None]]],
     work_directory: Path,
     verbosity_mode: "VERBOSITY_MODE",
-) -> None:
-    import time
+) -> list[Path]:
+    # TODO: add option to keep theme_type metadata in the downloaded parquet files
     from concurrent.futures import ProcessPoolExecutor
     from functools import partial
 
-    import pyarrow.dataset as ds
-    import pyarrow.parquet as pq
-
     from overturemaestro._parquet_multiprocessing import map_parquet_dataset
-    from overturemaestro._rich_progress import (
-        TrackProgressBar,
-        TrackProgressSpinner,
-        show_total_elapsed_time,
-    )
+    from overturemaestro._rich_progress import TrackProgressBar
     from overturemaestro.release_index import load_release_index
 
-    start_time = time.time()
+    # TODO: raise error if length of pyarrow_filter / columns_to_download
+    # is different than theme_type_pairs
 
-    dataset_index = load_release_index(
-        release=release,
-        theme=theme,
-        type=type,
-        geometry_filter=geometry_filter,
-        verbosity_mode=verbosity_mode,
-    )
+    all_row_groups_to_download = []
 
-    dataset_index = (
-        dataset_index.explode("row_indexes_ranges")
-        .groupby(["filename", "row_group"])["row_indexes_ranges"]
-        .apply(lambda x: [pair.tolist() for pair in x.values])
-        .reset_index()
-    )
+    for idx, (theme_value, type_value) in enumerate(theme_type_pairs):
+        dataset_index = load_release_index(
+            release=release,
+            theme=theme_value,
+            type=type_value,
+            geometry_filter=geometry_filter,
+            verbosity_mode=verbosity_mode,
+        )
 
-    row_groups_to_download = dataset_index[["filename", "row_group", "row_indexes_ranges"]].to_dict(
-        orient="records"
-    )
+        dataset_index = (
+            dataset_index.explode("row_indexes_ranges")
+            .groupby(["filename", "row_group"])["row_indexes_ranges"]
+            .apply(lambda x: [pair.tolist() for pair in x.values])
+            .reset_index()
+        )
+
+        row_groups_to_download = dataset_index[
+            ["filename", "row_group", "row_indexes_ranges"]
+        ].to_dict(orient="records")
+
+        _pyarrow_filter = pyarrow_filter[idx] if pyarrow_filter else None
+        _columns_to_download = columns_to_download[idx] if columns_to_download else None
+
+        for row_group_to_download in row_groups_to_download:
+            row_group_to_download["theme"] = theme_value
+            row_group_to_download["type"] = type_value
+            row_group_to_download["user_defined_pyarrow_filter"] = _pyarrow_filter
+            row_group_to_download["columns_to_download"] = _columns_to_download
+
+        all_row_groups_to_download.extend(row_groups_to_download)
 
     min_no_workers = 8
     no_workers = min(
         max(min_no_workers, multiprocessing.cpu_count() + 4), 32
     )  # minimum 8 workers, but not more than 32
 
+    theme_type_task_description = ", ".join(f"{th}/{ty}" for th, ty in theme_type_pairs)
+
     with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-        total_row_groups = len(row_groups_to_download)
+        total_row_groups = len(all_row_groups_to_download)
         fn = partial(
             _download_single_parquet_row_group_multiprocessing,
             bbox=geometry_filter.bounds,
-            pyarrow_filter=pyarrow_filter,
             work_directory=work_directory,
         )
         with ProcessPoolExecutor(
@@ -296,10 +331,10 @@ def _download_data(
                 progress.track(
                     ex.map(
                         fn,
-                        row_groups_to_download,
+                        all_row_groups_to_download,
                         chunksize=1,
                     ),
-                    description=f"Downloading parquet files ({theme}/{type})",
+                    description=f"Downloading parquet files ({theme_type_task_description})",
                     total=total_row_groups,
                 )
             )
@@ -311,43 +346,34 @@ def _download_data(
             dataset_path=downloaded_parquet_files,
             destination_path=destination_path,
             function=fn,
-            progress_description=f"Filtering data by geometry ({theme}/{type})",
+            progress_description=f"Filtering data by geometry ({theme_type_task_description})",
             report_progress_as_text=False,
             verbosity_mode=verbosity_mode,
         )
 
-        filtered_parquet_files = list(destination_path.glob("*.parquet"))
+        filtered_parquet_files = list(destination_path.glob("**/*.parquet"))
     else:
         filtered_parquet_files = downloaded_parquet_files
 
-    final_dataset = ds.dataset(filtered_parquet_files)
-
-    result_file_path.parent.mkdir(exist_ok=True, parents=True)
-
-    with TrackProgressSpinner("Saving final geoparquet file", verbosity_mode=verbosity_mode):
-        with pq.ParquetWriter(result_file_path, final_dataset.schema) as writer:
-            for batch in final_dataset.to_batches():
-                writer.write_batch(batch)
-
-    if not verbosity_mode == "silent":
-        end_time = time.time()
-        elapsed_seconds = end_time - start_time
-        show_total_elapsed_time(elapsed_seconds)
+    return filtered_parquet_files
 
 
 def _download_single_parquet_row_group_multiprocessing(
     params: dict[str, Any],
     bbox: tuple[float, float, float, float],
-    pyarrow_filter: Optional["Expression"],
     work_directory: Path,
 ) -> Path:
     retries = 10
     while retries > 0:
         try:
             downloaded_path = _download_single_parquet_row_group(
-                **params, bbox=bbox, pyarrow_filter=pyarrow_filter, work_directory=work_directory
+                **params,
+                bbox=bbox,
+                work_directory=work_directory,
             )
             return downloaded_path
+        except MissingColumnError:
+            raise
         except Exception:
             retries -= 1
             if retries == 0:
@@ -357,11 +383,14 @@ def _download_single_parquet_row_group_multiprocessing(
 
 
 def _download_single_parquet_row_group(
+    theme: str,
+    type: str,
     filename: str,
     row_group: int,
     row_indexes_ranges: list[list[int]],
     bbox: tuple[float, float, float, float],
-    pyarrow_filter: Optional["Expression"],
+    user_defined_pyarrow_filter: Optional["Expression"],
+    columns_to_download: Optional[list[str]],
     work_directory: Path,
 ) -> Path:
     import pyarrow.compute as pc
@@ -374,31 +403,80 @@ def _download_single_parquet_row_group(
 
     row_indexes = decompress_ranges(row_indexes_ranges)
     xmin, ymin, xmax, ymax = bbox
-    bbox_filter = (
+    pyarrow_filter = (
         (pc.field("bbox", "xmin") < xmax)
         & (pc.field("bbox", "xmax") > xmin)
         & (pc.field("bbox", "ymin") < ymax)
         & (pc.field("bbox", "ymax") > ymin)
     )
 
-    if pyarrow_filter is not None:
-        bbox_filter = bbox_filter & pyarrow_filter
+    if user_defined_pyarrow_filter is not None:
+        pyarrow_filter = pyarrow_filter & user_defined_pyarrow_filter
 
     fragment_manual = ds.ParquetFileFormat().make_fragment(
         file=filename,
         filesystem=fs.S3FileSystem(anonymous=True, region="us-west-2"),
         row_groups=[row_group],
     )
-    geoarrow_schema = geoarrow_schema_adapter(fragment_manual.physical_schema)
+    geoarrow_full_schema = geoarrow_schema_adapter(fragment_manual.physical_schema)
+    metadata = geoarrow_full_schema.metadata or {}
+    metadata["_theme"] = theme
+    metadata["_type"] = type
+    geoarrow_full_schema = geoarrow_full_schema.with_metadata(metadata)
+    geoarrow_schema_filtered = geoarrow_full_schema
+
+    filtering_columns = None
+
+    columns_to_remove = set()
+
+    if columns_to_download:
+        nonexistent_columns = set(columns_to_download).difference(geoarrow_full_schema.names)
+
+        if nonexistent_columns:
+            raise MissingColumnError(
+                f"Cannot download given columns: {', '.join(sorted(nonexistent_columns))}"
+            )
+
+        if "geometry" not in columns_to_download:
+            columns_to_download.append("geometry")
+
+        # Create list of columns used to filter data by bbox
+        filtering_columns = [
+            column_name
+            for column_name in geoarrow_full_schema.names
+            if column_name in columns_to_download or column_name == "bbox"
+        ]
+
+        # Reorder list of columns to download to match pyarrow schema
+        columns_to_download = [
+            column_name
+            for column_name in geoarrow_full_schema.names
+            if column_name in columns_to_download
+        ]
+
+        # Remove unused columns from schema
+        for column_name in geoarrow_schema_filtered.names:
+            if column_name in columns_to_download:
+                continue
+            geoarrow_schema_filtered = geoarrow_schema_filtered.remove(
+                geoarrow_schema_filtered.get_field_index(column_name)
+            )
+
+        columns_to_remove = set(filtering_columns).difference(columns_to_download)
 
     file_path = work_directory / _generate_row_group_file_name(
         filename, row_group, row_indexes_ranges, bbox
     )
     file_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with get_writer(output_format="geoparquet", path=file_path, schema=geoarrow_schema) as writer:
+    with get_writer(
+        output_format="geoparquet", path=file_path, schema=geoarrow_schema_filtered
+    ) as writer:
         writer.write_table(
-            fragment_manual.scanner(schema=geoarrow_schema).take(row_indexes).filter(bbox_filter)
+            fragment_manual.scanner(schema=geoarrow_full_schema, columns=filtering_columns)
+            .take(row_indexes)
+            .filter(pyarrow_filter)
+            .drop_columns(list(columns_to_remove))
         )
 
     return file_path
@@ -438,6 +516,7 @@ def _generate_result_file_path(
     type: str,
     geometry_filter: "BaseGeometry",
     pyarrow_filter: Optional["Expression"],
+    columns_to_download: Optional[list[str]],
     # keep_all_tags: bool,
     # explode_tags: bool,
     # filter_osm_ids: list[str],
@@ -453,11 +532,17 @@ def _generate_result_file_path(
         h.update(str(pyarrow_filter).encode())
         pyarrow_filter_hash_part = h.hexdigest()
 
+    columns_hash_part = ""
+    if columns_to_download is not None:
+        h = hashlib.new("sha256")
+        h.update(str(sorted(columns_to_download)).encode())
+        columns_hash_part = f"_{h.hexdigest()}"
+
     return (
         Path(release)
         / f"theme={theme}"
         / f"type={type}"
-        / f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}.parquet"
+        / f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}{columns_hash_part}.parquet"
     )
 
 
