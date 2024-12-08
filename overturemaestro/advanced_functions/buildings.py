@@ -13,7 +13,7 @@ import pyarrow.parquet as pq
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._duckdb import _set_up_duckdb_connection
-from overturemaestro._rich_progress import VERBOSITY_MODE
+from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
 from overturemaestro.data_downloader import (
     _download_data,
     _generate_geometry_hash,
@@ -111,11 +111,25 @@ def convert_geometry_to_buildings_parquet(
     Returns:
         Path: Path to the generated GeoParquet file.
     """
+    # TODO: check ignore cache logic
     with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
         tmp_dir_path = Path(tmp_dir_name)
 
         if not release:
             release = get_newest_release_version()
+
+        if result_file_path is None:
+            result_file_path = working_directory / _generate_result_file_path(
+                release=release,
+                geometry_filter=geometry_filter,
+                pyarrow_filter=pyarrow_filter,
+            )
+
+        result_file_path = Path(result_file_path)
+        result_file_path.parent.mkdir(exist_ok=True, parents=True)
+
+        if columns_to_download and "id" not in columns_to_download:
+            columns_to_download = ["id", *columns_to_download]
 
         all_building_parquet_files = _download_data(
             release=release,
@@ -136,17 +150,6 @@ def convert_geometry_to_buildings_parquet(
                 downloaded_building_parts_parquet_paths.append(downloaded_file_path)
             else:
                 downloaded_buildings_parquet_paths.append(downloaded_file_path)
-
-        if result_file_path is None:
-            result_file_path = working_directory / _generate_result_file_path(
-                release=release,
-                geometry_filter=geometry_filter,
-                pyarrow_filter=pyarrow_filter,
-            )
-
-        result_file_path = Path(result_file_path)
-
-        result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
         joined_building_paths = ",".join(f"'{p}'" for p in downloaded_buildings_parquet_paths)
         joined_building_part_paths = ",".join(
@@ -194,8 +197,9 @@ def convert_geometry_to_buildings_parquet(
         )
         """
 
-        connection = _set_up_duckdb_connection(tmp_dir_path)
-        connection.execute(copy_sql)
+        with TrackProgressSpinner("Joining buildings with parts", verbosity_mode=verbosity_mode):
+            connection = _set_up_duckdb_connection(tmp_dir_path)
+            connection.execute(copy_sql)
 
         return result_file_path
 
