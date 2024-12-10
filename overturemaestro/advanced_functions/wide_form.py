@@ -10,7 +10,6 @@ from shapely.geometry.base import BaseGeometry
 from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
 from overturemaestro._exceptions import HierarchyDepthOutOfBoundsError
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
-from overturemaestro.advanced_functions.buildings import convert_geometry_to_buildings_parquet
 from overturemaestro.data_downloader import _generate_geometry_hash, download_data, pyarrow_filters
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 from overturemaestro.release_index import get_newest_release_version
@@ -36,28 +35,6 @@ def _wrapped_default_download_function(
         release=release,
         theme=theme,
         type=type,
-        geometry_filter=geometry_filter,
-        pyarrow_filter=pyarrow_filter,
-        columns_to_download=["id", *columns_to_download, "geometry"],
-        ignore_cache=ignore_cache,
-        working_directory=working_directory,
-        verbosity_mode=verbosity_mode,
-    )
-
-
-def _wrapped_building_download_function(
-    theme: str,
-    type: str,
-    geometry_filter: BaseGeometry,
-    columns_to_download: list[str],
-    release: Optional[str] = None,
-    pyarrow_filter: Optional[pyarrow_filters] = None,
-    ignore_cache: bool = False,
-    working_directory: Union[str, Path] = "files",
-    verbosity_mode: VERBOSITY_MODE = "transient",
-) -> Path:
-    return convert_geometry_to_buildings_parquet(
-        release=release,
         geometry_filter=geometry_filter,
         pyarrow_filter=pyarrow_filter,
         columns_to_download=["id", *columns_to_download, "geometry"],
@@ -284,7 +261,7 @@ THEME_TYPE_CLASSIFICATION = {
         _transform_poi_to_wide_form,
     ),
     ("buildings", "building"): WideFormDefinition(
-        _wrapped_building_download_function,
+        _wrapped_default_download_function,
         ["subtype", "class"],
         _check_depth_for_wide_form,
         _transform_to_wide_form,
