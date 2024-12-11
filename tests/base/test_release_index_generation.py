@@ -25,6 +25,8 @@ SELECTED_CITIES_BOUNDING_BOXES = [
 
 def test_generate_release_indexes(test_release_version: str) -> None:
     """Test if generated indexes are working properly."""
+    working_directory = "files/local_overture_maps_dataset"
+
     # Load data from existing Overture dataset using existing index
     download_existing_release_index(release=test_release_version)
     selected_pairs = [
@@ -34,7 +36,10 @@ def test_generate_release_indexes(test_release_version: str) -> None:
     ]
     for bounding_box in SELECTED_CITIES_BOUNDING_BOXES:
         convert_bounding_box_to_parquet_for_multiple_types(
-            theme_type_pairs=selected_pairs, bbox=bounding_box, release=test_release_version
+            theme_type_pairs=selected_pairs,
+            bbox=bounding_box,
+            release=test_release_version,
+            working_directory=working_directory,
         )
 
     # Generate local index
@@ -44,7 +49,7 @@ def test_generate_release_indexes(test_release_version: str) -> None:
 
     _generate_release_index(
         release=test_release_version,
-        dataset_path="files",
+        dataset_path=working_directory,
         dataset_fs="local",
         index_location_path=test_index_path,
     )
