@@ -92,18 +92,64 @@ def download_data_for_multiple_types(
     Returns:
         list[Path]: List of saved Geoparquet files paths.
     """
-    return [
-        download_data(
+    import tempfile
+
+    import pyarrow.dataset as ds
+    import pyarrow.parquet as pq
+
+    from overturemaestro._rich_progress import TrackProgressBar
+    from overturemaestro.release_index import get_newest_release_version
+
+    if not release:
+        release = get_newest_release_version()
+
+    working_directory = Path(working_directory)
+    working_directory.mkdir(parents=True, exist_ok=True)
+
+    all_result_file_paths = []
+    theme_type_pairs_to_download = []
+    result_file_paths_to_download = []
+    for theme_value, type_value in theme_type_pairs:
+        result_file_path = working_directory / _generate_result_file_path(
+            release=release,
             theme=theme_value,
             type=type_value,
             geometry_filter=geometry_filter,
-            release=release,
-            ignore_cache=ignore_cache,
-            working_directory=working_directory,
-            verbosity_mode=verbosity_mode,
+            pyarrow_filter=None,
+            columns_to_download=None,
         )
-        for theme_value, type_value in theme_type_pairs
-    ]
+        all_result_file_paths.append(result_file_path)
+
+        if not result_file_path.exists() or ignore_cache:
+            theme_type_pairs_to_download.append((theme_value, type_value))
+            result_file_paths_to_download.append(result_file_path)
+
+    if theme_type_pairs_to_download:
+        with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
+            tmp_dir_path = Path(tmp_dir_name)
+            raw_parquet_files_per_pair = _download_data(
+                release=release,
+                theme_type_pairs=theme_type_pairs_to_download,
+                geometry_filter=geometry_filter,
+                pyarrow_filter=None,
+                columns_to_download=None,
+                work_directory=tmp_dir_path,
+                verbosity_mode=verbosity_mode,
+            )
+
+            with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
+                for result_file_path, raw_parquet_files in progress.track(
+                    zip(result_file_paths_to_download, raw_parquet_files_per_pair),
+                    total=len(result_file_paths_to_download),
+                    description="Saving final geoparquet files",
+                ):
+                    final_dataset = ds.dataset(raw_parquet_files)
+                    result_file_path.parent.mkdir(exist_ok=True, parents=True)
+                    with pq.ParquetWriter(result_file_path, final_dataset.schema) as writer:
+                        for batch in final_dataset.to_batches():
+                            writer.write_batch(batch)
+
+    return all_result_file_paths
 
 
 @overload
@@ -238,7 +284,7 @@ def download_data(
                 columns_to_download=[columns_to_download],
                 work_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
-            )
+            )[0]
 
             final_dataset = ds.dataset(raw_parquet_files)
 
@@ -263,8 +309,7 @@ def _download_data(
     columns_to_download: Optional[list[Union[list[str], None]]],
     work_directory: Path,
     verbosity_mode: "VERBOSITY_MODE",
-) -> list[Path]:
-    # TODO: add option to keep theme_type metadata in the downloaded parquet files
+) -> list[list[Path]]:
     from concurrent.futures import ProcessPoolExecutor
     from functools import partial
 
@@ -272,8 +317,14 @@ def _download_data(
     from overturemaestro._rich_progress import TrackProgressBar
     from overturemaestro.release_index import load_release_index
 
-    # TODO: raise error if length of pyarrow_filter / columns_to_download
-    # is different than theme_type_pairs
+    if pyarrow_filter and len(theme_type_pairs) != len(pyarrow_filter):
+        raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
+
+    if columns_to_download and len(theme_type_pairs) != len(columns_to_download):
+        raise ValueError("Columns to download length doesn't match length of theme type pairs.")
+
+    # force tuple structure
+    theme_type_pairs = [(theme_value, type_value) for theme_value, type_value in theme_type_pairs]
 
     all_row_groups_to_download = []
 
@@ -355,7 +406,20 @@ def _download_data(
     else:
         filtered_parquet_files = downloaded_parquet_files
 
-    return filtered_parquet_files
+    if len(theme_type_pairs) == 1:
+        grouped_parquet_paths = [filtered_parquet_files]
+
+    grouped_parquet_paths = [[] for _ in theme_type_pairs]
+    for parquet_file in filtered_parquet_files:
+        import pyarrow.parquet as pq
+
+        metadata = pq.read_schema(parquet_file).metadata
+        theme_value = metadata[b"_theme"].decode()
+        type_value = metadata[b"_type"].decode()
+        idx = theme_type_pairs.index((theme_value, type_value))
+        grouped_parquet_paths[idx].append(parquet_file)
+
+    return grouped_parquet_paths
 
 
 def _download_single_parquet_row_group_multiprocessing(
