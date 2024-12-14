@@ -15,6 +15,7 @@ dependencies = [
     "fsspec>=2021.04.0",
     "geopy>=2.0.0",
     "numpy>=1.26.0",
+    "duckdb>=1.1.0",
 ]
 requires-python = ">=3.9"
 readme = "README.md"

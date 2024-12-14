@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Automatic total time wrapper decorator to aggregate nested function calls
+- Parameter `columns_to_download` for selecting columns to download from the dataset [#23](https://github.com/kraina-ai/overturemaestro/issues/23)
+
+### Changed
+
+- Refactored available release versions caching [#24](https://github.com/kraina-ai/overturemaestro/issues/24)
+- Removed hive partitioned parquet schema columns from GeoDataFrame loading
+
 ## [0.1.1] - 2024-11-24
 
 ### Changed
