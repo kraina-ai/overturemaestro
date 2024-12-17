@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to pass max number of workers for downloading the data [#30](https://github.com/kraina-ai/overturemaestro/issues/30)
+
 ## [0.1.1] - 2024-11-24
 
 ### Changed
