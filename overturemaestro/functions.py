@@ -118,7 +118,7 @@ def convert_geometry_to_parquet(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
 
     Returns:
@@ -256,7 +256,7 @@ def convert_geometry_to_parquet_for_multiple_types(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
 
     Returns:
@@ -351,7 +351,7 @@ def convert_geometry_to_geodataframe(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
 
     Returns:
@@ -490,7 +490,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
 
     Returns:
@@ -597,7 +597,7 @@ def convert_bounding_box_to_parquet(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
 
     Returns:
@@ -735,7 +735,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
 
     Returns:
@@ -831,7 +831,7 @@ def convert_bounding_box_to_geodataframe(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
 
     Returns:
@@ -969,7 +969,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
 
     Returns:
