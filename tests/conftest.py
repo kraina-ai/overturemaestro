@@ -1,6 +1,7 @@
 """Common components for tests."""
 
 import os
+import shutil
 from pathlib import Path
 
 import pytest
@@ -41,6 +42,16 @@ def test_release_version() -> str:
 def download_release_index(test_release_version: str) -> None:
     """Download release index for testing purposes."""
     download_existing_release_index(release=test_release_version)
+
+
+@pytest.fixture(autouse=True, scope="session")  # type: ignore
+def copy_geocode_cache() -> None:
+    """Load cached geocoding results."""
+    existing_cache_directory = Path(__file__).parent / "test_files" / "geocoding_cache"
+    geocoding_cache_directory = Path("cache")
+    for file_path in existing_cache_directory.glob("*.json"):
+        destination_path = geocoding_cache_directory / file_path.name
+        shutil.copy(file_path, destination_path)
 
 
 def bbox() -> tuple[float, float, float, float]:
