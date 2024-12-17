@@ -44,6 +44,7 @@ def convert_geometry_to_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -59,6 +60,7 @@ def convert_geometry_to_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -74,6 +76,7 @@ def convert_geometry_to_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -88,6 +91,7 @@ def convert_geometry_to_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path:
     """
     Get a GeoParquet file with Overture Maps data within given geometry.
@@ -114,6 +118,8 @@ def convert_geometry_to_parquet(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -177,6 +183,7 @@ def convert_geometry_to_parquet(
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
+        max_workers=max_workers,
     )
 
 
@@ -188,6 +195,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -200,6 +208,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -212,6 +221,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -223,6 +233,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]:
     """
     Get GeoParquet files with Overture Maps data within given geometry for multiple types.
@@ -245,6 +256,8 @@ def convert_geometry_to_parquet_for_multiple_types(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         list[Path]: List of paths to the generated GeoParquet files.
@@ -256,6 +269,7 @@ def convert_geometry_to_parquet_for_multiple_types(
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
+        max_workers=max_workers,
     )
 
 
@@ -269,6 +283,7 @@ def convert_geometry_to_geodataframe(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -283,6 +298,7 @@ def convert_geometry_to_geodataframe(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -297,6 +313,7 @@ def convert_geometry_to_geodataframe(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -310,6 +327,7 @@ def convert_geometry_to_geodataframe(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get a GeoDataFrame with Overture Maps data within given geometry.
@@ -333,6 +351,8 @@ def convert_geometry_to_geodataframe(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -396,6 +416,7 @@ def convert_geometry_to_geodataframe(
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
+        max_workers=max_workers,
     )
     return gpd.read_parquet(parsed_geoparquet_file).set_index("id")
 
@@ -408,6 +429,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -420,6 +442,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -432,6 +455,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -443,6 +467,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[gpd.GeoDataFrame]:
     """
     Get GeoDataFrames list with Overture Maps data within given geometry for multiple types.
@@ -465,6 +490,8 @@ def convert_geometry_to_geodataframe_for_multiple_types(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         list[gpd.GeoDataFrame]: List of GeoDataFrames with Overture Maps features.
@@ -476,6 +503,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
+        max_workers=max_workers,
     )
     return [
         gpd.read_parquet(parsed_geoparquet_file).set_index("id")
@@ -494,6 +522,7 @@ def convert_bounding_box_to_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -509,6 +538,7 @@ def convert_bounding_box_to_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -524,6 +554,7 @@ def convert_bounding_box_to_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -538,6 +569,7 @@ def convert_bounding_box_to_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path:
     """
     Get a GeoParquet file with Overture Maps data within given bounding box.
@@ -565,6 +597,8 @@ def convert_bounding_box_to_parquet(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -627,6 +661,7 @@ def convert_bounding_box_to_parquet(
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
+        max_workers=max_workers,
     )
 
 
@@ -638,6 +673,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -650,6 +686,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -662,6 +699,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -673,6 +711,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]:
     """
     Get GeoParquet files with Overture Maps data within given bounding box for multiple types.
@@ -696,6 +735,8 @@ def convert_bounding_box_to_parquet_for_multiple_types(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         list[Path]: List of paths to the generated GeoParquet files.
@@ -707,6 +748,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
+        max_workers=max_workers,
     )
 
 
@@ -720,6 +762,7 @@ def convert_bounding_box_to_geodataframe(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -734,6 +777,7 @@ def convert_bounding_box_to_geodataframe(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -748,6 +792,7 @@ def convert_bounding_box_to_geodataframe(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -761,6 +806,7 @@ def convert_bounding_box_to_geodataframe(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get a GeoDataFrame with Overture Maps data within given bounding box.
@@ -785,6 +831,8 @@ def convert_bounding_box_to_geodataframe(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -847,6 +895,7 @@ def convert_bounding_box_to_geodataframe(
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
+        max_workers=max_workers,
     )
 
 
@@ -858,6 +907,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -870,6 +920,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -882,6 +933,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[gpd.GeoDataFrame]: ...
 
 
@@ -893,6 +945,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[gpd.GeoDataFrame]:
     """
     Get GeoDataFrames list with Overture Maps data within given bounding box for multiple types.
@@ -916,6 +969,8 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         list[gpd.GeoDataFrame]: List of GeoDataFrames with Overture Maps features.
@@ -927,4 +982,5 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
+        max_workers=max_workers,
     )

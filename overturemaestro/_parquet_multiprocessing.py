@@ -122,6 +122,7 @@ def map_parquet_dataset(
     filesystem: Optional["fs.FileSystem"] = None,
     report_progress_as_text: bool = True,
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> None:
     """
     Apply a function over parquet dataset in a multiprocessing environment.
@@ -143,6 +144,8 @@ def map_parquet_dataset(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
     """
     with TrackProgressSpinner(
         "Preparing multiprocessing environment", verbosity_mode=verbosity_mode
@@ -163,14 +166,21 @@ def map_parquet_dataset(
         dataset = pq.ParquetDataset(dataset_path, filesystem=filesystem)
 
         no_cpus = multiprocessing.cpu_count()
+
         min_no_workers = 32 if no_cpus >= 8 else 16
-        no_workers = min(
+        no_scan_workers = min(
             max(min_no_workers, no_cpus + 4), 64
         )  # minimum 16 / 32 workers, but not more than 64
 
+        no_processing_workers = no_cpus
+
+        if max_workers:
+            no_scan_workers = min(max_workers, no_scan_workers)
+            no_processing_workers = min(max_workers, no_processing_workers)
+
     with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
         total_files = len(dataset.files)
-        with ProcessPoolExecutor(max_workers=min(no_workers, total_files)) as ex:
+        with ProcessPoolExecutor(max_workers=min(no_scan_workers, total_files)) as ex:
             fn = partial(_read_row_group_number, filesystem=dataset.filesystem)
             row_group_numbers = list(
                 progress.track(
@@ -202,7 +212,7 @@ def map_parquet_dataset(
                     dataset.filesystem,
                 ),
             )
-            for _ in range(min(no_cpus, total))
+            for _ in range(min(no_processing_workers, total))
         ]
         with TrackProgressBar(verbosity_mode=verbosity_mode) as progress_bar:
             progress_bar.add_task(description=progress_description, total=total)

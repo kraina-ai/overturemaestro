@@ -32,6 +32,7 @@ def download_data_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -44,6 +45,7 @@ def download_data_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -56,6 +58,7 @@ def download_data_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -67,6 +70,7 @@ def download_data_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]:
     """
     Downloads the data for the given release for multiple types.
@@ -84,6 +88,8 @@ def download_data_for_multiple_types(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         list[Path]: List of saved Geoparquet files paths.
@@ -97,6 +103,7 @@ def download_data_for_multiple_types(
             ignore_cache=ignore_cache,
             working_directory=working_directory,
             verbosity_mode=verbosity_mode,
+            max_workers=max_workers,
         )
         for theme_value, type_value in theme_type_pairs
     ]
@@ -113,6 +120,7 @@ def download_data(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -128,6 +136,7 @@ def download_data(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -143,6 +152,7 @@ def download_data(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -157,6 +167,7 @@ def download_data(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path:
     """
     Downloads the data for the given release.
@@ -180,6 +191,8 @@ def download_data(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers: (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         Path: Saved Geoparquet file path.
@@ -224,6 +237,7 @@ def download_data(
                 result_file_path=result_file_path,
                 work_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
+                max_workers=max_workers,
             )
     return result_file_path
 
@@ -237,6 +251,7 @@ def _download_data(
     result_file_path: Path,
     work_directory: Path,
     verbosity_mode: "VERBOSITY_MODE",
+    max_workers: Optional[int],
 ) -> None:
     import time
     from concurrent.futures import ProcessPoolExecutor
@@ -279,6 +294,9 @@ def _download_data(
         max(min_no_workers, multiprocessing.cpu_count() + 4), 32
     )  # minimum 8 workers, but not more than 32
 
+    if max_workers:
+        no_workers = min(max_workers, no_workers)
+
     with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
         total_row_groups = len(row_groups_to_download)
         fn = partial(
@@ -314,6 +332,7 @@ def _download_data(
             progress_description=f"Filtering data by geometry ({theme}/{type})",
             report_progress_as_text=False,
             verbosity_mode=verbosity_mode,
+            max_workers=max_workers,
         )
 
         filtered_parquet_files = list(destination_path.glob("*.parquet"))
