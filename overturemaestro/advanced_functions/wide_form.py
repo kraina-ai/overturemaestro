@@ -17,8 +17,6 @@ from overturemaestro.release_index import get_newest_release_version
 if TYPE_CHECKING:
     from pyarrow.compute import Expression
 
-# TODO: add dedicated function for downloading raw data (download_data / buildings / etc)
-
 
 def _wrapped_default_download_function(
     theme: str,
