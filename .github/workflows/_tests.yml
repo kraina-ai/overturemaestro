@@ -20,7 +20,7 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       COLUMNS: 120
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -33,7 +33,7 @@ jobs:
           enable-pep582: true
           cache: false
       - name: Install dependencies
-        run: pdm install -d -G test --skip=post_install
+        run: pdm install --no-default -d -G test --skip=post_install
       - name: Cache tox runner
         # Cache only on the main branch
         if: github.ref == 'refs/heads/main'
