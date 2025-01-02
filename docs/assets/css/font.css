@@ -8,3 +8,8 @@
   font-size: 1.6rem;
   color: var(--overturemaestro-text-color);
 }
+
+.md-version__current,
+.md-version__link {
+  font-size: 1.2rem;
+}
