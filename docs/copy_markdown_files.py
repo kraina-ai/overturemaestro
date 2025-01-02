@@ -13,8 +13,8 @@ with (
 ):
     dst.write(src.read())
 
-with (
-    Path("CONTRIBUTING.md").open("rb") as src,
-    mkdocs_gen_files.open("CONTRIBUTING.md", "wb") as dst,
-):
-    dst.write(src.read())
+# with (
+#     Path("CONTRIBUTING.md").open("rb") as src,
+#     mkdocs_gen_files.open("CONTRIBUTING.md", "wb") as dst,
+# ):
+#     dst.write(src.read())

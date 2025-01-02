@@ -3,4 +3,4 @@ nav:
   - Examples: examples
   - ...
   - Releases: releases
-  - Contributing: CONTRIBUTING.md
+  # - Contributing: CONTRIBUTING.md
