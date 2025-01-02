@@ -1,5 +1,5 @@
 name: "Run tests with newest and oldest dependencies"
-on: 
+on:
   workflow_dispatch:
   workflow_call:
   schedule:
@@ -32,16 +32,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install pdm
-        run: pip install pdm
-      - name: Generate lock with newest dependencies
-        run: pdm lock --lockfile pdm.newest.lock --strategy no_cross_platform -G cli -G index-generation -dG test
-      - name: Install overturemaestro and tests dependencies
-        run: pdm install --lockfile pdm.newest.lock -G cli -G index-generation -dG test --skip=post_install
+        run: pip install pdm uv
+      - name: Generate requirements.txt
+        run: pdm export -dG test -f requirements -o requirements.test.txt
+      - name: Install overturemaestro
+        run: |
+          pdm build -v -d dist
+          uv pip install 'overturemaestro[cli,index-generation] @ file://'"$(pwd)/$(find dist -name '*.whl')" -r requirements.test.txt --system
       - name: Run tests with pytest
         run: |
-          pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure overturemaestro
-          pdm run pytest -v -s --durations=20 tests/base
-          pdm run pytest -v -s --durations=20 tests/optional_imports
+          pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure overturemaestro
+          pytest -v -s --durations=20 tests/base
+          pytest -v -s --durations=20 tests/optional_imports
 
   run-tests-oldest:
     name: Run tests 🛠️ on multiple systems 🖥️ and Python 🐍 versions (oldest dependencies)
