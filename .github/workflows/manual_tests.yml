@@ -37,8 +37,7 @@ jobs:
         run: pdm export -dG test -f requirements -o requirements.test.txt
       - name: Install overturemaestro
         run: |
-          pdm build -v -d dist
-          uv pip install 'overturemaestro[cli,index-generation] @ file://'"$(pwd)/$(find dist -name '*.whl')" -r requirements.test.txt --system
+          uv pip install -e "overturemaestro[cli,index-generation] @ ." -r requirements.test.txt --system
       - name: Run tests with pytest
         run: |
           pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure overturemaestro
