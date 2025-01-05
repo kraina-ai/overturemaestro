@@ -35,6 +35,7 @@ def download_data_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -47,6 +48,7 @@ def download_data_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -59,6 +61,7 @@ def download_data_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]: ...
 
 
@@ -71,6 +74,7 @@ def download_data_for_multiple_types(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> list[Path]:
     """
     Downloads the data for the given release for multiple types.
@@ -88,6 +92,8 @@ def download_data_for_multiple_types(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         list[Path]: List of saved Geoparquet files paths.
@@ -135,6 +141,7 @@ def download_data_for_multiple_types(
                 columns_to_download=None,
                 work_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
+                max_workers=max_workers,
             )
 
             with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
@@ -164,6 +171,7 @@ def download_data(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -180,6 +188,7 @@ def download_data(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -196,6 +205,7 @@ def download_data(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -212,6 +222,7 @@ def download_data(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path:
     """
     Downloads the data for the given release.
@@ -238,6 +249,8 @@ def download_data(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         Path: Saved Geoparquet file path.
@@ -284,6 +297,7 @@ def download_data(
                 columns_to_download=[columns_to_download],
                 work_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
+                max_workers=max_workers,
             )[0]
 
             final_dataset = ds.dataset(raw_parquet_files)
@@ -309,6 +323,7 @@ def _download_data(
     columns_to_download: Optional[list[Union[list[str], None]]],
     work_directory: Path,
     verbosity_mode: "VERBOSITY_MODE",
+    max_workers: Optional[int],
 ) -> list[list[Path]]:
     from concurrent.futures import ProcessPoolExecutor
     from functools import partial
@@ -366,6 +381,9 @@ def _download_data(
 
     theme_type_task_description = ", ".join(f"{th}/{ty}" for th, ty in theme_type_pairs)
 
+    if max_workers:
+        no_workers = min(max_workers, no_workers)
+
     with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
         total_row_groups = len(all_row_groups_to_download)
         fn = partial(
@@ -400,6 +418,7 @@ def _download_data(
             progress_description=f"Filtering data by geometry ({theme_type_task_description})",
             report_progress_as_text=False,
             verbosity_mode=verbosity_mode,
+            max_workers=max_workers,
         )
 
         filtered_parquet_files = list(destination_path.glob("**/*.parquet"))

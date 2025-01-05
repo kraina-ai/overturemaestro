@@ -1,5 +1,5 @@
 site_name: "OvertureMaestro"
-site_url: null
+site_url: https://kraina-ai.github.io/overturemaestro/
 
 repo_url: https://github.com/kraina-ai/overturemaestro
 repo_name: kraina-ai/overturemaestro
@@ -20,7 +20,7 @@ theme:
     - navigation.top
     - navigation.indexes
     - navigation.path
-    - toc.integrate
+    - toc.follow
     - content.code.annotate
     - content.action.edit
     - content.action.view
@@ -49,6 +49,25 @@ theme:
         name: Switch to light mode
 
 extra:
+  analytics:
+    provider: google
+    property: G-QB795XTPKJ
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: >-
+            Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: >-
+
+
+            Thanks for your feedback! Help us improve this page by
+            using our <a href="https://github.com/kraina-ai/overturemaestro/issues/new/?title=[Feedback]+{title}+-+{url}" target="_blank" rel="noopener">feedback form</a>.
   consent:
     title: Cookie consent
     description: >-
@@ -60,10 +79,15 @@ extra:
       github:
         name: Github
         checked: true
+      analytics:
+        name: Google Analytics
+        checked: true
     actions:
       - accept
       - manage
   version:
+    alias: true
+    default: latest
     provider: mike
 
 extra_css:
@@ -84,9 +108,10 @@ plugins:
   - mike:
       canonical_version: "latest"
       version_selector: true
+      alias_type: symlink
   - gen-files:
       scripts:
-        - docs/copy_readme.py
+        - docs/copy_markdown_files.py
         - docs/copy_examples.py
         - docs/gen_ref_pages.py
         - docs/gen_cli_docs.py
