@@ -193,17 +193,20 @@ def map_parquet_dataset(
             no_scan_workers = min(max_workers, no_scan_workers)
             no_processing_workers = min(max_workers, no_processing_workers)
 
-    with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-        total_files = len(dataset.files)
-        with ProcessPoolExecutor(max_workers=min(no_scan_workers, total_files)) as ex:
-            fn = partial(_read_row_group_number, filesystem=dataset.filesystem)
-            row_group_numbers = list(
-                progress.track(
-                    ex.map(fn, dataset.files, chunksize=1),
-                    description="Reading all parquet files row groups",
-                    total=total_files,
-                )
+    total_files = len(dataset.files)
+
+    with (
+        TrackProgressBar(verbosity_mode=verbosity_mode) as progress,
+        ProcessPoolExecutor(max_workers=min(no_scan_workers, total_files)) as ex,
+    ):
+        fn = partial(_read_row_group_number, filesystem=dataset.filesystem)
+        row_group_numbers = list(
+            progress.track(
+                ex.map(fn, dataset.files, chunksize=1),
+                description="Reading all parquet files row groups",
+                total=total_files,
             )
+        )
 
         for pq_file, row_group_number in zip(dataset.files, row_group_numbers):
             for row_group in range(row_group_number):

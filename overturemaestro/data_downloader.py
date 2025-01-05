@@ -304,12 +304,12 @@ def download_data(
 
             result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
-            with TrackProgressSpinner(
-                "Saving final geoparquet file", verbosity_mode=verbosity_mode
+            with (
+                TrackProgressSpinner("Saving final geoparquet file", verbosity_mode=verbosity_mode),
+                pq.ParquetWriter(result_file_path, final_dataset.schema) as writer,
             ):
-                with pq.ParquetWriter(result_file_path, final_dataset.schema) as writer:
-                    for batch in final_dataset.to_batches():
-                        writer.write_batch(batch)
+                for batch in final_dataset.to_batches():
+                    writer.write_batch(batch)
 
     return result_file_path
 
@@ -379,34 +379,35 @@ def _download_data(
         max(min_no_workers, multiprocessing.cpu_count() + 4), 32
     )  # minimum 8 workers, but not more than 32
 
-    theme_type_task_description = ", ".join(f"{th}/{ty}" for th, ty in theme_type_pairs)
-
     if max_workers:
         no_workers = min(max_workers, no_workers)
 
-    with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-        total_row_groups = len(all_row_groups_to_download)
+    total_row_groups = len(all_row_groups_to_download)
+
+    with (
+        TrackProgressBar(verbosity_mode=verbosity_mode) as progress,
+        ProcessPoolExecutor(
+            max_workers=min(no_workers, total_row_groups),
+            mp_context=multiprocessing.get_context("spawn"),
+        ) as ex,
+    ):
         fn = partial(
             _download_single_parquet_row_group_multiprocessing,
             bbox=geometry_filter.bounds,
             work_directory=work_directory,
         )
-        with ProcessPoolExecutor(
-            max_workers=min(no_workers, total_row_groups),
-            # max_tasks_per_child=1 if total_row_groups > no_workers else None,
-            mp_context=multiprocessing.get_context("spawn"),
-        ) as ex:
-            downloaded_parquet_files = list(
-                progress.track(
-                    ex.map(
-                        fn,
-                        all_row_groups_to_download,
-                        chunksize=1,
-                    ),
-                    description=f"Downloading parquet files ({theme_type_task_description})",
-                    total=total_row_groups,
-                )
+        theme_type_task_description = ", ".join(f"{th}/{ty}" for th, ty in theme_type_pairs)
+        downloaded_parquet_files = list(
+            progress.track(
+                ex.map(
+                    fn,
+                    all_row_groups_to_download,
+                    chunksize=1,
+                ),
+                description=f"Downloading parquet files ({theme_type_task_description})",
+                total=total_row_groups,
             )
+        )
 
     if not geometry_filter.equals(geometry_filter.envelope):
         destination_path = work_directory / Path("intersected_data")
