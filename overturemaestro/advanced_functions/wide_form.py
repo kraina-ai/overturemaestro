@@ -9,8 +9,12 @@ from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
 from overturemaestro._exceptions import HierarchyDepthOutOfBoundsError
-from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
-from overturemaestro.data_downloader import _generate_geometry_hash, download_data, pyarrow_filters
+from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
+from overturemaestro.data_downloader import (
+    _download_data,
+    _generate_geometry_hash,
+    pyarrow_filters,
+)
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 from overturemaestro.release_index import get_newest_release_version
 
@@ -22,7 +26,7 @@ def _prepare_download_parameters_for_poi(
     theme: str,
     type: str,
     geometry_filter: BaseGeometry,
-    columns_to_download: list[str],
+    hierachy_columns: list[str],
     pyarrow_filter: Optional[pyarrow_filters] = None,
 ) -> tuple[list[str], Optional[pyarrow_filters]]:
     # TODO: swap to dedicated function?
@@ -36,7 +40,7 @@ def _prepare_download_parameters_for_poi(
     else:
         pyarrow_filter = category_not_null_filter
 
-    return (["id", "geometry", "categories"], pyarrow_filter)
+    return (["categories"], pyarrow_filter)
 
 
 def _check_depth_for_wide_form(hierarchy_columns: list[str], depth: Optional[int] = None) -> int:
@@ -53,7 +57,7 @@ def _check_depth_for_wide_form(hierarchy_columns: list[str], depth: Optional[int
 def _transform_to_wide_form(
     theme: str,
     type: str,
-    parquet_path: Path,
+    parquet_paths: list[Path],
     output_path: Path,
     hierarchy_columns: list[str],
     working_directory: Union[str, Path] = "files",
@@ -62,11 +66,16 @@ def _transform_to_wide_form(
 
     joined_hierarchy_columns = ",".join(hierarchy_columns)
 
+    joined_parquet_paths = ",".join(f"'{p}'" for p in parquet_paths)
+
     available_colums_sql_query = f"""
     SELECT DISTINCT
         {joined_hierarchy_columns},
         concat_ws('|', {joined_hierarchy_columns}) as column_name
-    FROM '{parquet_path}'
+    FROM read_parquet(
+        [{joined_parquet_paths}],
+        hive_partitioning=false
+    )
     ORDER BY column_name
     """
 
@@ -95,7 +104,10 @@ def _transform_to_wide_form(
             id,
             {", ".join(case_clauses)},
             geometry
-        FROM '{parquet_path}'
+        FROM read_parquet(
+            [{joined_parquet_paths}],
+            hive_partitioning=false
+        )
     ) TO '{output_path}' (
         FORMAT 'parquet',
         PER_THREAD_OUTPUT false
@@ -110,7 +122,7 @@ def _transform_to_wide_form(
 def _transform_poi_to_wide_form(
     theme: str,
     type: str,
-    parquet_path: Path,
+    parquet_paths: list[Path],
     output_path: Path,
     hierarchy_columns: list[str],
     working_directory: Union[str, Path] = "files",
@@ -119,21 +131,32 @@ def _transform_poi_to_wide_form(
 
     primary_category_only = len(hierarchy_columns) == 1
 
+    joined_parquet_paths = ",".join(f"'{p}'" for p in parquet_paths)
+
     if primary_category_only:
         available_colums_sql_query = f"""
         SELECT DISTINCT
             categories.primary as column_name
-        FROM '{parquet_path}'
+        FROM read_parquet(
+            [{joined_parquet_paths}],
+            hive_partitioning=false
+        )
         """
     else:
         available_colums_sql_query = f"""
         SELECT DISTINCT
             categories.primary as column_name
-        FROM '{parquet_path}'
+        FROM read_parquet(
+            [{joined_parquet_paths}],
+            hive_partitioning=false
+        )
         UNION
         SELECT DISTINCT
             UNNEST(categories.alternate) as column_name
-        FROM '{parquet_path}'
+        FROM read_parquet(
+            [{joined_parquet_paths}],
+            hive_partitioning=false
+        )
         """
 
     wide_column_definitions = (
@@ -160,7 +183,10 @@ def _transform_poi_to_wide_form(
             id,
             {", ".join(case_clauses)},
             geometry
-        FROM '{parquet_path}'
+        FROM read_parquet(
+            [{joined_parquet_paths}],
+            hive_partitioning=false
+        )
     ) TO '{output_path}' (
         FORMAT 'parquet',
         PER_THREAD_OUTPUT false
@@ -178,7 +204,7 @@ class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
         theme: str,
         type: str,
         geometry_filter: BaseGeometry,
-        columns_to_download: list[str],
+        hierachy_columns: list[str],
         pyarrow_filter: Optional[pyarrow_filters] = None,
     ) -> tuple[list[str], Optional[pyarrow_filters]]: ...
 
@@ -194,7 +220,7 @@ class DataTransformationCallable(Protocol):  # noqa: D101
         self,
         theme: str,
         type: str,
-        parquet_path: Path,
+        parquet_paths: list[Path],
         output_path: Path,
         hierarchy_columns: list[str],
         working_directory: Union[str, Path] = "files",
@@ -205,27 +231,27 @@ class DataTransformationCallable(Protocol):  # noqa: D101
 class WideFormDefinition:
     """Helper object for theme type wide form logic definition."""
 
-    download_columns: list[str]
+    hierachy_columns: list[str]
     download_parameters_preparation_function: Optional[DownloadParametersPreparationCallable] = None
     depth_check_function: DepthCheckCallable = _check_depth_for_wide_form
     data_transform_function: DataTransformationCallable = _transform_to_wide_form
 
 
 THEME_TYPE_CLASSIFICATION = {
-    ("base", "infrastructure"): WideFormDefinition(download_columns=["subtype", "class"]),
-    ("base", "land"): WideFormDefinition(download_columns=["subtype", "class"]),
-    ("base", "land_cover"): WideFormDefinition(download_columns=["subtype"]),
-    ("base", "land_use"): WideFormDefinition(download_columns=["subtype", "class"]),
-    ("base", "water"): WideFormDefinition(download_columns=["subtype", "class"]),
+    ("base", "infrastructure"): WideFormDefinition(hierachy_columns=["subtype", "class"]),
+    ("base", "land"): WideFormDefinition(hierachy_columns=["subtype", "class"]),
+    ("base", "land_cover"): WideFormDefinition(hierachy_columns=["subtype"]),
+    ("base", "land_use"): WideFormDefinition(hierachy_columns=["subtype", "class"]),
+    ("base", "water"): WideFormDefinition(hierachy_columns=["subtype", "class"]),
     ("transportation", "segment"): WideFormDefinition(
-        download_columns=["subtype", "class", "subclass"]
+        hierachy_columns=["subtype", "class", "subclass"]
     ),
     ("places", "place"): WideFormDefinition(
-        download_columns=["primary", "alternate"],
+        hierachy_columns=["primary", "alternate"],
         download_parameters_preparation_function=_prepare_download_parameters_for_poi,
         data_transform_function=_transform_poi_to_wide_form,
     ),
-    ("buildings", "building"): WideFormDefinition(download_columns=["subtype", "class"]),
+    ("buildings", "building"): WideFormDefinition(hierachy_columns=["subtype", "class"]),
 }
 
 # convert_bounding_box_to_wide_form_geodataframe,
@@ -236,8 +262,7 @@ THEME_TYPE_CLASSIFICATION = {
 
 @overload
 def convert_geometry_to_wide_form_parquet(
-    theme: str,
-    type: str,
+    theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
     *,
     hierarchy_depth: Optional[int] = None,
@@ -251,8 +276,7 @@ def convert_geometry_to_wide_form_parquet(
 
 @overload
 def convert_geometry_to_wide_form_parquet(
-    theme: str,
-    type: str,
+    theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
     release: str,
     *,
@@ -267,8 +291,7 @@ def convert_geometry_to_wide_form_parquet(
 
 @overload
 def convert_geometry_to_wide_form_parquet(
-    theme: str,
-    type: str,
+    theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
     release: Optional[str] = None,
     *,
@@ -283,8 +306,7 @@ def convert_geometry_to_wide_form_parquet(
 
 @show_total_elapsed_time_decorator
 def convert_geometry_to_wide_form_parquet(
-    theme: str,
-    type: str,
+    theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
     release: Optional[str] = None,
     *,
@@ -303,8 +325,7 @@ def convert_geometry_to_wide_form_parquet(
     on dataset schema.
 
     Args:
-        theme (str): Theme of the dataset.
-        type (str): Type of the dataset.
+        theme_type_pairs (list[tuple[str, str]]): Pairs of themes and types of the dataset.
         geometry_filter (BaseGeometry): Geometry used to filter data.
         release (Optional[str], optional): Release version. If not provided, will automatically load
             newest available release version. Defaults to None.
@@ -337,8 +358,7 @@ def convert_geometry_to_wide_form_parquet(
         if result_file_path is None:
             result_file_path = working_directory / _generate_result_file_path(
                 release=release,
-                theme=theme,
-                type=type,
+                theme_type_pairs=theme_type_pairs,
                 geometry_filter=geometry_filter,
                 pyarrow_filter=pyarrow_filter,
             )
@@ -348,63 +368,83 @@ def convert_geometry_to_wide_form_parquet(
         if not result_file_path.exists() or ignore_cache:
             result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
-            wide_form_definition = THEME_TYPE_CLASSIFICATION[(theme, type)]
-
-            depth = wide_form_definition.depth_check_function(
-                wide_form_definition.download_columns, hierarchy_depth
-            )
-            columns_to_download = wide_form_definition.download_columns[:depth]
-
-            if wide_form_definition.download_parameters_preparation_function is not None:
-                columns_to_download, pyarrow_filter = (
-                    wide_form_definition.download_parameters_preparation_function(
-                        theme=theme,
-                        type=type,
-                        geometry_filter=geometry_filter,
-                        columns_to_download=columns_to_download,
-                        pyarrow_filter=pyarrow_filter,
-                    )
-                )
-
-            for required_column in ("id", "geometry"):
-                if required_column not in columns_to_download:
-                    columns_to_download.append(required_column)
-
-            downloaded_parquet_path = download_data(
-                release=release,
-                theme=theme,
-                type=type,
+            prepared_download_parameters = _prepare_download_parameters_for_all_theme_type_pairs(
+                theme_type_pairs=theme_type_pairs,
                 geometry_filter=geometry_filter,
+                hierarchy_depth=hierarchy_depth,
                 pyarrow_filter=pyarrow_filter,
-                columns_to_download=columns_to_download,
-                ignore_cache=ignore_cache,
-                working_directory=tmp_dir_path,
-                verbosity_mode=verbosity_mode,
             )
 
-            with TrackProgressSpinner(
-                "Transforming data into wide form", verbosity_mode=verbosity_mode
-            ):
-                wide_form_definition.data_transform_function(
-                    theme=theme,
-                    type=type,
-                    parquet_path=downloaded_parquet_path,
-                    output_path=result_file_path,
-                    hierarchy_columns=columns_to_download,
-                    working_directory=tmp_dir_path,
-                )
+            print(prepared_download_parameters)
+
+            hierachy_columns_list, pyarrow_filter_list = zip(*prepared_download_parameters)
+
+            print(theme_type_pairs, hierachy_columns_list, pyarrow_filter_list)
+
+            all_downloaded_parquet_files = _download_data(
+                release=release,
+                theme_type_pairs=theme_type_pairs,
+                geometry_filter=geometry_filter,
+                pyarrow_filter=pyarrow_filter_list,
+                columns_to_download=[
+                    ["id", "geometry", *hierachy_columns]
+                    for hierachy_columns in hierachy_columns_list
+                ],
+                work_directory=tmp_dir_path,
+                verbosity_mode=verbosity_mode,
+                max_workers=None,  # TODO: add param
+            )
+
+            # transformed_wide_form_directory_output = tmp_dir_path / "wide_form_files"
+            transformed_wide_form_directory_output = Path(working_directory) / "wide_form_files"
+            transformed_wide_form_directory_output.mkdir(parents=True, exist_ok=True)
+            with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
+                for (
+                    (theme_value, type_value),
+                    hierachy_columns,
+                    downloaded_parquet_files,
+                ) in progress.track(
+                    zip(theme_type_pairs, hierachy_columns_list, all_downloaded_parquet_files),
+                    total=len(theme_type_pairs),
+                    description="Transforming data into wide form",
+                ):
+                    wide_form_definition = THEME_TYPE_CLASSIFICATION[(theme_value, type_value)]
+
+                    wide_form_definition.data_transform_function(
+                        theme=theme_value,
+                        type=type_value,
+                        parquet_paths=downloaded_parquet_files,
+                        output_path=transformed_wide_form_directory_output
+                        / f"{theme_value}_{type_value}.parquet",
+                        hierarchy_columns=hierachy_columns,
+                        working_directory=tmp_dir_path,
+                    )
+
+            print(list(transformed_wide_form_directory_output.glob("*.parquet")))
+
+            # TODO: combine output files
+            # result_file_path
 
         return result_file_path
 
 
 def _generate_result_file_path(
     release: str,
-    theme: str,
-    type: str,
+    theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
     pyarrow_filter: Optional["Expression"],
 ) -> Path:
     import hashlib
+
+    directory = Path(release)
+
+    if len(theme_type_pairs) == 1:
+        theme_value, type_value = theme_type_pairs[0]
+        directory = directory / f"theme={theme_value}" / f"type={type_value}"
+    else:
+        h = hashlib.new("sha256")
+        h.update(str(sorted(theme_type_pairs)).encode())
+        directory = directory / h.hexdigest()
 
     clipping_geometry_hash_part = _generate_geometry_hash(geometry_filter)
 
@@ -414,9 +454,44 @@ def _generate_result_file_path(
         h.update(str(pyarrow_filter).encode())
         pyarrow_filter_hash_part = h.hexdigest()
 
-    return (
-        Path(release)
-        / f"theme={theme}"
-        / f"type={type}"
-        / f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}_wide_form.parquet"
-    )
+    return directory / f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}_wide_form.parquet"
+
+
+def _prepare_download_parameters_for_all_theme_type_pairs(
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: BaseGeometry,
+    hierarchy_depth: Optional[int] = None,
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+) -> list[tuple[list[str], Optional[pyarrow_filters]]]:
+    prepared_parameters = []
+    for theme_value, type_value in theme_type_pairs:
+        wide_form_definition = THEME_TYPE_CLASSIFICATION[(theme_value, type_value)]
+
+        depth = wide_form_definition.depth_check_function(
+            wide_form_definition.hierachy_columns, hierarchy_depth
+        )
+        hierachy_columns = wide_form_definition.hierachy_columns[:depth]
+        copied_pyarrow_filter = pyarrow_filter
+
+        if wide_form_definition.download_parameters_preparation_function is not None:
+            hierachy_columns, copied_pyarrow_filter = (
+                wide_form_definition.download_parameters_preparation_function(
+                    theme=theme_value,
+                    type=type_value,
+                    geometry_filter=geometry_filter,
+                    hierachy_columns=hierachy_columns,
+                    pyarrow_filter=copied_pyarrow_filter,
+                )
+            )
+
+        prepared_parameters.append((hierachy_columns, copied_pyarrow_filter))
+
+    return prepared_parameters
+
+# TODO: combine multiple types into single file
+# read columns from all files
+# add prefixes "theme_type_{col_name}"
+# union all results
+# coalesce all values with false
+# save file
+# def combine
