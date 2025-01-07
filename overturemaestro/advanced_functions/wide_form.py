@@ -1,9 +1,9 @@
 """Functions for retrieving Overture Maps features in a wide form."""
 
 import tempfile
-from collections import namedtuple
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union, overload
+from typing import TYPE_CHECKING, Optional, Protocol, Union, overload
 
 from shapely.geometry.base import BaseGeometry
 
@@ -18,41 +18,13 @@ if TYPE_CHECKING:
     from pyarrow.compute import Expression
 
 
-def _wrapped_default_download_function(
+def _prepare_download_parameters_for_poi(
     theme: str,
     type: str,
     geometry_filter: BaseGeometry,
     columns_to_download: list[str],
-    release: Optional[str] = None,
     pyarrow_filter: Optional[pyarrow_filters] = None,
-    ignore_cache: bool = False,
-    working_directory: Union[str, Path] = "files",
-    verbosity_mode: VERBOSITY_MODE = "transient",
-) -> Path:
-    return download_data(
-        release=release,
-        theme=theme,
-        type=type,
-        geometry_filter=geometry_filter,
-        pyarrow_filter=pyarrow_filter,
-        columns_to_download=["id", *columns_to_download, "geometry"],
-        ignore_cache=ignore_cache,
-        working_directory=working_directory,
-        verbosity_mode=verbosity_mode,
-    )
-
-
-def _wrapped_poi_download_function(
-    theme: str,
-    type: str,
-    geometry_filter: BaseGeometry,
-    columns_to_download: list[str],
-    release: Optional[str] = None,
-    pyarrow_filter: Optional[pyarrow_filters] = None,
-    ignore_cache: bool = False,
-    working_directory: Union[str, Path] = "files",
-    verbosity_mode: VERBOSITY_MODE = "transient",
-) -> Path:
+) -> tuple[list[str], Optional[pyarrow_filters]]:
     # TODO: swap to dedicated function?
     import pyarrow.compute as pc
 
@@ -64,17 +36,7 @@ def _wrapped_poi_download_function(
     else:
         pyarrow_filter = category_not_null_filter
 
-    return download_data(
-        release=release,
-        theme=theme,
-        type=type,
-        geometry_filter=geometry_filter,
-        pyarrow_filter=pyarrow_filter,
-        columns_to_download=["id", "categories", "geometry"],
-        ignore_cache=ignore_cache,
-        working_directory=working_directory,
-        verbosity_mode=verbosity_mode,
-    )
+    return (["id", "geometry", "categories"], pyarrow_filter)
 
 
 def _check_depth_for_wide_form(hierarchy_columns: list[str], depth: Optional[int] = None) -> int:
@@ -210,60 +172,60 @@ def _transform_poi_to_wide_form(
     return output_path
 
 
-WideFormDefinition = namedtuple(
-    "WideFormDefinition",
-    ["download_function", "download_columns", "depth_check_function", "data_transform_function"],
-)
+class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
+    def __call__(  # noqa: D102
+        self,
+        theme: str,
+        type: str,
+        geometry_filter: BaseGeometry,
+        columns_to_download: list[str],
+        pyarrow_filter: Optional[pyarrow_filters] = None,
+    ) -> tuple[list[str], Optional[pyarrow_filters]]: ...
+
+
+class DepthCheckCallable(Protocol):  # noqa: D101
+    def __call__(  # noqa: D102
+        self, hierarchy_columns: list[str], depth: Optional[int] = None
+    ) -> int: ...
+
+
+class DataTransformationCallable(Protocol):  # noqa: D101
+    def __call__(  # noqa: D102
+        self,
+        theme: str,
+        type: str,
+        parquet_path: Path,
+        output_path: Path,
+        hierarchy_columns: list[str],
+        working_directory: Union[str, Path] = "files",
+    ) -> Path: ...
+
+
+@dataclass
+class WideFormDefinition:
+    """Helper object for theme type wide form logic definition."""
+
+    download_columns: list[str]
+    download_parameters_preparation_function: Optional[DownloadParametersPreparationCallable] = None
+    depth_check_function: DepthCheckCallable = _check_depth_for_wide_form
+    data_transform_function: DataTransformationCallable = _transform_to_wide_form
+
 
 THEME_TYPE_CLASSIFICATION = {
-    ("base", "infrastructure"): WideFormDefinition(
-        _wrapped_default_download_function,
-        ["subtype", "class"],
-        _check_depth_for_wide_form,
-        _transform_to_wide_form,
-    ),
-    ("base", "land"): WideFormDefinition(
-        _wrapped_default_download_function,
-        ["subtype", "class"],
-        _check_depth_for_wide_form,
-        _transform_to_wide_form,
-    ),
-    ("base", "land_cover"): WideFormDefinition(
-        _wrapped_default_download_function,
-        ["subtype"],
-        _check_depth_for_wide_form,
-        _transform_to_wide_form,
-    ),
-    ("base", "land_use"): WideFormDefinition(
-        _wrapped_default_download_function,
-        ["subtype", "class"],
-        _check_depth_for_wide_form,
-        _transform_to_wide_form,
-    ),
-    ("base", "water"): WideFormDefinition(
-        _wrapped_default_download_function,
-        ["subtype", "class"],
-        _check_depth_for_wide_form,
-        _transform_to_wide_form,
-    ),
+    ("base", "infrastructure"): WideFormDefinition(download_columns=["subtype", "class"]),
+    ("base", "land"): WideFormDefinition(download_columns=["subtype", "class"]),
+    ("base", "land_cover"): WideFormDefinition(download_columns=["subtype"]),
+    ("base", "land_use"): WideFormDefinition(download_columns=["subtype", "class"]),
+    ("base", "water"): WideFormDefinition(download_columns=["subtype", "class"]),
     ("transportation", "segment"): WideFormDefinition(
-        _wrapped_default_download_function,
-        ["subtype", "class", "subclass"],
-        _check_depth_for_wide_form,
-        _transform_to_wide_form,
+        download_columns=["subtype", "class", "subclass"]
     ),
     ("places", "place"): WideFormDefinition(
-        _wrapped_poi_download_function,
-        ["primary", "alternate"],
-        _check_depth_for_wide_form,
-        _transform_poi_to_wide_form,
+        download_columns=["primary", "alternate"],
+        download_parameters_preparation_function=_prepare_download_parameters_for_poi,
+        data_transform_function=_transform_poi_to_wide_form,
     ),
-    ("buildings", "building"): WideFormDefinition(
-        _wrapped_default_download_function,
-        ["subtype", "class"],
-        _check_depth_for_wide_form,
-        _transform_to_wide_form,
-    ),
+    ("buildings", "building"): WideFormDefinition(download_columns=["subtype", "class"]),
 }
 
 # convert_bounding_box_to_wide_form_geodataframe,
@@ -366,7 +328,6 @@ def convert_geometry_to_wide_form_parquet(
     Returns:
         Path: Path to the generated GeoParquet file.
     """
-    # TODO: check / add ignore cache logic
     with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
         tmp_dir_path = Path(tmp_dir_name)
 
@@ -383,38 +344,55 @@ def convert_geometry_to_wide_form_parquet(
             )
 
         result_file_path = Path(result_file_path)
-        result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
-        wide_form_definition = THEME_TYPE_CLASSIFICATION[(theme, type)]
+        if not result_file_path.exists() or ignore_cache:
+            result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
-        depth = wide_form_definition.depth_check_function(
-            wide_form_definition.download_columns, hierarchy_depth
-        )
-        columns_to_download = wide_form_definition.download_columns[:depth]
+            wide_form_definition = THEME_TYPE_CLASSIFICATION[(theme, type)]
 
-        downloaded_parquet_path = wide_form_definition.download_function(
-            release=release,
-            theme=theme,
-            type=type,
-            geometry_filter=geometry_filter,
-            pyarrow_filter=pyarrow_filter,
-            columns_to_download=columns_to_download,
-            ignore_cache=ignore_cache,
-            working_directory=tmp_dir_path,
-            verbosity_mode=verbosity_mode,
-        )
+            depth = wide_form_definition.depth_check_function(
+                wide_form_definition.download_columns, hierarchy_depth
+            )
+            columns_to_download = wide_form_definition.download_columns[:depth]
 
-        with TrackProgressSpinner(
-            "Transforming data into wide form", verbosity_mode=verbosity_mode
-        ):
-            wide_form_definition.data_transform_function(
+            if wide_form_definition.download_parameters_preparation_function is not None:
+                columns_to_download, pyarrow_filter = (
+                    wide_form_definition.download_parameters_preparation_function(
+                        theme=theme,
+                        type=type,
+                        geometry_filter=geometry_filter,
+                        columns_to_download=columns_to_download,
+                        pyarrow_filter=pyarrow_filter,
+                    )
+                )
+
+            for required_column in ("id", "geometry"):
+                if required_column not in columns_to_download:
+                    columns_to_download.append(required_column)
+
+            downloaded_parquet_path = download_data(
+                release=release,
                 theme=theme,
                 type=type,
-                parquet_path=downloaded_parquet_path,
-                output_path=result_file_path,
-                hierarchy_columns=columns_to_download,
+                geometry_filter=geometry_filter,
+                pyarrow_filter=pyarrow_filter,
+                columns_to_download=columns_to_download,
+                ignore_cache=ignore_cache,
                 working_directory=tmp_dir_path,
+                verbosity_mode=verbosity_mode,
             )
+
+            with TrackProgressSpinner(
+                "Transforming data into wide form", verbosity_mode=verbosity_mode
+            ):
+                wide_form_definition.data_transform_function(
+                    theme=theme,
+                    type=type,
+                    parquet_path=downloaded_parquet_path,
+                    output_path=result_file_path,
+                    hierarchy_columns=columns_to_download,
+                    working_directory=tmp_dir_path,
+                )
 
         return result_file_path
 

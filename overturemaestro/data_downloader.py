@@ -396,7 +396,11 @@ def _download_data(
             bbox=geometry_filter.bounds,
             work_directory=work_directory,
         )
-        theme_type_task_description = ", ".join(f"{th}/{ty}" for th, ty in theme_type_pairs)
+        theme_type_task_description = (
+            f"{theme_type_pairs[0][0]}/{theme_type_pairs[0][1]}"
+            if len(theme_type_pairs) == 1
+            else f"{len(theme_type_pairs)} datasets"
+        )
         downloaded_parquet_files = list(
             progress.track(
                 ex.map(
