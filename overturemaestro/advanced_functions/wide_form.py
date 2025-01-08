@@ -18,27 +18,6 @@ if TYPE_CHECKING:
     from pyarrow.compute import Expression
 
 
-def _prepare_download_parameters_for_poi(
-    theme: str,
-    type: str,
-    geometry_filter: BaseGeometry,
-    hierachy_columns: list[str],
-    pyarrow_filter: Optional[pyarrow_filters] = None,
-) -> tuple[list[str], Optional[pyarrow_filters]]:
-    # TODO: swap to dedicated function?
-    import pyarrow.compute as pc
-
-    category_not_null_filter = pc.invert(pc.field("categories").is_null(nan_is_null=True))
-    if pyarrow_filter is not None:
-        from pyarrow.parquet import filters_to_expression
-
-        pyarrow_filter = filters_to_expression(pyarrow_filter) & category_not_null_filter
-    else:
-        pyarrow_filter = category_not_null_filter
-
-    return (["categories"], pyarrow_filter)
-
-
 def _check_depth_for_wide_form(hierarchy_columns: list[str], depth: Optional[int] = None) -> int:
     depth = depth if depth is not None else len(hierarchy_columns)
 
@@ -113,6 +92,27 @@ def _transform_to_wide_form(
     connection.execute(query)
 
     return output_path
+
+
+def _prepare_download_parameters_for_poi(
+    theme: str,
+    type: str,
+    geometry_filter: BaseGeometry,
+    hierachy_columns: list[str],
+    pyarrow_filter: Optional[pyarrow_filters] = None,
+) -> tuple[list[str], Optional[pyarrow_filters]]:
+    # TODO: swap to dedicated function?
+    import pyarrow.compute as pc
+
+    category_not_null_filter = pc.invert(pc.field("categories").is_null(nan_is_null=True))
+    if pyarrow_filter is not None:
+        from pyarrow.parquet import filters_to_expression
+
+        pyarrow_filter = filters_to_expression(pyarrow_filter) & category_not_null_filter
+    else:
+        pyarrow_filter = category_not_null_filter
+
+    return (["categories"], pyarrow_filter)
 
 
 def _transform_poi_to_wide_form(
