@@ -171,7 +171,7 @@ def download_data_for_multiple_types(
                 geometry_filter=geometry_filter,
                 pyarrow_filters=pyarrow_filters_list,
                 columns_to_download=columns_to_download_list,
-                work_directory=tmp_dir_path,
+                working_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
                 max_workers=max_workers,
             )
@@ -327,7 +327,7 @@ def download_data(
                 geometry_filter=geometry_filter,
                 pyarrow_filters=[pyarrow_filter],
                 columns_to_download=[columns_to_download],
-                work_directory=tmp_dir_path,
+                working_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
                 max_workers=max_workers,
             )[0]
@@ -353,7 +353,7 @@ def _download_data(
     geometry_filter: "BaseGeometry",
     pyarrow_filters: Optional[list[Union["Expression", None]]],
     columns_to_download: Optional[list[Union[list[str], None]]],
-    work_directory: Path,
+    working_directory: Path,
     verbosity_mode: "VERBOSITY_MODE",
     max_workers: Optional[int],
 ) -> list[list[Path]]:
@@ -426,7 +426,7 @@ def _download_data(
         fn = partial(
             _download_single_parquet_row_group_multiprocessing,
             bbox=geometry_filter.bounds,
-            work_directory=work_directory,
+            working_directory=working_directory,
         )
         theme_type_task_description = (
             f"{theme_type_pairs[0][0]}/{theme_type_pairs[0][1]}"
@@ -446,7 +446,7 @@ def _download_data(
         )
 
     if not geometry_filter.equals(geometry_filter.envelope):
-        destination_path = work_directory / Path("intersected_data")
+        destination_path = working_directory / Path("intersected_data")
         fn = partial(_filter_data_properly, geometry_filter=geometry_filter)
         map_parquet_dataset(
             dataset_path=downloaded_parquet_files,
@@ -481,7 +481,7 @@ def _download_data(
 def _download_single_parquet_row_group_multiprocessing(
     params: dict[str, Any],
     bbox: tuple[float, float, float, float],
-    work_directory: Path,
+    working_directory: Path,
 ) -> Path:
     retries = 10
     while retries > 0:
@@ -489,7 +489,7 @@ def _download_single_parquet_row_group_multiprocessing(
             downloaded_path = _download_single_parquet_row_group(
                 **params,
                 bbox=bbox,
-                work_directory=work_directory,
+                working_directory=working_directory,
             )
             return downloaded_path
         except MissingColumnError:
@@ -511,7 +511,7 @@ def _download_single_parquet_row_group(
     bbox: tuple[float, float, float, float],
     user_defined_pyarrow_filter: Optional["Expression"],
     columns_to_download: Optional[list[str]],
-    work_directory: Path,
+    working_directory: Path,
 ) -> Path:
     import pyarrow.compute as pc
     import pyarrow.dataset as ds
@@ -584,7 +584,7 @@ def _download_single_parquet_row_group(
 
         columns_to_remove = set(filtering_columns).difference(columns_to_download)
 
-    file_path = work_directory / _generate_row_group_file_name(
+    file_path = working_directory / _generate_row_group_file_name(
         filename, row_group, row_indexes_ranges, bbox
     )
     file_path.parent.mkdir(parents=True, exist_ok=True)
