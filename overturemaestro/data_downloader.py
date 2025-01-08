@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 
     from overturemaestro._rich_progress import VERBOSITY_MODE
 
-pyarrow_expression = tuple[Any, Any, Any]
-pyarrow_filters = Union["Expression", list[pyarrow_expression], list[list[pyarrow_expression]]]
+PYARROW_EXPRESSION = tuple[Any, Any, Any]
+PYARROW_FILTER = Union["Expression", list[PYARROW_EXPRESSION], list[list[PYARROW_EXPRESSION]]]
 
 __all__ = [
     "download_data",
@@ -32,6 +32,8 @@ def download_data_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
     *,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]],
+    columns_to_download: Optional[list[Union[list[str], None]]],
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -45,6 +47,8 @@ def download_data_for_multiple_types(
     geometry_filter: "BaseGeometry",
     release: str,
     *,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]],
+    columns_to_download: Optional[list[Union[list[str], None]]],
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -58,6 +62,8 @@ def download_data_for_multiple_types(
     geometry_filter: "BaseGeometry",
     release: Optional[str] = None,
     *,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]],
+    columns_to_download: Optional[list[Union[list[str], None]]],
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -71,6 +77,8 @@ def download_data_for_multiple_types(
     geometry_filter: "BaseGeometry",
     release: Optional[str] = None,
     *,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    columns_to_download: Optional[list[Union[list[str], None]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -84,6 +92,12 @@ def download_data_for_multiple_types(
         geometry_filter (BaseGeometry): Geometry used to filter data.
         release (Optional[str], optional): Release version. If not provided, will automatically load
             newest available release version. Defaults to None.
+        pyarrow_filters (Optional[list[Union[PYARROW_FILTER, None]]], optional): A list of pyarrow
+            expressions used to filter specific theme type pair. Must be the same length as the list
+            of theme type pairs. Defaults to None.
+        columns_to_download (Optional[list[Union[list[str], None]]], optional): A list of pyarrow
+            expressions used to filter specific theme type pair. Must be the same length as the list
+            of theme type pairs. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -106,6 +120,12 @@ def download_data_for_multiple_types(
     from overturemaestro._rich_progress import TrackProgressBar
     from overturemaestro.release_index import get_newest_release_version
 
+    if pyarrow_filters and len(theme_type_pairs) != len(pyarrow_filters):
+        raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
+
+    if columns_to_download and len(theme_type_pairs) != len(columns_to_download):
+        raise ValueError("Columns to download length doesn't match length of theme type pairs.")
+
     if not release:
         release = get_newest_release_version()
 
@@ -114,20 +134,32 @@ def download_data_for_multiple_types(
 
     all_result_file_paths = []
     theme_type_pairs_to_download = []
+    pyarrow_filters_list = []
+    columns_to_download_list = []
     result_file_paths_to_download = []
-    for theme_value, type_value in theme_type_pairs:
+    for idx, (theme_value, type_value) in enumerate(theme_type_pairs):
+        _pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
+        _columns_to_download = columns_to_download[idx] if columns_to_download else None
+
+        if _pyarrow_filter is not None:
+            from pyarrow.parquet import filters_to_expression
+
+            _pyarrow_filter = filters_to_expression(_pyarrow_filter)
+
         result_file_path = working_directory / _generate_result_file_path(
             release=release,
             theme=theme_value,
             type=type_value,
             geometry_filter=geometry_filter,
-            pyarrow_filter=None,
-            columns_to_download=None,
+            pyarrow_filter=_pyarrow_filter,
+            columns_to_download=_columns_to_download,
         )
         all_result_file_paths.append(result_file_path)
 
         if not result_file_path.exists() or ignore_cache:
             theme_type_pairs_to_download.append((theme_value, type_value))
+            pyarrow_filters_list.append(_pyarrow_filter)
+            columns_to_download_list.append(_columns_to_download)
             result_file_paths_to_download.append(result_file_path)
 
     if theme_type_pairs_to_download:
@@ -137,8 +169,8 @@ def download_data_for_multiple_types(
                 release=release,
                 theme_type_pairs=theme_type_pairs_to_download,
                 geometry_filter=geometry_filter,
-                pyarrow_filter=None,
-                columns_to_download=None,
+                pyarrow_filters=pyarrow_filters_list,
+                columns_to_download=columns_to_download_list,
                 work_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
                 max_workers=max_workers,
@@ -165,7 +197,7 @@ def download_data(
     type: str,
     geometry_filter: "BaseGeometry",
     *,
-    pyarrow_filter: Optional[pyarrow_filters] = None,
+    pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -182,7 +214,7 @@ def download_data(
     geometry_filter: "BaseGeometry",
     release: str,
     *,
-    pyarrow_filter: Optional[pyarrow_filters] = None,
+    pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -199,7 +231,7 @@ def download_data(
     geometry_filter: "BaseGeometry",
     release: Optional[str] = None,
     *,
-    pyarrow_filter: Optional[pyarrow_filters] = None,
+    pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -216,7 +248,7 @@ def download_data(
     geometry_filter: "BaseGeometry",
     release: Optional[str] = None,
     *,
-    pyarrow_filter: Optional[pyarrow_filters] = None,
+    pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -233,7 +265,7 @@ def download_data(
         geometry_filter (BaseGeometry): Geometry used to filter data.
         release (Optional[str], optional): Release version. If not provided, will automatically load
             newest available release version. Defaults to None.
-        pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
+        pyarrow_filter (Optional[PYARROW_FILTER], optional): Filters to apply on a pyarrow dataset.
             Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
         columns_to_download (Optional[list[str]], optional): List of columns to download.
             Automatically adds geometry column to the list. If None, will download all columns.
@@ -293,7 +325,7 @@ def download_data(
                 release=release,
                 theme_type_pairs=[(theme, type)],
                 geometry_filter=geometry_filter,
-                pyarrow_filter=[pyarrow_filter],
+                pyarrow_filters=[pyarrow_filter],
                 columns_to_download=[columns_to_download],
                 work_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
@@ -319,7 +351,7 @@ def _download_data(
     release: str,
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
-    pyarrow_filter: Optional[list["Expression"]],
+    pyarrow_filters: Optional[list[Union["Expression", None]]],
     columns_to_download: Optional[list[Union[list[str], None]]],
     work_directory: Path,
     verbosity_mode: "VERBOSITY_MODE",
@@ -332,7 +364,7 @@ def _download_data(
     from overturemaestro._rich_progress import TrackProgressBar
     from overturemaestro.release_index import load_release_index
 
-    if pyarrow_filter and len(theme_type_pairs) != len(pyarrow_filter):
+    if pyarrow_filters and len(theme_type_pairs) != len(pyarrow_filters):
         raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
 
     if columns_to_download and len(theme_type_pairs) != len(columns_to_download):
@@ -363,7 +395,7 @@ def _download_data(
             ["filename", "row_group", "row_indexes_ranges"]
         ].to_dict(orient="records")
 
-        _pyarrow_filter = pyarrow_filter[idx] if pyarrow_filter else None
+        _pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
         _columns_to_download = columns_to_download[idx] if columns_to_download else None
 
         for row_group_to_download in row_groups_to_download:

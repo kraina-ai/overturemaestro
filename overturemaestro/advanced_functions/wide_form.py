@@ -10,7 +10,7 @@ from shapely.geometry.base import BaseGeometry
 from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
 from overturemaestro._exceptions import HierarchyDepthOutOfBoundsError
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
-from overturemaestro.data_downloader import _download_data, _generate_geometry_hash, pyarrow_filters
+from overturemaestro.data_downloader import PYARROW_FILTER, _download_data, _generate_geometry_hash
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 from overturemaestro.release_index import get_newest_release_version
 
@@ -99,16 +99,14 @@ def _prepare_download_parameters_for_poi(
     type: str,
     geometry_filter: BaseGeometry,
     hierachy_columns: list[str],
-    pyarrow_filter: Optional[pyarrow_filters] = None,
-) -> tuple[list[str], Optional[pyarrow_filters]]:
+    pyarrow_filter: Optional["Expression"] = None,
+) -> tuple[list[str], Optional["Expression"]]:
     # TODO: swap to dedicated function?
     import pyarrow.compute as pc
 
     category_not_null_filter = pc.invert(pc.field("categories").is_null(nan_is_null=True))
     if pyarrow_filter is not None:
-        from pyarrow.parquet import filters_to_expression
-
-        pyarrow_filter = filters_to_expression(pyarrow_filter) & category_not_null_filter
+        pyarrow_filter = pyarrow_filter & category_not_null_filter
     else:
         pyarrow_filter = category_not_null_filter
 
@@ -201,8 +199,8 @@ class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
         type: str,
         geometry_filter: BaseGeometry,
         hierachy_columns: list[str],
-        pyarrow_filter: Optional[pyarrow_filters] = None,
-    ) -> tuple[list[str], Optional[pyarrow_filters]]: ...
+        pyarrow_filter: Optional["Expression"] = None,
+    ) -> tuple[list[str], Optional["Expression"]]: ...
 
 
 class DepthCheckCallable(Protocol):  # noqa: D101
@@ -257,12 +255,12 @@ THEME_TYPE_CLASSIFICATION = {
 
 
 @overload
-def convert_geometry_to_wide_form_parquet(
+def convert_geometry_to_wide_form_parquet_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filter: Optional[pyarrow_filters] = None,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -272,13 +270,13 @@ def convert_geometry_to_wide_form_parquet(
 
 
 @overload
-def convert_geometry_to_wide_form_parquet(
+def convert_geometry_to_wide_form_parquet_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
     release: str,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filter: Optional[pyarrow_filters] = None,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -288,13 +286,13 @@ def convert_geometry_to_wide_form_parquet(
 
 
 @overload
-def convert_geometry_to_wide_form_parquet(
+def convert_geometry_to_wide_form_parquet_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
     release: Optional[str] = None,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filter: Optional[pyarrow_filters] = None,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -304,13 +302,13 @@ def convert_geometry_to_wide_form_parquet(
 
 
 @show_total_elapsed_time_decorator
-def convert_geometry_to_wide_form_parquet(
+def convert_geometry_to_wide_form_parquet_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
     release: Optional[str] = None,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filter: Optional[pyarrow_filters] = None,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -332,8 +330,9 @@ def convert_geometry_to_wide_form_parquet(
         hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
             be used to generate the wide form of the data. If None, will use all available columns.
             Defaults to None.
-        pyarrow_filter (Optional[pyarrow_filters], optional): Filters to apply on a pyarrow dataset.
-            Can be pyarrow.compute.Expression or List[Tuple] or List[List[Tuple]]. Defaults to None.
+        pyarrow_filters (Optional[list[Union[PYARROW_FILTER, None]]], optional): A list of pyarrow
+            expressions used to filter specific theme type pair. Must be the same length as the list
+            of theme type pairs. Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to `None`.
@@ -351,18 +350,33 @@ def convert_geometry_to_wide_form_parquet(
     Returns:
         Path: Path to the generated GeoParquet file.
     """
+    if pyarrow_filters and len(theme_type_pairs) != len(pyarrow_filters):
+        raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
+
     with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
         tmp_dir_path = Path(tmp_dir_name)
 
         if not release:
             release = get_newest_release_version()
 
+        pyarrow_filters_list = []
+        for idx in range(len(theme_type_pairs)):
+            _pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
+
+            if _pyarrow_filter is not None:
+                from pyarrow.parquet import filters_to_expression
+
+                _pyarrow_filter = filters_to_expression(_pyarrow_filter)
+
+            pyarrow_filters_list.append(_pyarrow_filter)
+
+
         if result_file_path is None:
             result_file_path = working_directory / _generate_result_file_path(
                 release=release,
                 theme_type_pairs=theme_type_pairs,
                 geometry_filter=geometry_filter,
-                pyarrow_filter=pyarrow_filter,
+                pyarrow_filters=pyarrow_filters_list,
             )
 
         result_file_path = Path(result_file_path)
@@ -374,7 +388,7 @@ def convert_geometry_to_wide_form_parquet(
                 theme_type_pairs=theme_type_pairs,
                 geometry_filter=geometry_filter,
                 hierarchy_depth=hierarchy_depth,
-                pyarrow_filter=pyarrow_filter,
+                pyarrow_filters=pyarrow_filters_list,
             )
 
             hierachy_columns_list, pyarrow_filter_list = zip(*prepared_download_parameters)
@@ -383,7 +397,7 @@ def convert_geometry_to_wide_form_parquet(
                 release=release,
                 theme_type_pairs=theme_type_pairs,
                 geometry_filter=geometry_filter,
-                pyarrow_filter=pyarrow_filter_list,
+                pyarrow_filters=pyarrow_filter_list,
                 columns_to_download=[
                     ["id", "geometry", *hierachy_columns]
                     for hierachy_columns in hierachy_columns_list
@@ -438,7 +452,7 @@ def _generate_result_file_path(
     release: str,
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
-    pyarrow_filter: Optional["Expression"],
+    pyarrow_filters: Optional[list[Union["Expression", None]]],
 ) -> Path:
     import hashlib
 
@@ -455,9 +469,10 @@ def _generate_result_file_path(
     clipping_geometry_hash_part = _generate_geometry_hash(geometry_filter)
 
     pyarrow_filter_hash_part = "nofilter"
-    if pyarrow_filter is not None:
+    if pyarrow_filters is not None:
         h = hashlib.new("sha256")
-        h.update(str(pyarrow_filter).encode())
+        for single_pyarrow_filter in pyarrow_filters:
+            h.update(str(single_pyarrow_filter).encode())
         pyarrow_filter_hash_part = h.hexdigest()
 
     return directory / f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}_wide_form.parquet"
@@ -467,30 +482,30 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filter: Optional[pyarrow_filters] = None,
-) -> list[tuple[list[str], Optional[pyarrow_filters]]]:
+    pyarrow_filters: Optional[list[Union["Expression", None]]] = None,
+) -> list[tuple[list[str], Optional[PYARROW_FILTER]]]:
     prepared_parameters = []
-    for theme_value, type_value in theme_type_pairs:
+    for idx, (theme_value, type_value) in enumerate(theme_type_pairs):
+        single_pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
         wide_form_definition = THEME_TYPE_CLASSIFICATION[(theme_value, type_value)]
 
         depth = wide_form_definition.depth_check_function(
             wide_form_definition.hierachy_columns, hierarchy_depth
         )
         hierachy_columns = wide_form_definition.hierachy_columns[:depth]
-        copied_pyarrow_filter = pyarrow_filter
 
         if wide_form_definition.download_parameters_preparation_function is not None:
-            hierachy_columns, copied_pyarrow_filter = (
+            hierachy_columns, single_pyarrow_filter = (
                 wide_form_definition.download_parameters_preparation_function(
                     theme=theme_value,
                     type=type_value,
                     geometry_filter=geometry_filter,
                     hierachy_columns=hierachy_columns,
-                    pyarrow_filter=copied_pyarrow_filter,
+                    pyarrow_filter=single_pyarrow_filter,
                 )
             )
 
-        prepared_parameters.append((hierachy_columns, copied_pyarrow_filter))
+        prepared_parameters.append((hierachy_columns, single_pyarrow_filter))
 
     return prepared_parameters
 
