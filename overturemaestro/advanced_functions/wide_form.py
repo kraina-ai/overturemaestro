@@ -350,6 +350,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     Returns:
         Path: Path to the generated GeoParquet file.
     """
+    # TODO: add missing spinners
     if pyarrow_filters and len(theme_type_pairs) != len(pyarrow_filters):
         raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
 
@@ -366,7 +367,6 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             _pyarrow_filter = filters_to_expression(_pyarrow_filter)
 
         pyarrow_filters_list.append(_pyarrow_filter)
-
 
     if result_file_path is None:
         # TODO: add hierarchy depth to result name
@@ -389,7 +389,9 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             pyarrow_filters=pyarrow_filters_list,
         )
 
-        hierachy_columns_list, pyarrow_filter_list = zip(*prepared_download_parameters)
+        hierachy_columns_list, columns_to_download_list, pyarrow_filter_list = zip(
+            *prepared_download_parameters
+        )
 
         downloaded_parquet_files = download_data_for_multiple_types(
             release=release,
@@ -397,8 +399,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             geometry_filter=geometry_filter,
             pyarrow_filters=pyarrow_filter_list,
             columns_to_download=[
-                ["id", "geometry", *hierachy_columns]
-                for hierachy_columns in hierachy_columns_list
+                ["id", "geometry", *columns_to_download]
+                for columns_to_download in columns_to_download_list
             ],
             ignore_cache=ignore_cache,
             working_directory=working_directory,
@@ -486,7 +488,7 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
     geometry_filter: BaseGeometry,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Union["Expression", None]]] = None,
-) -> list[tuple[list[str], Optional[PYARROW_FILTER]]]:
+) -> list[tuple[list[str], list[str], Optional[PYARROW_FILTER]]]:
     prepared_parameters = []
     for idx, (theme_value, type_value) in enumerate(theme_type_pairs):
         single_pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
@@ -496,9 +498,10 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
             wide_form_definition.hierachy_columns, hierarchy_depth
         )
         hierachy_columns = wide_form_definition.hierachy_columns[:depth]
+        columns_to_download = hierachy_columns
 
         if wide_form_definition.download_parameters_preparation_function is not None:
-            hierachy_columns, single_pyarrow_filter = (
+            columns_to_download, single_pyarrow_filter = (
                 wide_form_definition.download_parameters_preparation_function(
                     theme=theme_value,
                     type=type_value,
@@ -508,7 +511,7 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
                 )
             )
 
-        prepared_parameters.append((hierachy_columns, single_pyarrow_filter))
+        prepared_parameters.append((hierachy_columns, columns_to_download, single_pyarrow_filter))
 
     return prepared_parameters
 
