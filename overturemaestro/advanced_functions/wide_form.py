@@ -267,6 +267,7 @@ def convert_geometry_to_wide_form_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -282,6 +283,7 @@ def convert_geometry_to_wide_form_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -297,6 +299,7 @@ def convert_geometry_to_wide_form_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path: ...
 
 
@@ -312,6 +315,7 @@ def convert_geometry_to_wide_form_parquet(
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
 ) -> Path:
     """
     Get a GeoParquet file with Overture Maps data within given geometry in a wide form.
@@ -341,6 +345,8 @@ def convert_geometry_to_wide_form_parquet(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -384,11 +390,10 @@ def convert_geometry_to_wide_form_parquet(
                 ],
                 work_directory=tmp_dir_path,
                 verbosity_mode=verbosity_mode,
-                max_workers=None,  # TODO: add param
+                max_workers=max_workers,
             )
 
-            # transformed_wide_form_directory_output = tmp_dir_path / "wide_form_files"
-            transformed_wide_form_directory_output = Path(working_directory) / "wide_form_files"
+            transformed_wide_form_directory_output = tmp_dir_path / "wide_form_files"
             transformed_wide_form_directory_output.mkdir(parents=True, exist_ok=True)
             with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
                 for (
