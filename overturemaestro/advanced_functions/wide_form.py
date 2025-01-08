@@ -10,11 +10,7 @@ from shapely.geometry.base import BaseGeometry
 from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
 from overturemaestro._exceptions import HierarchyDepthOutOfBoundsError
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
-from overturemaestro.data_downloader import (
-    _download_data,
-    _generate_geometry_hash,
-    pyarrow_filters,
-)
+from overturemaestro.data_downloader import _download_data, _generate_geometry_hash, pyarrow_filters
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 from overturemaestro.release_index import get_newest_release_version
 
@@ -60,7 +56,7 @@ def _transform_to_wide_form(
     parquet_paths: list[Path],
     output_path: Path,
     hierarchy_columns: list[str],
-    working_directory: Union[str, Path] = "files",
+    working_directory: Union[str, Path],
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
@@ -125,7 +121,7 @@ def _transform_poi_to_wide_form(
     parquet_paths: list[Path],
     output_path: Path,
     hierarchy_columns: list[str],
-    working_directory: Union[str, Path] = "files",
+    working_directory: Union[str, Path],
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
@@ -223,7 +219,7 @@ class DataTransformationCallable(Protocol):  # noqa: D101
         parquet_paths: list[Path],
         output_path: Path,
         hierarchy_columns: list[str],
-        working_directory: Union[str, Path] = "files",
+        working_directory: Union[str, Path],
     ) -> Path: ...
 
 
@@ -375,11 +371,7 @@ def convert_geometry_to_wide_form_parquet(
                 pyarrow_filter=pyarrow_filter,
             )
 
-            print(prepared_download_parameters)
-
             hierachy_columns_list, pyarrow_filter_list = zip(*prepared_download_parameters)
-
-            print(theme_type_pairs, hierachy_columns_list, pyarrow_filter_list)
 
             all_downloaded_parquet_files = _download_data(
                 release=release,
@@ -410,20 +402,29 @@ def convert_geometry_to_wide_form_parquet(
                 ):
                     wide_form_definition = THEME_TYPE_CLASSIFICATION[(theme_value, type_value)]
 
+                    output_path = (
+                        transformed_wide_form_directory_output
+                        / f"{theme_value}_{type_value}.parquet"
+                    )
+                    if len(theme_type_pairs) == 1:
+                        output_path = result_file_path
+
                     wide_form_definition.data_transform_function(
                         theme=theme_value,
                         type=type_value,
                         parquet_paths=downloaded_parquet_files,
-                        output_path=transformed_wide_form_directory_output
-                        / f"{theme_value}_{type_value}.parquet",
+                        output_path=output_path,
                         hierarchy_columns=hierachy_columns,
                         working_directory=tmp_dir_path,
                     )
 
-            print(list(transformed_wide_form_directory_output.glob("*.parquet")))
-
-            # TODO: combine output files
-            # result_file_path
+            if len(theme_type_pairs) > 1:
+                _combine_multiple_wide_form_files(
+                    theme_type_pairs=theme_type_pairs,
+                    transformed_wide_form_directory=transformed_wide_form_directory_output,
+                    output_path=result_file_path,
+                    working_directory=tmp_dir_path,
+                )
 
         return result_file_path
 
@@ -488,10 +489,62 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
 
     return prepared_parameters
 
-# TODO: combine multiple types into single file
-# read columns from all files
-# add prefixes "theme_type_{col_name}"
-# union all results
-# coalesce all values with false
-# save file
-# def combine
+
+def _combine_multiple_wide_form_files(
+    theme_type_pairs: list[tuple[str, str]],
+    transformed_wide_form_directory: Path,
+    output_path: Path,
+    working_directory: Union[str, Path],
+) -> None:
+    import pyarrow.parquet as pq
+
+    all_select_columns = []
+    subqueries = []
+
+    for theme_value, type_value in theme_type_pairs:
+        current_parquet_file = (
+            transformed_wide_form_directory / f"{theme_value}_{type_value}.parquet"
+        )
+        available_columns = [
+            col
+            for col in pq.read_metadata(current_parquet_file).schema.names
+            if col not in ("id", "geometry")
+        ]
+
+        modified_column_aliases = [f"{theme_value}|{type_value}|{col}" for col in available_columns]
+
+        combined_columns_select = ", ".join(
+            f'"{column}" as "{alias}"'
+            for column, alias in zip(available_columns, modified_column_aliases)
+        )
+
+        select_subquery = f"""
+        SELECT id, geometry, {combined_columns_select}
+        FROM read_parquet('{current_parquet_file}', hive_partitioning=false)
+        """
+
+        subqueries.append(select_subquery)
+        all_select_columns.extend(modified_column_aliases)
+
+    joined_all_select_columns = ", ".join(
+        f'COALESCE("{col}", False) AS "{col}"' for col in sorted(all_select_columns)
+    )
+    joined_subqueries = " UNION ALL BY NAME ".join(subqueries)
+
+    connection = _set_up_duckdb_connection(working_directory)
+    query = f"""
+    COPY (
+        SELECT
+            id,
+            geometry,
+            {joined_all_select_columns}
+        FROM (
+            {joined_subqueries}
+        )
+    ) TO '{output_path}' (
+        FORMAT 'parquet',
+        PER_THREAD_OUTPUT false
+    )
+    """
+
+    connection.execute(query)
