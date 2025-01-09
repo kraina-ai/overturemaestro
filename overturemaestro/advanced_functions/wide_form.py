@@ -9,7 +9,7 @@ from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
 from overturemaestro._exceptions import HierarchyDepthOutOfBoundsError
-from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
+from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
 from overturemaestro.data_downloader import (
     PYARROW_FILTER,
     _generate_geometry_hash,
@@ -369,11 +369,11 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
         pyarrow_filters_list.append(_pyarrow_filter)
 
     if result_file_path is None:
-        # TODO: add hierarchy depth to result name
         result_file_path = working_directory / _generate_result_file_path(
             release=release,
             theme_type_pairs=theme_type_pairs,
             geometry_filter=geometry_filter,
+            hierarchy_depth=hierarchy_depth,
             pyarrow_filters=pyarrow_filters_list,
         )
 
@@ -443,12 +443,15 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                     )
 
             if len(theme_type_pairs) > 1:
-                _combine_multiple_wide_form_files(
-                    theme_type_pairs=theme_type_pairs,
-                    transformed_wide_form_directory=transformed_wide_form_directory_output,
-                    output_path=result_file_path,
-                    working_directory=tmp_dir_path,
-                )
+                with TrackProgressSpinner(
+                    "Joining results to a single file", verbosity_mode=verbosity_mode
+                ):
+                    _combine_multiple_wide_form_files(
+                        theme_type_pairs=theme_type_pairs,
+                        transformed_wide_form_directory=transformed_wide_form_directory_output,
+                        output_path=result_file_path,
+                        working_directory=tmp_dir_path,
+                    )
 
     return result_file_path
 
@@ -457,6 +460,7 @@ def _generate_result_file_path(
     release: str,
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
+    hierarchy_depth: Optional[int],
     pyarrow_filters: Optional[list[Union["Expression", None]]],
 ) -> Path:
     import hashlib
@@ -480,7 +484,14 @@ def _generate_result_file_path(
             h.update(str(single_pyarrow_filter).encode())
         pyarrow_filter_hash_part = h.hexdigest()
 
-    return directory / f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}_wide_form.parquet"
+    hierarchy_hash_part = ""
+    if hierarchy_depth is not None:
+        hierarchy_hash_part = f"_h{hierarchy_depth}"
+
+    return directory / (
+        f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}"
+        f"_wide_form{hierarchy_hash_part}.parquet"
+    )
 
 
 def _prepare_download_parameters_for_all_theme_type_pairs(
@@ -488,30 +499,38 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
     geometry_filter: BaseGeometry,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Union["Expression", None]]] = None,
+    verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[tuple[list[str], list[str], Optional[PYARROW_FILTER]]]:
     prepared_parameters = []
-    for idx, (theme_value, type_value) in enumerate(theme_type_pairs):
-        single_pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
-        wide_form_definition = THEME_TYPE_CLASSIFICATION[(theme_value, type_value)]
+    with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
+        for idx, (theme_value, type_value) in progress.track(
+            enumerate(theme_type_pairs),
+            total=len(theme_type_pairs),
+            description="Preparing download parameters",
+        ):
+            single_pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
+            wide_form_definition = THEME_TYPE_CLASSIFICATION[(theme_value, type_value)]
 
-        depth = wide_form_definition.depth_check_function(
-            wide_form_definition.hierachy_columns, hierarchy_depth
-        )
-        hierachy_columns = wide_form_definition.hierachy_columns[:depth]
-        columns_to_download = hierachy_columns
-
-        if wide_form_definition.download_parameters_preparation_function is not None:
-            columns_to_download, single_pyarrow_filter = (
-                wide_form_definition.download_parameters_preparation_function(
-                    theme=theme_value,
-                    type=type_value,
-                    geometry_filter=geometry_filter,
-                    hierachy_columns=hierachy_columns,
-                    pyarrow_filter=single_pyarrow_filter,
-                )
+            depth = wide_form_definition.depth_check_function(
+                wide_form_definition.hierachy_columns, hierarchy_depth
             )
+            hierachy_columns = wide_form_definition.hierachy_columns[:depth]
+            columns_to_download = hierachy_columns
 
-        prepared_parameters.append((hierachy_columns, columns_to_download, single_pyarrow_filter))
+            if wide_form_definition.download_parameters_preparation_function is not None:
+                columns_to_download, single_pyarrow_filter = (
+                    wide_form_definition.download_parameters_preparation_function(
+                        theme=theme_value,
+                        type=type_value,
+                        geometry_filter=geometry_filter,
+                        hierachy_columns=hierachy_columns,
+                        pyarrow_filter=single_pyarrow_filter,
+                    )
+                )
+
+            prepared_parameters.append(
+                (hierachy_columns, columns_to_download, single_pyarrow_filter)
+            )
 
     return prepared_parameters
 
