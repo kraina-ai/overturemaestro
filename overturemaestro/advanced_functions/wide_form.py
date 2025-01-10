@@ -248,11 +248,6 @@ THEME_TYPE_CLASSIFICATION = {
     ("buildings", "building"): WideFormDefinition(hierachy_columns=["subtype", "class"]),
 }
 
-# convert_bounding_box_to_wide_form_geodataframe,
-# convert_bounding_box_to_wide_form_parquet,
-# convert_geometry_to_wide_form_geodataframe,
-# convert_geometry_to_wide_form_parquet,
-
 
 @overload
 def convert_geometry_to_wide_form_parquet_for_multiple_types(
@@ -316,7 +311,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     max_workers: Optional[int] = None,
 ) -> Path:
     """
-    Get a GeoParquet file with Overture Maps data within given geometry in a wide form.
+    Get GeoParquet with Overture Maps data within given geometry in a wide form for multiple types.
 
     Automatically downloads Overture Maps dataset for a given release and theme/type
     in a concurrent manner and returns a single file as a result with multiple columns based
