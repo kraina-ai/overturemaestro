@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored available release versions caching [#24](https://github.com/kraina-ai/overturemaestro/issues/24)
 - Removed hive partitioned parquet schema columns from GeoDataFrame loading
 
+### Deprecated
+
+- Nested fields in PyArrow filter in CLI is now expected to be separated by a dot, not a comma [#22](https://github.com/kraina-ai/overturemaestro/issues/22)
+
 ## [0.1.2] - 2024-12-17
 
 ### Added
