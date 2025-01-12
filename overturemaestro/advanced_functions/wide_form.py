@@ -96,6 +96,7 @@ def _transform_to_wide_form(
     return output_path
 
 
+# TODO: add minimal confidence score of 0.75
 def _prepare_download_parameters_for_poi(
     theme: str,
     type: str,
@@ -311,9 +312,9 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     max_workers: Optional[int] = None,
 ) -> Path:
     """
-    Get GeoParquet with Overture Maps data within given geometry in a wide form for multiple types.
+    Get GeoParquet file for a given geometry in a wide format for multiple types.
 
-    Automatically downloads Overture Maps dataset for a given release and theme/type
+    Automatically downloads Overture Maps dataset for a given release and theme/type pairs
     in a concurrent manner and returns a single file as a result with multiple columns based
     on dataset schema.
 
@@ -345,7 +346,6 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     Returns:
         Path: Path to the generated GeoParquet file.
     """
-    # TODO: add missing spinners
     if pyarrow_filters and len(theme_type_pairs) != len(pyarrow_filters):
         raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
 
@@ -449,6 +449,111 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                     )
 
     return result_file_path
+
+
+@overload
+def convert_geometry_to_wide_form_parquet_for_all_types(
+    geometry_filter: BaseGeometry,
+    *,
+    hierarchy_depth: Optional[int] = None,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
+) -> Path: ...
+
+
+@overload
+def convert_geometry_to_wide_form_parquet_for_all_types(
+    geometry_filter: BaseGeometry,
+    release: str,
+    *,
+    hierarchy_depth: Optional[int] = None,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
+) -> Path: ...
+
+
+@overload
+def convert_geometry_to_wide_form_parquet_for_all_types(
+    geometry_filter: BaseGeometry,
+    release: Optional[str] = None,
+    *,
+    hierarchy_depth: Optional[int] = None,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
+) -> Path: ...
+
+
+def convert_geometry_to_wide_form_parquet_for_all_types(
+    geometry_filter: BaseGeometry,
+    release: Optional[str] = None,
+    *,
+    hierarchy_depth: Optional[int] = None,
+    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    ignore_cache: bool = False,
+    working_directory: Union[str, Path] = "files",
+    verbosity_mode: VERBOSITY_MODE = "transient",
+    max_workers: Optional[int] = None,
+) -> Path:
+    """
+    Get GeoParquet file for a given geometry in a wide format for all types.
+
+    Automatically downloads Overture Maps dataset for a given release and all available theme/types
+    in a concurrent manner and returns a single file as a result with multiple columns based
+    on dataset schema.
+
+    Args:
+        theme_type_pairs (list[tuple[str, str]]): Pairs of themes and types of the dataset.
+        geometry_filter (BaseGeometry): Geometry used to filter data.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
+        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
+            be used to generate the wide form of the data. If None, will use all available columns.
+            Defaults to None.
+        pyarrow_filters (Optional[list[Union[PYARROW_FILTER, None]]], optional): A list of pyarrow
+            expressions used to filter specific theme type pair. Must be the same length as the list
+            of theme type pairs. Defaults to None.
+        result_file_path (Union[str, Path], optional): Where to save
+            the geoparquet file. If not provided, will be generated based on hashes
+            from filters. Defaults to `None`.
+        ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
+            Defaults to False.
+        working_directory (Union[str, Path], optional): Directory where to save
+            the downloaded `*.parquet` files. Defaults to "files".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        max_workers (Optional[int], optional): Max number of multiprocessing workers used to
+            process the dataset. Defaults to None.
+
+    Returns:
+        Path: Path to the generated GeoParquet file.
+    """
+    return convert_geometry_to_wide_form_parquet_for_multiple_types(
+        theme_type_pairs=list(THEME_TYPE_CLASSIFICATION.keys()),
+        geometry_filter=geometry_filter,
+        release=release,
+        hierarchy_depth=hierarchy_depth,
+        pyarrow_filters=pyarrow_filters,
+        result_file_path=result_file_path,
+        ignore_cache=ignore_cache,
+        working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
+        max_workers=max_workers,
+    )
 
 
 def _generate_result_file_path(
