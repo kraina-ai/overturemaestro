@@ -104,6 +104,7 @@ def _prepare_download_parameters_for_poi(
     pyarrow_filter: Optional["Expression"] = None,
 ) -> tuple[list[str], Optional["Expression"]]:
     # TODO: swap to dedicated function?
+    # TODO: add option to change minimal confidence
     import pyarrow.compute as pc
 
     category_not_null_filter = pc.invert(pc.field("categories").is_null(nan_is_null=True))
@@ -256,7 +257,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     geometry_filter: BaseGeometry,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -272,7 +273,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     release: str,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -288,7 +289,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     release: Optional[str] = None,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -304,7 +305,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     release: Optional[str] = None,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -326,7 +327,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
         hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
             be used to generate the wide form of the data. If None, will use all available columns.
             Defaults to None.
-        pyarrow_filters (Optional[list[Union[PYARROW_FILTER, None]]], optional): A list of pyarrow
+        pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
@@ -456,7 +457,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     geometry_filter: BaseGeometry,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -471,7 +472,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     release: str,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -486,7 +487,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     release: Optional[str] = None,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -500,7 +501,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     release: Optional[str] = None,
     *,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Union[PYARROW_FILTER, None]]] = None,
+    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -522,7 +523,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
         hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
             be used to generate the wide form of the data. If None, will use all available columns.
             Defaults to None.
-        pyarrow_filters (Optional[list[Union[PYARROW_FILTER, None]]], optional): A list of pyarrow
+        pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
