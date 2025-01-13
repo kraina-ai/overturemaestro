@@ -347,7 +347,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     Returns:
         Path: Path to the generated GeoParquet file.
     """
-    if pyarrow_filters and len(theme_type_pairs) != len(pyarrow_filters):
+    if pyarrow_filters is not None and len(theme_type_pairs) != len(pyarrow_filters):
         raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
 
     if not release:

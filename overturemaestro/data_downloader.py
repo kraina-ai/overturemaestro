@@ -120,10 +120,10 @@ def download_data_for_multiple_types(
     from overturemaestro._rich_progress import TrackProgressBar
     from overturemaestro.release_index import get_newest_release_version
 
-    if pyarrow_filters and len(theme_type_pairs) != len(pyarrow_filters):
+    if pyarrow_filters is not None and len(theme_type_pairs) != len(pyarrow_filters):
         raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
 
-    if columns_to_download and len(theme_type_pairs) != len(columns_to_download):
+    if columns_to_download is not None and len(theme_type_pairs) != len(columns_to_download):
         raise ValueError("Columns to download length doesn't match length of theme type pairs.")
 
     if not release:
@@ -364,10 +364,10 @@ def _download_data(
     from overturemaestro._rich_progress import TrackProgressBar
     from overturemaestro.release_index import load_release_index
 
-    if pyarrow_filters and len(theme_type_pairs) != len(pyarrow_filters):
+    if pyarrow_filters is not None and len(theme_type_pairs) != len(pyarrow_filters):
         raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
 
-    if columns_to_download and len(theme_type_pairs) != len(columns_to_download):
+    if columns_to_download is not None and len(theme_type_pairs) != len(columns_to_download):
         raise ValueError("Columns to download length doesn't match length of theme type pairs.")
 
     # force tuple structure
