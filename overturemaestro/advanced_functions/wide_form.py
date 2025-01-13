@@ -96,7 +96,6 @@ def _transform_to_wide_form(
     return output_path
 
 
-# TODO: add minimal confidence score of 0.75
 def _prepare_download_parameters_for_poi(
     theme: str,
     type: str,
@@ -108,10 +107,11 @@ def _prepare_download_parameters_for_poi(
     import pyarrow.compute as pc
 
     category_not_null_filter = pc.invert(pc.field("categories").is_null(nan_is_null=True))
+    minimal_confidence_filter = pc.field("confidence") >= pc.scalar(0.75)
     if pyarrow_filter is not None:
-        pyarrow_filter = pyarrow_filter & category_not_null_filter
+        pyarrow_filter = pyarrow_filter & category_not_null_filter & minimal_confidence_filter
     else:
-        pyarrow_filter = category_not_null_filter
+        pyarrow_filter = category_not_null_filter & minimal_confidence_filter
 
     return (["categories"], pyarrow_filter)
 
