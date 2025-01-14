@@ -129,7 +129,7 @@ def _read_row_group_number(path: str, filesystem: "fs.FileSystem") -> int:
 
 
 def map_parquet_dataset(
-    dataset_path: Union[str, list[str]],
+    dataset_path: Union[str, Path, list[str], list[Path]],
     destination_path: Path,
     function: Callable[[str, int, "pa.Table"], "pa.Table"],
     progress_description: str,

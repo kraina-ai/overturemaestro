@@ -358,13 +358,6 @@ def _download_data(
     verbosity_mode: "VERBOSITY_MODE",
     max_workers: Optional[int],
 ) -> list[list[Path]]:
-    from concurrent.futures import ProcessPoolExecutor
-    from functools import partial
-
-    from overturemaestro._parquet_multiprocessing import map_parquet_dataset
-    from overturemaestro._rich_progress import TrackProgressBar
-    from overturemaestro.release_index import load_release_index
-
     if pyarrow_filters is not None and len(theme_type_pairs) != len(pyarrow_filters):
         raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
 
@@ -374,8 +367,49 @@ def _download_data(
     # force tuple structure
     theme_type_pairs = [(theme_value, type_value) for theme_value, type_value in theme_type_pairs]
 
-    # ===================================================================================
-    # prepare rows groups to download
+    all_row_groups_to_download = _prepare_row_groups_for_download(
+        release=release,
+        theme_type_pairs=theme_type_pairs,
+        geometry_filter=geometry_filter,
+        pyarrow_filters=pyarrow_filters,
+        columns_to_download=columns_to_download,
+        verbosity_mode=verbosity_mode,
+    )
+
+    downloaded_parquet_files = _download_prepared_row_groups(
+        all_row_groups_to_download=all_row_groups_to_download,
+        theme_type_pairs=theme_type_pairs,
+        geometry_filter=geometry_filter,
+        working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
+        max_workers=max_workers,
+    )
+
+    filtered_parquet_files = _filter_downloaded_files(
+        downloaded_parquet_files=downloaded_parquet_files,
+        theme_type_pairs=theme_type_pairs,
+        geometry_filter=geometry_filter,
+        working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
+        max_workers=max_workers,
+    )
+
+    grouped_parquet_paths = _group_parquet_files(
+        filtered_parquet_files=filtered_parquet_files, theme_type_pairs=theme_type_pairs
+    )
+
+    return grouped_parquet_paths
+
+
+def _prepare_row_groups_for_download(
+    release: str,
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: "BaseGeometry",
+    pyarrow_filters: Optional[list[Union["Expression", None]]],
+    columns_to_download: Optional[list[Union[list[str], None]]],
+    verbosity_mode: "VERBOSITY_MODE",
+) -> list[dict[str, Any]]:
+    from overturemaestro.release_index import load_release_index
 
     all_row_groups_to_download = []
 
@@ -410,8 +444,21 @@ def _download_data(
 
         all_row_groups_to_download.extend(row_groups_to_download)
 
-    # ===================================================================================
-    # download row groups
+    return all_row_groups_to_download
+
+
+def _download_prepared_row_groups(
+    all_row_groups_to_download: list[dict[str, Any]],
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: "BaseGeometry",
+    working_directory: Path,
+    verbosity_mode: "VERBOSITY_MODE",
+    max_workers: Optional[int],
+) -> list[Path]:
+    from concurrent.futures import ProcessPoolExecutor
+    from functools import partial
+
+    from overturemaestro._rich_progress import TrackProgressBar
 
     total_row_groups = len(all_row_groups_to_download)
 
@@ -452,12 +499,29 @@ def _download_data(
             )
         )
 
-    # ===================================================================================
-    # filter downloaded files
+    return downloaded_parquet_files
+
+
+def _filter_downloaded_files(
+    downloaded_parquet_files: list[Path],
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: "BaseGeometry",
+    working_directory: Path,
+    verbosity_mode: "VERBOSITY_MODE",
+    max_workers: Optional[int],
+) -> list[Path]:
+    from functools import partial
+
+    from overturemaestro._parquet_multiprocessing import map_parquet_dataset
 
     if not geometry_filter.equals(geometry_filter.envelope):
         destination_path = working_directory / Path("intersected_data")
         fn = partial(_filter_data_properly, geometry_filter=geometry_filter)
+        theme_type_task_description = (
+            f"{theme_type_pairs[0][0]}/{theme_type_pairs[0][1]}"
+            if len(theme_type_pairs) == 1
+            else f"{len(theme_type_pairs)} datasets"
+        )
         map_parquet_dataset(
             dataset_path=downloaded_parquet_files,
             destination_path=destination_path,
@@ -472,9 +536,13 @@ def _download_data(
     else:
         filtered_parquet_files = downloaded_parquet_files
 
-    # ===================================================================================
-    # group parquet paths
+    return filtered_parquet_files
 
+
+def _group_parquet_files(
+    filtered_parquet_files: list[Path],
+    theme_type_pairs: list[tuple[str, str]],
+) -> list[list[Path]]:
     if len(theme_type_pairs) == 1:
         grouped_parquet_paths = [filtered_parquet_files]
     else:
@@ -487,8 +555,6 @@ def _download_data(
             type_value = metadata[b"_type"].decode()
             idx = theme_type_pairs.index((theme_value, type_value))
             grouped_parquet_paths[idx].append(parquet_file)
-
-    # ===================================================================================
 
     return grouped_parquet_paths
 
