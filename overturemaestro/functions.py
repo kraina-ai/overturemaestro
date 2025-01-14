@@ -202,7 +202,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     geometry_filter: BaseGeometry,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -217,7 +217,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     release: str,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -232,7 +232,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     release: Optional[str] = None,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -246,7 +246,7 @@ def convert_geometry_to_parquet_for_multiple_types(
     release: Optional[str] = None,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -268,7 +268,7 @@ def convert_geometry_to_parquet_for_multiple_types(
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
-        columns_to_download (Optional[list[Union[list[str], None]]], optional): A list of pyarrow
+        columns_to_download (Optional[list[Optional[list[str]]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -460,7 +460,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     geometry_filter: BaseGeometry,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -475,7 +475,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     release: str,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -490,7 +490,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     release: Optional[str] = None,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -504,7 +504,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
     release: Optional[str] = None,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -526,7 +526,7 @@ def convert_geometry_to_geodataframe_for_multiple_types(
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
-        columns_to_download (Optional[list[Union[list[str], None]]], optional): A list of pyarrow
+        columns_to_download (Optional[list[Optional[list[str]]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -728,7 +728,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     bbox: tuple[float, float, float, float],
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -743,7 +743,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     release: str,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -758,7 +758,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     release: Optional[str] = None,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -772,7 +772,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
     release: Optional[str] = None,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -795,7 +795,7 @@ def convert_bounding_box_to_parquet_for_multiple_types(
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
-        columns_to_download (Optional[list[Union[list[str], None]]], optional): A list of pyarrow
+        columns_to_download (Optional[list[Optional[list[str]]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -986,7 +986,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     bbox: tuple[float, float, float, float],
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1001,7 +1001,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     release: str,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1016,7 +1016,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     release: Optional[str] = None,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1030,7 +1030,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
     release: Optional[str] = None,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1053,7 +1053,7 @@ def convert_bounding_box_to_geodataframe_for_multiple_types(
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
-        columns_to_download (Optional[list[Union[list[str], None]]], optional): A list of pyarrow
+        columns_to_download (Optional[list[Optional[list[str]]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.

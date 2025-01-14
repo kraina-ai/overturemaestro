@@ -516,7 +516,6 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     on dataset schema.
 
     Args:
-        theme_type_pairs (list[tuple[str, str]]): Pairs of themes and types of the dataset.
         geometry_filter (BaseGeometry): Geometry used to filter data.
         release (Optional[str], optional): Release version. If not provided, will automatically load
             newest available release version. Defaults to None.
