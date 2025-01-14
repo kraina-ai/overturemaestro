@@ -107,7 +107,7 @@ def _prepare_download_parameters_for_poi(
     # TODO: add option to change minimal confidence
     import pyarrow.compute as pc
 
-    category_not_null_filter = pc.invert(pc.field("categories").is_null(nan_is_null=True))
+    category_not_null_filter = pc.invert(pc.field("categories").is_null())
     minimal_confidence_filter = pc.field("confidence") >= pc.scalar(0.75)
     if pyarrow_filter is not None:
         pyarrow_filter = pyarrow_filter & category_not_null_filter & minimal_confidence_filter
