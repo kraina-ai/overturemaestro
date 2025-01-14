@@ -6,6 +6,8 @@ import pyarrow.compute as pc
 
 from overturemaestro.data_downloader import _download_single_parquet_row_group_multiprocessing
 
+# TODO: add test for checking if metadata is ok
+
 
 def test_download_single_parquet_row_group() -> None:
     """Test if downloading single parquet row group is working."""
