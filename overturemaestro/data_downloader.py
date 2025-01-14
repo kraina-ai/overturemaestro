@@ -13,6 +13,7 @@ from overturemaestro._exceptions import MissingColumnError
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 
 if TYPE_CHECKING:
+    from pyarrow import Schema
     from pyarrow.compute import Expression
     from shapely.geometry.base import BaseGeometry
 
@@ -483,6 +484,8 @@ def _download_single_parquet_row_group_multiprocessing(
     bbox: tuple[float, float, float, float],
     working_directory: Path,
 ) -> Path:
+    from pyarrow.lib import ArrowInvalid
+
     retries = 10
     while retries > 0:
         try:
@@ -492,7 +495,7 @@ def _download_single_parquet_row_group_multiprocessing(
                 working_directory=working_directory,
             )
             return downloaded_path
-        except MissingColumnError:
+        except (MissingColumnError, ArrowInvalid):
             raise
         except Exception:
             retries -= 1
@@ -561,10 +564,18 @@ def _download_single_parquet_row_group(
             columns_to_download.append("geometry")
 
         # Create list of columns used to filter data by bbox
+        columns_required_for_filtering = {"bbox"}
+        if user_defined_pyarrow_filter is not None:
+            columns_required_for_filtering = columns_required_for_filtering.union(
+                _get_filtering_columns_from_pyarrow_filter(
+                    schema=geoarrow_full_schema, pyarrow_filter=user_defined_pyarrow_filter
+                )
+            )
+
         filtering_columns = [
             column_name
             for column_name in geoarrow_full_schema.names
-            if column_name in columns_to_download or column_name == "bbox"
+            if column_name in columns_to_download or column_name in columns_required_for_filtering
         ]
 
         # Reorder list of columns to download to match pyarrow schema
@@ -600,6 +611,24 @@ def _download_single_parquet_row_group(
         )
 
     return file_path
+
+
+def _get_filtering_columns_from_pyarrow_filter(
+    schema: "Schema", pyarrow_filter: "Expression"
+) -> set[str]:
+    import re
+
+    import pyarrow.substrait as pas
+
+    parsed_expression = pas.deserialize_expressions(
+        pyarrow_filter.to_substrait(schema=schema)
+    ).expressions["expression"]
+
+    pattern = r"FieldPath\((\d+(?: \d+)*)\)"
+    field_paths = re.findall(pattern, str(parsed_expression))
+
+    column_names = set(schema.field(int(field_path.split()[0])).name for field_path in field_paths)
+    return column_names
 
 
 def _generate_row_group_file_name(
