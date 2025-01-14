@@ -57,7 +57,6 @@ def test_all_theme_type_pairs(hierarchy_value: Optional[int], test_release_versi
     assert (gdf.dtypes.loc[feature_columns] == "bool").all()
 
 
-# TODO: add hierarchy working and not working
 @P.parameters("theme_type_pairs", "pyarrow_filters", "hierarchy_value", "expectation")  # type: ignore
 @P.case(
     "Basic example without filters",
@@ -70,6 +69,13 @@ def test_all_theme_type_pairs(hierarchy_value: Optional[int], test_release_versi
     "Basic example with filters",
     [("base", "water"), ("base", "infrastructure")],
     [[("subtype", "==", "river")], [("class", "==", "bridge")]],
+    None,
+    does_not_raise(),
+)  # type: ignore
+@P.case(
+    "Empty example with filters",
+    [("base", "water"), ("base", "infrastructure")],
+    [[("subtype", "==", "nonexistent")], [("class", "==", "nonexistent")]],
     None,
     does_not_raise(),
 )  # type: ignore
@@ -92,6 +98,20 @@ def test_all_theme_type_pairs(hierarchy_value: Optional[int], test_release_versi
     [("places", "place"), ("base", "infrastructure")],
     [[("confidence", ">", 0.95)], [("class", "==", "bridge")], [("confidence", ">", 0.95)]],
     None,
+    pytest.raises(ValueError),
+)  # type: ignore
+@P.case(
+    "Basic example with hierarchy depth",
+    [("base", "water"), ("base", "land_cover")],
+    None,
+    1,
+    does_not_raise(),
+)  # type: ignore
+@P.case(
+    "Example with wrong hierarchy depth",
+    [("base", "water"), ("base", "land_cover")],
+    None,
+    2,
     pytest.raises(ValueError),
 )  # type: ignore
 def test_multiple_theme_type_pairs(
