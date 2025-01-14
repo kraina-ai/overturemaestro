@@ -79,8 +79,8 @@ def _transform_to_wide_form(
     COPY (
         SELECT
             id,
-            {", ".join(case_clauses)},
-            geometry
+            geometry,
+            {", ".join(case_clauses)}
         FROM read_parquet(
             '{parquet_file}',
             hive_partitioning=false
@@ -177,8 +177,8 @@ def _transform_poi_to_wide_form(
     COPY (
         SELECT
             id,
-            {", ".join(case_clauses)},
-            geometry
+            geometry,
+            {", ".join(case_clauses)}
         FROM read_parquet(
             '{parquet_file}',
             hive_partitioning=false
