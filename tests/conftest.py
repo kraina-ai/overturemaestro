@@ -13,6 +13,8 @@ from overturemaestro.release_index import download_existing_release_index
 
 TEST_RELEASE_VERSION = "2024-08-20.0"
 
+# TODO: clean cache before and make special cache directory
+
 __all__ = [
     "patch_get_available_versions",
     "test_release_version",
