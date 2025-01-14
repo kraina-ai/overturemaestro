@@ -23,6 +23,8 @@ from tests.conftest import (
 
 runner = CliRunner()
 
+# TODO: add pyarrow nested test
+
 
 def random_str() -> str:
     """Return random string."""
@@ -106,6 +108,8 @@ def test_silent_mode(test_release_version: str) -> None:
     )
 
     geometry_hash = _generate_geometry_hash(geometry_box())
+
+    print(result.stdout)
 
     assert result.exit_code == 0
     assert (

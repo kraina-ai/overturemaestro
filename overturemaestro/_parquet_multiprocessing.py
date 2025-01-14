@@ -1,12 +1,13 @@
 import multiprocessing
+from multiprocessing.managers import SyncManager
 from pathlib import Path
 from queue import Empty, Queue
 from time import sleep, time
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from multiprocessing.managers import ValueProxy
     from threading import Lock
 
@@ -31,13 +32,14 @@ def _job(
     columns: Optional[list[str]],
     filesystem: "fs.FileSystem",
 ) -> None:  # pragma: no cover
+    import hashlib
+
     import pyarrow.dataset as ds
     import pyarrow.parquet as pq
 
     current_pid = multiprocessing.current_process().pid
 
-    filepath = save_path / f"{current_pid}.parquet"
-    writer = None
+    writers = {}
     while not queue.empty():
         try:
             file_name, row_group_index = None, None
@@ -61,10 +63,16 @@ def _job(
                     tracker.value += 1
                 continue
 
-            if not writer:
-                writer = pq.ParquetWriter(filepath, result_table.schema)
+            h = hashlib.new("sha256")
+            h.update(result_table.schema.to_string().encode())
+            schema_hash = h.hexdigest()
 
-            writer.write_table(result_table)
+            if schema_hash not in writers:
+                filepath = save_path / str(current_pid) / f"{schema_hash}.parquet"
+                filepath.parent.mkdir(exist_ok=True, parents=True)
+                writers[schema_hash] = pq.ParquetWriter(filepath, result_table.schema)
+
+            writers[schema_hash].write_table(result_table)
 
             with tracker_lock:
                 tracker.value += 1
@@ -80,7 +88,7 @@ def _job(
             )
             raise MultiprocessingRuntimeError(msg) from ex
 
-    if writer:
+    for writer in writers.values():
         writer.close()
 
 
@@ -107,6 +115,13 @@ class WorkerProcess(ctx.Process):  # type: ignore[name-defined,misc]
         return self._exception
 
 
+class SingletonContextManager(SyncManager):
+    def __new__(cls, ctx: multiprocessing.context.SpawnContext) -> "SingletonContextManager":
+        if not hasattr(cls, "instance"):
+            cls.instance = ctx.Manager()
+        return cast(SingletonContextManager, cls.instance)
+
+
 def _read_row_group_number(path: str, filesystem: "fs.FileSystem") -> int:
     import pyarrow.parquet as pq
 
@@ -114,7 +129,7 @@ def _read_row_group_number(path: str, filesystem: "fs.FileSystem") -> int:
 
 
 def map_parquet_dataset(
-    dataset_path: Union[str, list[str]],
+    dataset_path: Union[str, Path, list[str], list[Path]],
     destination_path: Path,
     function: Callable[[str, int, "pa.Table"], "pa.Table"],
     progress_description: str,
@@ -157,7 +172,7 @@ def map_parquet_dataset(
 
         from overturemaestro._rich_progress import TrackProgressBar
 
-        manager = ctx.Manager()
+        manager = SingletonContextManager(ctx=ctx)
 
         queue: Queue[tuple[str, int]] = manager.Queue()
         tracker: ValueProxy[int] = manager.Value("i", 0)
@@ -178,17 +193,20 @@ def map_parquet_dataset(
             no_scan_workers = min(max_workers, no_scan_workers)
             no_processing_workers = min(max_workers, no_processing_workers)
 
-    with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-        total_files = len(dataset.files)
-        with ProcessPoolExecutor(max_workers=min(no_scan_workers, total_files)) as ex:
-            fn = partial(_read_row_group_number, filesystem=dataset.filesystem)
-            row_group_numbers = list(
-                progress.track(
-                    ex.map(fn, dataset.files, chunksize=1),
-                    description="Reading all parquet files row groups",
-                    total=total_files,
-                )
+    total_files = len(dataset.files)
+
+    with (
+        TrackProgressBar(verbosity_mode=verbosity_mode) as progress,
+        ProcessPoolExecutor(max_workers=min(no_scan_workers, total_files)) as ex,
+    ):
+        fn = partial(_read_row_group_number, filesystem=dataset.filesystem)
+        row_group_numbers = list(
+            progress.track(
+                ex.map(fn, dataset.files, chunksize=1),
+                description="Reading all parquet files row groups",
+                total=total_files,
             )
+        )
 
         for pq_file, row_group_number in zip(dataset.files, row_group_numbers):
             for row_group in range(row_group_number):

@@ -62,24 +62,8 @@ def get_newest_release_version() -> str:
     Returns:
         str: Release version.
     """
-    release_version_cache_file = (
-        Path(platformdirs.user_cache_dir("OvertureMaestro"))
-        / "release_indexes"
-        / "_newest_release_version.json"
-    )
-
-    current_date = date.today()
-    if release_version_cache_file.exists():
-        cache_value = json.loads(release_version_cache_file.read_text())
-        if date.fromisoformat(cache_value["date"]) >= current_date:
-            return cast(str, cache_value["release_version"])
-
-    release_version_cache_file.parent.mkdir(parents=True, exist_ok=True)
-    newest_release_version = _load_newest_release_version_from_github()
-    release_version_cache_file.write_text(
-        json.dumps(dict(date=current_date.isoformat(), release_version=newest_release_version))
-    )
-    return newest_release_version
+    release_versions = _load_all_available_release_versions_from_github()
+    return sorted(release_versions)[-1]
 
 
 def get_available_release_versions() -> list[str]:
@@ -516,11 +500,13 @@ def _generate_release_index(
             function=calculate_row_group_bounding_box,
             progress_description="Generating Overture Maps release cache index",
             columns=["bbox"],
-            filesystem=fs.S3FileSystem(
-                anonymous=True, region="us-west-2", request_timeout=30, connect_timeout=10
-            )
-            if dataset_fs == "s3"
-            else None,
+            filesystem=(
+                fs.S3FileSystem(
+                    anonymous=True, region="us-west-2", request_timeout=30, connect_timeout=10
+                )
+                if dataset_fs == "s3"
+                else None
+            ),
             verbosity_mode=verbosity_mode,
         )
 
@@ -603,22 +589,33 @@ def _get_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
 
 
-def _load_all_available_release_versions_from_github() -> list[str]:
+def _load_all_available_release_versions_from_github() -> list[str]:  # pragma: no cover
+    release_versions_cache_file = (
+        Path(platformdirs.user_cache_dir("OvertureMaestro"))
+        / "release_indexes"
+        / "_available_release_versions.json"
+    )
+
+    current_date = date.today()
+    if release_versions_cache_file.exists():
+        cache_value = json.loads(release_versions_cache_file.read_text())
+        if date.fromisoformat(cache_value["date"]) >= current_date:
+            return cast(list[str], cache_value["release_versions"])
+
+    release_versions_cache_file.parent.mkdir(parents=True, exist_ok=True)
     gh_fs = GithubFileSystem(org="kraina-ai", repo="overturemaps-releases-indexes", sha="main")
     release_versions = [file_path.split("/")[1] for file_path in gh_fs.ls("release_indexes")]
+    release_versions_cache_file.write_text(
+        json.dumps(dict(date=current_date.isoformat(), release_versions=release_versions))
+    )
     return release_versions
-
-
-def _load_newest_release_version_from_github() -> str:
-    release_versions = _load_all_available_release_versions_from_github()
-    return sorted(release_versions)[-1]
 
 
 def _consolidate_release_index_files(
     release: str,
     remove_other_files: bool = False,
     index_location_path: Optional[Path] = None,
-) -> bool:
+) -> bool:  # pragma: no cover
     _check_release_version(release)
 
     cache_directory = Path(index_location_path or _get_global_release_cache_directory(release))

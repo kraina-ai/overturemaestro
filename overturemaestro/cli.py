@@ -9,7 +9,7 @@ import typer
 
 from overturemaestro._geopandas_api_version import GEOPANDAS_NEW_API
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from overturemaestro._rich_progress import VERBOSITY_MODE
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
@@ -288,7 +288,22 @@ class PyArrowExpressionParser(click.ParamType):  # type: ignore
 
             # Check if columns are nested
             column_part = parts[0]
-            if "," in column_part:
+            if "." in column_part:
+                columns = tuple(column_part.split("."))
+                parts = [[columns, parts[1], parts[2]]]
+            elif "," in column_part:
+                import warnings
+
+                warnings.warn(
+                    (
+                        "Found columns split by a comma. New suggested format are"
+                        " column names separated by a dot. For compatilibity reasons"
+                        " OvertureMaestro will split columns separated by a comma,"
+                        " but it will result in this warning."
+                    ),
+                    DeprecationWarning,
+                    stacklevel=0,
+                )
                 columns = tuple(column_part.split(","))
                 parts = [[columns, parts[1], parts[2]]]
 
@@ -450,7 +465,7 @@ def main(
             help=(
                 "Filters to apply on a pyarrow dataset."
                 " Required format: <column(s)> <operator> <value>."
-                " Nested column names should be passed separated by a comma."
+                " Nested column names should be passed separated by a dot."
                 " Can pass multiple filters."
             ),
             click_type=PyArrowExpressionParser(),
