@@ -23,6 +23,8 @@ from tests.conftest import (
 
 runner = CliRunner()
 
+# TODO: add pyarrow nested test
+
 
 def random_str() -> str:
     """Return random string."""
