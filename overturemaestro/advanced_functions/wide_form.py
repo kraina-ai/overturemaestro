@@ -18,7 +18,7 @@ from overturemaestro.data_downloader import (
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 from overturemaestro.release_index import get_newest_release_version
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from pyarrow.compute import Expression
 
 

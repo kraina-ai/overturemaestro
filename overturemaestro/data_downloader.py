@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 from overturemaestro._exceptions import MissingColumnError
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from pyarrow import Schema
     from pyarrow.compute import Expression
     from shapely.geometry.base import BaseGeometry
@@ -374,6 +374,9 @@ def _download_data(
     # force tuple structure
     theme_type_pairs = [(theme_value, type_value) for theme_value, type_value in theme_type_pairs]
 
+    # ===================================================================================
+    # prepare rows groups to download
+
     all_row_groups_to_download = []
 
     for idx, (theme_value, type_value) in enumerate(theme_type_pairs):
@@ -407,6 +410,11 @@ def _download_data(
 
         all_row_groups_to_download.extend(row_groups_to_download)
 
+    # ===================================================================================
+    # download row groups
+
+    total_row_groups = len(all_row_groups_to_download)
+
     min_no_workers = 8
     no_workers = min(
         max(min_no_workers, multiprocessing.cpu_count() + 4), 32
@@ -414,8 +422,6 @@ def _download_data(
 
     if max_workers:
         no_workers = min(max_workers, no_workers)
-
-    total_row_groups = len(all_row_groups_to_download)
 
     with (
         TrackProgressBar(verbosity_mode=verbosity_mode) as progress,
@@ -446,6 +452,9 @@ def _download_data(
             )
         )
 
+    # ===================================================================================
+    # filter downloaded files
+
     if not geometry_filter.equals(geometry_filter.envelope):
         destination_path = working_directory / Path("intersected_data")
         fn = partial(_filter_data_properly, geometry_filter=geometry_filter)
@@ -463,18 +472,23 @@ def _download_data(
     else:
         filtered_parquet_files = downloaded_parquet_files
 
+    # ===================================================================================
+    # group parquet paths
+
     if len(theme_type_pairs) == 1:
         grouped_parquet_paths = [filtered_parquet_files]
+    else:
+        grouped_parquet_paths = [[] for _ in theme_type_pairs]
+        for parquet_file in filtered_parquet_files:
+            import pyarrow.parquet as pq
 
-    grouped_parquet_paths = [[] for _ in theme_type_pairs]
-    for parquet_file in filtered_parquet_files:
-        import pyarrow.parquet as pq
+            metadata = pq.read_schema(parquet_file).metadata
+            theme_value = metadata[b"_theme"].decode()
+            type_value = metadata[b"_type"].decode()
+            idx = theme_type_pairs.index((theme_value, type_value))
+            grouped_parquet_paths[idx].append(parquet_file)
 
-        metadata = pq.read_schema(parquet_file).metadata
-        theme_value = metadata[b"_theme"].decode()
-        type_value = metadata[b"_type"].decode()
-        idx = theme_type_pairs.index((theme_value, type_value))
-        grouped_parquet_paths[idx].append(parquet_file)
+    # ===================================================================================
 
     return grouped_parquet_paths
 
@@ -497,7 +511,7 @@ def _download_single_parquet_row_group_multiprocessing(
             return downloaded_path
         except (MissingColumnError, ArrowInvalid):
             raise
-        except Exception:
+        except Exception:  # pragma: no cover
             retries -= 1
             if retries == 0:
                 raise

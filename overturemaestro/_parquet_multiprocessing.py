@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from multiprocessing.managers import ValueProxy
     from threading import Lock
 

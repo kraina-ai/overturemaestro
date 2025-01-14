@@ -9,7 +9,7 @@ import typer
 
 from overturemaestro._geopandas_api_version import GEOPANDAS_NEW_API
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from overturemaestro._rich_progress import VERBOSITY_MODE
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
