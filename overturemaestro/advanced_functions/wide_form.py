@@ -48,7 +48,7 @@ def _transform_to_wide_form(
     available_colums_sql_query = f"""
     SELECT DISTINCT
         {joined_hierarchy_columns},
-        concat_ws('|', {joined_hierarchy_columns}) as column_name
+        concat_ws('|', '{theme}', '{type}', {joined_hierarchy_columns}) as column_name
     FROM read_parquet(
         '{parquet_file}',
         hive_partitioning=false
@@ -171,7 +171,9 @@ def _transform_poi_to_wide_form(
             conditions.append(f"'{escaped_value}' IN categories.alternate")
 
         joined_conditions = " OR ".join(conditions)
-        case_clauses.append(f'COALESCE(({joined_conditions}), False) AS "{column_name}"')
+        case_clauses.append(
+            f'COALESCE(({joined_conditions}), False) AS "{theme}|{type}|{column_name}"'
+        )
 
     query = f"""
     COPY (
@@ -656,12 +658,7 @@ def _combine_multiple_wide_form_files(
             if col not in ("id", "geometry")
         ]
 
-        modified_column_aliases = [f"{theme_value}|{type_value}|{col}" for col in available_columns]
-
-        combined_columns_select = ", ".join(
-            f'"{column}" as "{alias}"'
-            for column, alias in zip(available_columns, modified_column_aliases)
-        )
+        combined_columns_select = ", ".join(f'"{column}"' for column in available_columns)
 
         select_subquery = f"""
         SELECT id, geometry, {combined_columns_select}
@@ -669,7 +666,7 @@ def _combine_multiple_wide_form_files(
         """
 
         subqueries.append(select_subquery)
-        all_select_columns.extend(modified_column_aliases)
+        all_select_columns.extend(available_columns)
 
     joined_all_select_columns = ", ".join(
         f'COALESCE("{col}", False) AS "{col}"' for col in sorted(all_select_columns)
