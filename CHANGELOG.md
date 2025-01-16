@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic total time wrapper decorator to aggregate nested function calls
 - Parameter `columns_to_download` for selecting columns to download from the dataset [#23](https://github.com/kraina-ai/overturemaestro/issues/23)
 - Option to pass a list of pyarrow filters and columns for download for each theme type pair when downloading multiple datasets at once
+- Automatic columns detection in pyarrow filters when passing `columns_to_download`
+- New `advanced_functions` module with a `wide` format for machine learning purposes [#38](https://github.com/kraina-ai/overturemaestro/issues/38)
 
 ### Changed
 

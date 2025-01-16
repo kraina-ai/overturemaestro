@@ -637,7 +637,6 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     on dataset schema.
 
     Args:
-        theme_type_pairs (list[tuple[str, str]]): Pairs of themes and types of the dataset.
         bbox (tuple[float, float, float, float]): Bounding box used to filter data.
             Order of values: xmin, ymin, xmax, ymax.
         release (Optional[str], optional): Release version. If not provided, will automatically load

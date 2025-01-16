@@ -34,7 +34,7 @@ def download_data_for_multiple_types(
     geometry_filter: "BaseGeometry",
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]],
-    columns_to_download: Optional[list[Union[list[str], None]]],
+    columns_to_download: Optional[list[Optional[list[str]]]],
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -49,7 +49,7 @@ def download_data_for_multiple_types(
     release: str,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]],
-    columns_to_download: Optional[list[Union[list[str], None]]],
+    columns_to_download: Optional[list[Optional[list[str]]]],
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -64,7 +64,7 @@ def download_data_for_multiple_types(
     release: Optional[str] = None,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]],
-    columns_to_download: Optional[list[Union[list[str], None]]],
+    columns_to_download: Optional[list[Optional[list[str]]]],
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -79,7 +79,7 @@ def download_data_for_multiple_types(
     release: Optional[str] = None,
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
-    columns_to_download: Optional[list[Union[list[str], None]]] = None,
+    columns_to_download: Optional[list[Optional[list[str]]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -96,7 +96,7 @@ def download_data_for_multiple_types(
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
-        columns_to_download (Optional[list[Union[list[str], None]]], optional): A list of pyarrow
+        columns_to_download (Optional[list[Optional[list[str]]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -353,7 +353,7 @@ def _download_data(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
     pyarrow_filters: Optional[list[Union["Expression", None]]],
-    columns_to_download: Optional[list[Union[list[str], None]]],
+    columns_to_download: Optional[list[Optional[list[str]]]],
     working_directory: Path,
     verbosity_mode: "VERBOSITY_MODE",
     max_workers: Optional[int],
@@ -406,7 +406,7 @@ def _prepare_row_groups_for_download(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
     pyarrow_filters: Optional[list[Union["Expression", None]]],
-    columns_to_download: Optional[list[Union[list[str], None]]],
+    columns_to_download: Optional[list[Optional[list[str]]]],
     verbosity_mode: "VERBOSITY_MODE",
 ) -> list[dict[str, Any]]:
     from overturemaestro.release_index import load_release_index
