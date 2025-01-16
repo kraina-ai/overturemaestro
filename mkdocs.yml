@@ -16,14 +16,14 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.instant
+    - navigation.instant.progress
     - navigation.tracking
     - navigation.top
     - navigation.indexes
-    - navigation.path
+    - navigation.sections
+    - navigation.expand
     - toc.follow
     - content.code.annotate
-    - content.action.edit
-    - content.action.view
     - content.code.copy
   favicon: assets/logos/favicon.ico
   logo: assets/logos/overturemaestro_logo.png
@@ -116,6 +116,7 @@ plugins:
         - docs/gen_ref_pages.py
         - docs/gen_cli_docs.py
   - search
+  - mkdocs-nav-weight
   - mkdocstrings:
       custom_templates: docs/templates
       handlers:
