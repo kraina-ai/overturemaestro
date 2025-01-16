@@ -193,10 +193,5 @@ def test_hierarchy_values(
         feature_columns = [
             column_name for column_name in gdf.columns if column_name not in ("id", "geometry")
         ]
-        if hierarchy_value == 1:
-            # only first group in column, no combinations
-            assert all("|" not in column_name for column_name in feature_columns)
-        else:
-            # combined column names
-            assert all("|" in column_name for column_name in feature_columns)
+        assert all("|" in column_name for column_name in feature_columns)
         assert (gdf.dtypes.loc[feature_columns] == "bool").all()
