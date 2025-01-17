@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Bug where code crashed when release index hit zero matches [#11](https://github.com/kraina-ai/overturemaestro/issues/11)
+
 ## [0.2.2] - 2025-01-17
 
 ### Fixed

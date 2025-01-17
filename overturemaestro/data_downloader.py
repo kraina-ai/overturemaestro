@@ -395,7 +395,12 @@ def _download_data(
     )
 
     grouped_parquet_paths = _group_parquet_files(
-        filtered_parquet_files=filtered_parquet_files, theme_type_pairs=theme_type_pairs
+        filtered_parquet_files=filtered_parquet_files,
+        release=release,
+        theme_type_pairs=theme_type_pairs,
+        columns_to_download=columns_to_download,
+        working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
 
     return grouped_parquet_paths
@@ -461,6 +466,9 @@ def _download_prepared_row_groups(
     from overturemaestro._rich_progress import TrackProgressBar
 
     total_row_groups = len(all_row_groups_to_download)
+
+    if total_row_groups == 0:
+        return []
 
     min_no_workers = 8
     no_workers = min(
@@ -541,7 +549,11 @@ def _filter_downloaded_files(
 
 def _group_parquet_files(
     filtered_parquet_files: list[Path],
+    release: str,
     theme_type_pairs: list[tuple[str, str]],
+    columns_to_download: Optional[list[Optional[list[str]]]],
+    working_directory: Path,
+    verbosity_mode: "VERBOSITY_MODE",
 ) -> list[list[Path]]:
     if len(theme_type_pairs) == 1:
         grouped_parquet_paths = [filtered_parquet_files]
@@ -556,7 +568,90 @@ def _group_parquet_files(
             idx = theme_type_pairs.index((theme_value, type_value))
             grouped_parquet_paths[idx].append(parquet_file)
 
+    # Check for empty files
+    for idx, (theme_value, type_value) in enumerate(theme_type_pairs):
+        if not grouped_parquet_paths[idx]:
+            grouped_parquet_paths[idx].append(
+                _generate_empty_file(
+                    theme=theme_value,
+                    type=type_value,
+                    release=release,
+                    columns_to_download=(
+                        columns_to_download[idx] if columns_to_download is not None else None
+                    ),
+                    working_directory=working_directory,
+                    verbosity_mode=verbosity_mode,
+                )
+            )
+
     return grouped_parquet_paths
+
+
+def _generate_empty_file(
+    theme: str,
+    type: str,
+    release: str,
+    columns_to_download: Optional[list[str]],
+    working_directory: Path,
+    verbosity_mode: "VERBOSITY_MODE",
+) -> Path:
+    import pyarrow as pa
+    import pyarrow.fs as fs
+    import pyarrow.parquet as pq
+    from overturemaps.core import geoarrow_schema_adapter
+
+    from overturemaestro._rich_progress import TrackProgressSpinner
+    from overturemaestro.release_index import load_release_index
+
+    result_file_path = working_directory / f"empty_{theme}_{type}.parquet"
+    result_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with TrackProgressSpinner(
+        f"Preparing empty file ({theme}/{type})", verbosity_mode=verbosity_mode
+    ):
+        index = load_release_index(release=release, theme=theme, type=type, verbosity_mode="silent")
+        remote_file = index.iloc[0].filename
+
+        schema = pq.read_schema(
+            remote_file, filesystem=fs.S3FileSystem(anonymous=True, region="us-west-2")
+        )
+
+        geoarrow_full_schema = geoarrow_schema_adapter(schema)
+        metadata = geoarrow_full_schema.metadata or {}
+        metadata["_theme"] = theme
+        metadata["_type"] = type
+        geoarrow_full_schema = geoarrow_full_schema.with_metadata(metadata)
+        geoarrow_schema_filtered = geoarrow_full_schema
+
+        if columns_to_download:
+            nonexistent_columns = set(columns_to_download).difference(geoarrow_full_schema.names)
+
+            if nonexistent_columns:
+                raise MissingColumnError(
+                    f"Cannot download given columns: {', '.join(sorted(nonexistent_columns))}"
+                )
+
+            if "geometry" not in columns_to_download:
+                columns_to_download.append("geometry")
+
+            # Reorder list of columns to download to match pyarrow schema
+            columns_to_download = [
+                column_name
+                for column_name in geoarrow_full_schema.names
+                if column_name in columns_to_download
+            ]
+
+            # Remove unused columns from schema
+            for column_name in geoarrow_schema_filtered.names:
+                if column_name in columns_to_download:
+                    continue
+                geoarrow_schema_filtered = geoarrow_schema_filtered.remove(
+                    geoarrow_schema_filtered.get_field_index(column_name)
+                )
+
+        pq.write_table(table=pa.Table.from_pylist([], schema=schema), where=result_file_path)
+
+    return result_file_path
 
 
 def _download_single_parquet_row_group_multiprocessing(

@@ -77,5 +77,33 @@ def test_columns_download(
         assert all(
             column_name in gdf.columns
             for column_name in (columns_to_download or [])
-            if column_name != "id" # skip indexed column
+            if column_name != "id"  # skip indexed column
         )
+
+
+def test_empty_region(test_release_version: str) -> None:
+    """Test if regions without data are properly parsed."""
+    gdf = convert_bounding_box_to_geodataframe(
+        "places", "place", (-10, -10, -9.9, -9.9), release=test_release_version
+    )
+
+    assert gdf.empty
+    assert all(
+        c in gdf.columns
+        for c in (
+            "id",
+            "geometry",
+            "bbox",
+            "version",
+            "sources",
+            "names",
+            "categories",
+            "confidence",
+            "websites",
+            "socials",
+            "emails",
+            "phones",
+            "brand",
+            "addresses",
+        )
+    )
