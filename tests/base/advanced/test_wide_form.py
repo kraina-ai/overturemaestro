@@ -14,12 +14,13 @@ from overturemaestro.advanced_functions import (
     convert_bounding_box_to_wide_form_geodataframe_for_multiple_types,
     convert_bounding_box_to_wide_form_parquet,
 )
-from overturemaestro.advanced_functions.wide_form import THEME_TYPE_CLASSIFICATION
+from overturemaestro.advanced_functions.wide_form import get_theme_type_classification
 from overturemaestro.data_downloader import PYARROW_FILTER
-from tests.conftest import bbox
+from tests.conftest import TEST_RELEASE_VERSION, bbox
 
 # TODO: include test to compare included all vs not
 # TODO: include test to make sure columns are the same on different regions
+
 
 @pytest.fixture(scope="session")  # type: ignore
 def wide_form_working_directory() -> Path:
@@ -36,7 +37,7 @@ def clear_working_directory(wide_form_working_directory: Path) -> None:
 
 @pytest.mark.parametrize(
     "theme_type_pair",
-    list(THEME_TYPE_CLASSIFICATION.keys()),
+    list(get_theme_type_classification(release=TEST_RELEASE_VERSION).keys()),
 )  # type: ignore
 def test_theme_type_pairs(
     test_release_version: str, wide_form_working_directory: Path, theme_type_pair: tuple[str, str]
@@ -71,7 +72,9 @@ def test_all_theme_type_pairs(
         ignore_cache=False,
         include_all_possible_columns=False,
     )
-    prepared_theme_type_prefixes = tuple("|".join(t) for t in THEME_TYPE_CLASSIFICATION.keys())
+    prepared_theme_type_prefixes = tuple(
+        "|".join(t) for t in get_theme_type_classification(release=test_release_version).keys()
+    )
     feature_columns = [
         column_name for column_name in gdf.columns if column_name not in ("id", "geometry")
     ]
