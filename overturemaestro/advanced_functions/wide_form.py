@@ -2,8 +2,6 @@
 
 import json
 import tempfile
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Protocol, Union, overload
@@ -13,6 +11,7 @@ import platformdirs
 from fsspec.implementations.http import HTTPFileSystem
 from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
+from requests import HTTPError
 from rich import print as rprint
 from shapely.geometry.base import BaseGeometry
 
@@ -1052,8 +1051,8 @@ def _download_existing_wide_form_all_column_names_release_index(
                     known_hash=sha_value,
                 )
 
-    except urllib.error.HTTPError as ex:
-        if ex.code == 404:
+    except HTTPError as ex:
+        if ex.response.status_code == 404:
             return False
 
         raise

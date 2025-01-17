@@ -7,8 +7,6 @@ it on demand.
 
 import json
 import tempfile
-import urllib.error
-import urllib.request
 from datetime import date
 from pathlib import Path
 from typing import Literal, Optional, Union, cast, overload
@@ -22,6 +20,7 @@ from fsspec.implementations.github import GithubFileSystem
 from fsspec.implementations.http import HTTPFileSystem
 from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
+from requests import HTTPError
 from rich import print as rprint
 from shapely import box
 from shapely.geometry.base import BaseGeometry
@@ -415,8 +414,8 @@ def _download_existing_release_index(
                     known_hash=sha_value,
                 )
 
-    except urllib.error.HTTPError as ex:
-        if ex.code == 404:
+    except HTTPError as ex:
+        if ex.response.status_code == 404:
             return False
 
         raise
