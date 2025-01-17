@@ -249,7 +249,7 @@ def test_include_all_possible_columns_parameter(
 
     assert full_dataset.sum().loc[list(columns_difference)].sum() == 0
 
-    
+
 def test_empty_region(
     test_release_version: str,
     wide_form_working_directory: Path,
@@ -269,4 +269,3 @@ def test_empty_region(
 
     assert gdf.empty
     assert set(gdf.columns) == all_possible_columns
-
