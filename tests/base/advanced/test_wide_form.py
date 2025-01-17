@@ -242,8 +242,6 @@ def test_include_all_possible_columns_parameter(
     pruned_columns = set(pruned_dataset.columns)
     full_columns = set(full_dataset.columns)
 
-    assert len(all_possible_columns.difference(full_columns)) == 0
-
     assert all_possible_columns == full_columns
     assert len(pruned_columns) < len(full_columns)
 
