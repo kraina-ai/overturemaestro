@@ -2,23 +2,25 @@
 
 import json
 import tempfile
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Protocol, Union, overload
 
 import pandas as pd
-import platformdirs
 from fsspec.implementations.http import HTTPFileSystem
 from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
+from requests import HTTPError
 from rich import print as rprint
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
 from overturemaestro._exceptions import HierarchyDepthOutOfBoundsError
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
+from overturemaestro.cache import (
+    _get_global_wide_form_release_cache_directory,
+    _get_local_wide_form_release_cache_directory,
+)
 from overturemaestro.data_downloader import (
     PYARROW_FILTER,
     _generate_geometry_hash,
@@ -30,6 +32,12 @@ from overturemaestro.release_index import (
     _check_release_version,
     get_newest_release_version,
 )
+
+__all__ = [
+    "convert_geometry_to_wide_form_parquet_for_all_types",
+    "convert_geometry_to_wide_form_parquet_for_multiple_types",
+    "get_all_possible_column_names",
+]
 
 if TYPE_CHECKING:  # pragma: no cover
     from pandas import DataFrame
@@ -50,6 +58,7 @@ def _check_depth_for_wide_form(hierarchy_columns: list[str], depth: Optional[int
 def _transform_to_wide_form(
     theme: str,
     type: str,
+    release_version: str,
     parquet_file: Path,
     output_path: Path,
     include_all_possible_columns: bool,
@@ -60,22 +69,13 @@ def _transform_to_wide_form(
     connection = _set_up_duckdb_connection(working_directory)
 
     if include_all_possible_columns:
-
-        def combine_columns(row: pd.Series) -> str:
-            result = f"{theme}|{type}"
-            for column_name in hierarchy_columns:
-                value = row[column_name]
-                if value is None:
-                    break
-                result += f"|{value}"
-            return result
-
-        all_columns_names = load_wide_form_all_column_names_release_index(
-            theme=theme, type=type, verbosity_mode=verbosity_mode
-        )
-        all_columns_names["column_name"] = all_columns_names.apply(combine_columns, axis=1)
-
-        wide_column_definitions = all_columns_names.to_dict(orient="records")
+        wide_column_definitions = _get_wide_column_definitions(
+            theme=theme,
+            type=type,
+            release_version=release_version,
+            hierarchy_columns=hierarchy_columns,
+            verbosity_mode="silent",
+        ).to_dict(orient="records")
     else:
         joined_hierarchy_columns = ",".join(hierarchy_columns)
 
@@ -154,6 +154,7 @@ def _prepare_download_parameters_for_poi(
 def _transform_poi_to_wide_form(
     theme: str,
     type: str,
+    release_version: str,
     parquet_file: Path,
     output_path: Path,
     include_all_possible_columns: bool,
@@ -166,10 +167,13 @@ def _transform_poi_to_wide_form(
     primary_category_only = len(hierarchy_columns) == 1
 
     if include_all_possible_columns:
-        all_columns_names = load_wide_form_all_column_names_release_index(
-            theme=theme, type=type, verbosity_mode=verbosity_mode
-        )
-        wide_column_definitions = all_columns_names["column_name"].sort_values()
+        wide_column_definitions = _get_wide_column_definitions_for_poi(
+            theme=theme,
+            type=type,
+            release_version=release_version,
+            hierarchy_columns=hierarchy_columns,
+            verbosity_mode="silent",
+        )["column_name"]
     else:
         if primary_category_only:
             available_colums_sql_query = f"""
@@ -245,9 +249,9 @@ def _get_all_possible_column_names(
 
     connection = duckdb.connect()
 
-    connection.install_extension("spatial")
-    connection.load_extension("spatial")
-    connection.load_extension("httpfs")
+    for extension in ("spatial", "httpfs"):
+        connection.install_extension(extension)
+        connection.load_extension(extension)
 
     dataset_path = (
         f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
@@ -275,16 +279,17 @@ def _get_all_possible_column_names_for_poi(
 
     connection = duckdb.connect()
 
-    connection.install_extension("spatial")
-    connection.load_extension("spatial")
-    connection.load_extension("httpfs")
+    for extension in ("spatial", "httpfs"):
+        connection.install_extension(extension)
+        connection.load_extension(extension)
 
     dataset_path = (
         f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
     )
 
-    df = duckdb.sql(
-        f"""
+    return (
+        duckdb.sql(
+            f"""
         SELECT DISTINCT
             categories.primary as column_name
         FROM read_parquet(
@@ -299,9 +304,52 @@ def _get_all_possible_column_names_for_poi(
             hive_partitioning=false
         )
         """
-    ).to_df()
+        )
+        .to_df()
+        .dropna()
+        .sort_values(by="column_name")
+        .reset_index(drop=True)
+    )
 
-    return df.dropna().sort_values(by="column_name").reset_index(drop=True)
+
+def _get_wide_column_definitions(
+    theme: str,
+    type: str,
+    release_version: str,
+    hierarchy_columns: list[str],
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> "DataFrame":
+    def combine_columns(row: pd.Series) -> str:
+        result = f"{theme}|{type}"
+        for column_name in hierarchy_columns:
+            value = row[column_name]
+            if value is None:
+                break
+            result += f"|{value}"
+        return result
+
+    all_columns_names = load_wide_form_all_column_names_release_index(
+        theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
+    )
+    columns_not_in_hierarchy = [c for c in all_columns_names.columns if c not in hierarchy_columns]
+    if columns_not_in_hierarchy:
+        all_columns_names = all_columns_names.drop(
+            columns=columns_not_in_hierarchy
+        ).drop_duplicates()
+    all_columns_names["column_name"] = all_columns_names.apply(combine_columns, axis=1)
+    return all_columns_names.sort_values(by="column_name")
+
+
+def _get_wide_column_definitions_for_poi(
+    theme: str,
+    type: str,
+    release_version: str,
+    hierarchy_columns: list[str],
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> "DataFrame":
+    return load_wide_form_all_column_names_release_index(
+        theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
+    ).sort_values(by="column_name")
 
 
 class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
@@ -326,6 +374,7 @@ class DataTransformationCallable(Protocol):  # noqa: D101
         self,
         theme: str,
         type: str,
+        release_version: str,
         parquet_file: Path,
         output_path: Path,
         include_all_possible_columns: bool,
@@ -341,6 +390,17 @@ class GetAllPossibleColumnNamesCallable(Protocol):  # noqa: D101
     ) -> "DataFrame": ...
 
 
+class GetWideColumnDefinitionsCallable(Protocol):  # noqa: D101
+    def __call__(  # noqa: D102
+        self,
+        theme: str,
+        type: str,
+        release_version: str,
+        hierarchy_columns: list[str],
+        verbosity_mode: VERBOSITY_MODE,
+    ) -> "DataFrame": ...
+
+
 @dataclass
 class WideFormDefinition:
     """Helper object for theme type wide form logic definition."""
@@ -351,6 +411,9 @@ class WideFormDefinition:
     data_transform_function: DataTransformationCallable = _transform_to_wide_form
     get_all_possible_column_names_function: GetAllPossibleColumnNamesCallable = (
         _get_all_possible_column_names
+    )
+    get_wide_column_definitions_function: GetWideColumnDefinitionsCallable = (
+        _get_wide_column_definitions
     )
 
 
@@ -368,6 +431,7 @@ THEME_TYPE_CLASSIFICATION = {
         download_parameters_preparation_function=_prepare_download_parameters_for_poi,
         data_transform_function=_transform_poi_to_wide_form,
         get_all_possible_column_names_function=_get_all_possible_column_names_for_poi,
+        get_wide_column_definitions_function=_get_wide_column_definitions_for_poi,
     ),
     ("buildings", "building"): WideFormDefinition(hierachy_columns=["subtype", "class"]),
 }
@@ -563,6 +627,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                     wide_form_definition.data_transform_function(
                         theme=theme_value,
                         type=type_value,
+                        release_version=release,
                         parquet_file=downloaded_parquet_file,
                         output_path=output_path,
                         include_all_possible_columns=include_all_possible_columns,
@@ -696,6 +761,66 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
     )
+
+
+def get_all_possible_column_names(
+    release: Optional[str] = None,
+    theme: Optional[str] = None,
+    type: Optional[str] = None,
+    hierarchy_depth: Optional[int] = None,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[str]:
+    """
+    Get a list of all possible columns.
+
+    Args:
+        release (Optional[str], optional): Select the release for which the list should be returned.
+            If None, will return for the newest release. Defaults to None.
+        theme (Optional[str], optional): Select the theme of the dataset. If None, will return
+            the list for all datasets. Defaults to None.
+        type (Optional[str], optional): Select the type of the dataset. If None, will return
+            the list for all datasets. Defaults to None.
+        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
+            be used to generate the wide form of the data. If None, will use all available columns.
+            Defaults to None.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+
+    Returns:
+        list[str]: List of column names.
+    """
+    if (theme is None and type is not None) or (theme is not None and type is None):
+        raise ValueError("Theme and type both have to be present or None.")
+
+    if not release:
+        release = get_newest_release_version()
+
+    _check_release_version(release)
+
+    if theme and type:
+        definitions = {(theme, type): THEME_TYPE_CLASSIFICATION[(theme, type)]}
+    else:
+        definitions = THEME_TYPE_CLASSIFICATION
+
+    columns = []
+    for (theme_value, type_value), wide_form_definition in definitions.items():
+        depth = wide_form_definition.depth_check_function(
+            wide_form_definition.hierachy_columns, hierarchy_depth
+        )
+        hierachy_columns = wide_form_definition.hierachy_columns[:depth]
+
+        df = wide_form_definition.get_wide_column_definitions_function(
+            theme=theme_value,
+            type=type_value,
+            release_version=release,
+            hierarchy_columns=hierachy_columns,
+            verbosity_mode=verbosity_mode,
+        )
+        columns.extend(df["column_name"])
+
+    return sorted(columns)
 
 
 def _generate_result_file_path(
@@ -1000,12 +1125,13 @@ def _download_existing_wide_form_all_column_names_release_index(
     Returns:
         bool: Information whether index have been downloaded or not.
     """
+    if (theme is None and type is not None) or (theme is not None and type is None):
+        raise ValueError("Theme and type both have to be present or None.")
+
     if not release:
         release = get_newest_release_version()
 
     _check_release_version(release)
-    if (theme is None and type is not None) or (theme is not None and type is None):
-        raise ValueError("Theme and type both have to be present or None.")
 
     global_cache_directory = _get_global_wide_form_release_cache_directory(release)
     local_cache_directory = _get_local_wide_form_release_cache_directory(release)
@@ -1052,8 +1178,8 @@ def _download_existing_wide_form_all_column_names_release_index(
                     known_hash=sha_value,
                 )
 
-    except urllib.error.HTTPError as ex:
-        if ex.code == 404:
+    except HTTPError as ex:
+        if ex.response.status_code == 404:
             return False
 
         raise
@@ -1134,6 +1260,13 @@ def _generate_wide_form_all_column_names_release_index(
             file_name = _get_wide_form_release_index_file_name(theme_value, type_value)
             cache_file_path = cache_directory / file_name
 
+            if cache_file_path.exists() and not ignore_cache:
+                rprint(f"Cache for {theme_value}/{type_value} exists. Skipping generation.")
+                file_hashes.append(
+                    dict(theme=theme_value, type=type_value, sha=file_hash(str(cache_file_path)))
+                )
+                continue
+
             df = definition.get_all_possible_column_names_function(
                 theme=theme_value,
                 type=type_value,
@@ -1154,16 +1287,3 @@ def _generate_wide_form_all_column_names_release_index(
 
 def _get_wide_form_release_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
-
-
-def get_global_wide_form_release_cache_directory() -> Path:
-    """Get global index cache location path."""
-    return Path(platformdirs.user_cache_dir("OvertureMaestro")) / "wide_form_release_indexes"
-
-
-def _get_global_wide_form_release_cache_directory(release: str) -> Path:
-    return get_global_wide_form_release_cache_directory() / release
-
-
-def _get_local_wide_form_release_cache_directory(release: str) -> Path:
-    return Path("wide_form_release_indexes") / release

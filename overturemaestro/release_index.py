@@ -7,8 +7,6 @@ it on demand.
 
 import json
 import tempfile
-import urllib.error
-import urllib.request
 from datetime import date
 from pathlib import Path
 from typing import Literal, Optional, Union, cast, overload
@@ -16,12 +14,12 @@ from typing import Literal, Optional, Union, cast, overload
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-import platformdirs
 import pyarrow.fs as fs
 from fsspec.implementations.github import GithubFileSystem
 from fsspec.implementations.http import HTTPFileSystem
 from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
+from requests import HTTPError
 from rich import print as rprint
 from shapely import box
 from shapely.geometry.base import BaseGeometry
@@ -29,6 +27,11 @@ from shapely.geometry.base import BaseGeometry
 from overturemaestro._geometry_clustering import calculate_row_group_bounding_box
 from overturemaestro._parquet_multiprocessing import map_parquet_dataset
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
+from overturemaestro.cache import (
+    _get_global_release_cache_directory,
+    _get_local_release_cache_directory,
+    get_global_release_cache_directory,
+)
 
 __all__ = [
     "download_existing_release_index",
@@ -415,8 +418,8 @@ def _download_existing_release_index(
                     known_hash=sha_value,
                 )
 
-    except urllib.error.HTTPError as ex:
-        if ex.code == 404:
+    except HTTPError as ex:
+        if ex.response.status_code == 404:
             return False
 
         raise
@@ -575,28 +578,13 @@ def _check_release_version(release: str) -> None:
         )
 
 
-def get_global_release_cache_directory() -> Path:
-    """Get global index cache location path."""
-    return Path(platformdirs.user_cache_dir("OvertureMaestro")) / "release_indexes"
-
-
-def _get_global_release_cache_directory(release: str) -> Path:
-    return get_global_release_cache_directory() / release
-
-
-def _get_local_release_cache_directory(release: str) -> Path:
-    return Path("release_indexes") / release
-
-
 def _get_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
 
 
 def _load_all_available_release_versions_from_github() -> list[str]:  # pragma: no cover
     release_versions_cache_file = (
-        Path(platformdirs.user_cache_dir("OvertureMaestro"))
-        / "release_indexes"
-        / "_available_release_versions.json"
+        get_global_release_cache_directory() / "_available_release_versions.json"
     )
 
     current_date = date.today()
