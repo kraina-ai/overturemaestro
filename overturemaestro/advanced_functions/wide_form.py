@@ -287,8 +287,9 @@ def _get_all_possible_column_names_for_poi(
         f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
     )
 
-    df = duckdb.sql(
-        f"""
+    return (
+        duckdb.sql(
+            f"""
         SELECT DISTINCT
             categories.primary as column_name
         FROM read_parquet(
@@ -303,9 +304,12 @@ def _get_all_possible_column_names_for_poi(
             hive_partitioning=false
         )
         """
-    ).to_df()
-
-    return df.dropna().sort_values(by="column_name").reset_index(drop=True)
+        )
+        .to_df()
+        .dropna()
+        .sort_values(by="column_name")
+        .reset_index(drop=True)
+    )
 
 
 def _get_wide_column_definitions(
@@ -343,10 +347,9 @@ def _get_wide_column_definitions_for_poi(
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> "DataFrame":
-    all_columns_names = load_wide_form_all_column_names_release_index(
+    return load_wide_form_all_column_names_release_index(
         theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
-    )
-    return all_columns_names.sort_values(by="column_name")
+    ).sort_values(by="column_name")
 
 
 class DownloadParametersPreparationCallable(Protocol):  # noqa: D101

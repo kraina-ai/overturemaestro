@@ -8,10 +8,10 @@ import platformdirs
 
 def clear_release_indexes_cache() -> None:
     """Clear library release indexes cache."""
-    for directory in [
+    for directory in (
         get_global_release_cache_directory(),
         get_global_wide_form_release_cache_directory(),
-    ]:
+    ):
         shutil.rmtree(directory)
 
 
