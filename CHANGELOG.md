@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic columns detection in pyarrow filters when passing `columns_to_download`
 - New `advanced_functions` module with a `wide` format for machine learning purposes [#38](https://github.com/kraina-ai/overturemaestro/issues/38)
 
+### Fixed
+
+- Replaced urllib HTTPError with requests HTTPError in release index download functions
+
 ### Changed
 
 - Refactored available release versions caching [#24](https://github.com/kraina-ai/overturemaestro/issues/24)
