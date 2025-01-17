@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Protocol, Union, overload
 
 import pandas as pd
-import platformdirs
 from fsspec.implementations.http import HTTPFileSystem
 from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
@@ -18,6 +17,10 @@ from shapely.geometry.base import BaseGeometry
 from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
 from overturemaestro._exceptions import HierarchyDepthOutOfBoundsError
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
+from overturemaestro.cache import (
+    _get_global_wide_form_release_cache_directory,
+    _get_local_wide_form_release_cache_directory,
+)
 from overturemaestro.data_downloader import (
     PYARROW_FILTER,
     _generate_geometry_hash,
@@ -1133,6 +1136,13 @@ def _generate_wide_form_all_column_names_release_index(
             file_name = _get_wide_form_release_index_file_name(theme_value, type_value)
             cache_file_path = cache_directory / file_name
 
+            if cache_file_path.exists() and not ignore_cache:
+                rprint(f"Cache for {theme_value}/{type_value} exists. Skipping generation.")
+                file_hashes.append(
+                    dict(theme=theme_value, type=type_value, sha=file_hash(str(cache_file_path)))
+                )
+                continue
+
             df = definition.get_all_possible_column_names_function(
                 theme=theme_value,
                 type=type_value,
@@ -1153,16 +1163,3 @@ def _generate_wide_form_all_column_names_release_index(
 
 def _get_wide_form_release_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
-
-
-def get_global_wide_form_release_cache_directory() -> Path:
-    """Get global index cache location path."""
-    return Path(platformdirs.user_cache_dir("OvertureMaestro")) / "wide_form_release_indexes"
-
-
-def _get_global_wide_form_release_cache_directory(release: str) -> Path:
-    return get_global_wide_form_release_cache_directory() / release
-
-
-def _get_local_wide_form_release_cache_directory(release: str) -> Path:
-    return Path("wide_form_release_indexes") / release
