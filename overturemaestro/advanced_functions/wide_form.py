@@ -173,12 +173,12 @@ def _transform_poi_to_wide_form(
             release_version=release_version,
             hierarchy_columns=hierarchy_columns,
             verbosity_mode="silent",
-        )["column_name"]
+        )["category"]
     else:
         if primary_category_only:
             available_colums_sql_query = f"""
             SELECT DISTINCT
-                categories.primary as column_name
+                categories.{hierarchy_columns[0]} as column_name
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
@@ -187,14 +187,14 @@ def _transform_poi_to_wide_form(
         else:
             available_colums_sql_query = f"""
             SELECT DISTINCT
-                categories.primary as column_name
+                categories.{hierarchy_columns[0]} as column_name
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
             )
             UNION
             SELECT DISTINCT
-                UNNEST(categories.alternate) as column_name
+                UNNEST(categories.{hierarchy_columns[1]}) as column_name
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
@@ -211,10 +211,10 @@ def _transform_poi_to_wide_form(
         conditions = []
 
         escaped_value = _sql_escape(column_name)
-        conditions.append(f"categories.primary = '{escaped_value}'")
+        conditions.append(f"categories.{hierarchy_columns[0]} = '{escaped_value}'")
 
         if not primary_category_only:
-            conditions.append(f"'{escaped_value}' IN categories.alternate")
+            conditions.append(f"'{escaped_value}' IN categories.{hierarchy_columns[1]}")
 
         joined_conditions = " OR ".join(conditions)
         case_clauses.append(
@@ -291,14 +291,14 @@ def _get_all_possible_column_names_for_poi(
         duckdb.sql(
             f"""
         SELECT DISTINCT
-            categories.primary as column_name
+            categories.{hierarchy_columns[0]} as column_name
         FROM read_parquet(
             '{dataset_path}',
             hive_partitioning=false
         )
         UNION
         SELECT DISTINCT
-            UNNEST(categories.alternate) as column_name
+            UNNEST(categories.{hierarchy_columns[1]}) as column_name
         FROM read_parquet(
             '{dataset_path}',
             hive_partitioning=false
@@ -347,9 +347,17 @@ def _get_wide_column_definitions_for_poi(
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> "DataFrame":
-    return load_wide_form_all_column_names_release_index(
-        theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
-    ).sort_values(by="column_name")
+    df = (
+        load_wide_form_all_column_names_release_index(
+            theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
+        )
+        .sort_values(by="column_name")
+        .rename(columns={"column_name": "category"})
+    )
+
+    df["column_name"] = f"{theme}|{type}|" + df["category"]
+
+    return df
 
 
 class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
@@ -444,6 +452,15 @@ def get_theme_type_classification(release: str) -> dict[tuple[str, str], WideFor
     if release < "2024-08-20.0":
         classification[("transportation", "segment")] = WideFormDefinition(
             hierachy_columns=["subtype", "class"]
+        )
+
+    if release < "2024-07-22.0":
+        classification[("places", "place")] = WideFormDefinition(
+            hierachy_columns=["main", "alternate"],
+            download_parameters_preparation_function=_prepare_download_parameters_for_poi,
+            data_transform_function=_transform_poi_to_wide_form,
+            get_all_possible_column_names_function=_get_all_possible_column_names_for_poi,
+            get_wide_column_definitions_function=_get_wide_column_definitions_for_poi,
         )
 
     if release < "2024-05-16-beta.0":

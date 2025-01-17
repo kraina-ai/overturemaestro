@@ -21,9 +21,6 @@ from overturemaestro.advanced_functions.wide_form import (
 from overturemaestro.data_downloader import PYARROW_FILTER
 from tests.conftest import TEST_RELEASE_VERSION, bbox
 
-# TODO: include test to compare included all vs not
-# TODO: include test to make sure columns are the same on different regions
-
 
 @pytest.fixture(scope="session")  # type: ignore
 def wide_form_working_directory() -> Path:
@@ -209,6 +206,50 @@ def test_hierarchy_values(
         assert (gdf.dtypes.loc[feature_columns] == "bool").all()
 
 
+def test_include_all_possible_columns_parameter(
+    test_release_version: str, wide_form_working_directory: Path
+) -> None:
+    """Check if include_all_possible_columns works as intended."""
+    theme_value = "places"
+    type_value = "place"
+    pruned_dataset = convert_bounding_box_to_wide_form_geodataframe(
+        theme=theme_value,
+        type=type_value,
+        bbox=bbox(),
+        release=test_release_version,
+        working_directory=wide_form_working_directory,
+        verbosity_mode="verbose",
+        ignore_cache=False,
+        include_all_possible_columns=False,
+    ).drop(columns="geometry")
+
+    full_dataset = convert_bounding_box_to_wide_form_geodataframe(
+        theme=theme_value,
+        type=type_value,
+        bbox=bbox(),
+        release=test_release_version,
+        working_directory=wide_form_working_directory,
+        verbosity_mode="verbose",
+        ignore_cache=False,
+        include_all_possible_columns=True,
+    ).drop(columns="geometry")
+
+    all_possible_columns = set(
+        get_all_possible_column_names(
+            theme=theme_value, type=type_value, release=test_release_version
+        )
+    )
+    pruned_columns = set(pruned_dataset.columns)
+    full_columns = set(full_dataset.columns)
+
+    assert all_possible_columns == full_columns
+    assert len(pruned_columns) < len(full_columns)
+
+    columns_difference = full_columns.difference(pruned_columns)
+
+    assert full_dataset.sum().loc[list(columns_difference)].sum() == 0
+
+    
 def test_empty_region(
     test_release_version: str,
     wide_form_working_directory: Path,
@@ -228,3 +269,4 @@ def test_empty_region(
 
     assert gdf.empty
     assert set(gdf.columns) == all_possible_columns
+
