@@ -347,9 +347,13 @@ def _get_wide_column_definitions_for_poi(
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> "DataFrame":
-    return load_wide_form_all_column_names_release_index(
+    df = load_wide_form_all_column_names_release_index(
         theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
     ).sort_values(by="column_name")
+
+    df["column_name"] = f"{theme}|{type}|" + df["column_name"]
+
+    return df
 
 
 class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
