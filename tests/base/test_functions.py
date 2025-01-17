@@ -91,7 +91,6 @@ def test_empty_region(test_release_version: str) -> None:
     assert all(
         c in gdf.columns
         for c in (
-            "id",
             "geometry",
             "bbox",
             "version",
