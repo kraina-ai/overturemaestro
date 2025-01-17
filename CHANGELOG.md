@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Changed wide format places definition for older release versions
 - Changed get all columns function for wide format places definition
+
 ## [0.2.2] - 2025-01-17
 
 ### Fixed
