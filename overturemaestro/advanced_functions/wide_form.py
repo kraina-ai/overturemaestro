@@ -1,10 +1,19 @@
 """Functions for retrieving Overture Maps features in a wide form."""
 
+import json
 import tempfile
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Protocol, Union, overload
 
+import pandas as pd
+import platformdirs
+from fsspec.implementations.http import HTTPFileSystem
+from pooch import file_hash, retrieve
+from pooch import get_logger as get_pooch_logger
+from rich import print as rprint
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
@@ -16,9 +25,14 @@ from overturemaestro.data_downloader import (
     download_data_for_multiple_types,
 )
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
-from overturemaestro.release_index import get_newest_release_version
+from overturemaestro.release_index import (
+    LFS_DIRECTORY_URL,
+    _check_release_version,
+    get_newest_release_version,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
+    from pandas import DataFrame
     from pyarrow.compute import Expression
 
 
@@ -38,27 +52,47 @@ def _transform_to_wide_form(
     type: str,
     parquet_file: Path,
     output_path: Path,
+    include_all_possible_columns: bool,
     hierarchy_columns: list[str],
     working_directory: Union[str, Path],
+    verbosity_mode: VERBOSITY_MODE,
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
-    joined_hierarchy_columns = ",".join(hierarchy_columns)
+    if include_all_possible_columns:
 
-    available_colums_sql_query = f"""
-    SELECT DISTINCT
-        {joined_hierarchy_columns},
-        concat_ws('|', '{theme}', '{type}', {joined_hierarchy_columns}) as column_name
-    FROM read_parquet(
-        '{parquet_file}',
-        hive_partitioning=false
-    )
-    ORDER BY column_name
-    """
+        def combine_columns(row: pd.Series) -> str:
+            result = f"{theme}|{type}"
+            for column_name in hierarchy_columns:
+                value = row[column_name]
+                if value is None:
+                    break
+                result += f"|{value}"
+            return result
 
-    wide_column_definitions = (
-        connection.sql(available_colums_sql_query).fetchdf().to_dict(orient="records")
-    )
+        all_columns_names = load_wide_form_all_column_names_release_index(
+            theme=theme, type=type, verbosity_mode=verbosity_mode
+        )
+        all_columns_names["column_name"] = all_columns_names.apply(combine_columns, axis=1)
+
+        wide_column_definitions = all_columns_names.to_dict(orient="records")
+    else:
+        joined_hierarchy_columns = ",".join(hierarchy_columns)
+
+        available_colums_sql_query = f"""
+        SELECT DISTINCT
+            {joined_hierarchy_columns},
+            concat_ws('|', '{theme}', '{type}', {joined_hierarchy_columns}) as column_name
+        FROM read_parquet(
+            '{parquet_file}',
+            hive_partitioning=false
+        )
+        ORDER BY column_name
+        """
+
+        wide_column_definitions = (
+            connection.sql(available_colums_sql_query).fetchdf().to_dict(orient="records")
+        )
 
     case_clauses = []
 
@@ -122,42 +156,50 @@ def _transform_poi_to_wide_form(
     type: str,
     parquet_file: Path,
     output_path: Path,
+    include_all_possible_columns: bool,
     hierarchy_columns: list[str],
     working_directory: Union[str, Path],
+    verbosity_mode: VERBOSITY_MODE,
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
     primary_category_only = len(hierarchy_columns) == 1
 
-    if primary_category_only:
-        available_colums_sql_query = f"""
-        SELECT DISTINCT
-            categories.primary as column_name
-        FROM read_parquet(
-            '{parquet_file}',
-            hive_partitioning=false
+    if include_all_possible_columns:
+        all_columns_names = load_wide_form_all_column_names_release_index(
+            theme=theme, type=type, verbosity_mode=verbosity_mode
         )
-        """
+        wide_column_definitions = all_columns_names["column_name"].sort_values()
     else:
-        available_colums_sql_query = f"""
-        SELECT DISTINCT
-            categories.primary as column_name
-        FROM read_parquet(
-            '{parquet_file}',
-            hive_partitioning=false
-        )
-        UNION
-        SELECT DISTINCT
-            UNNEST(categories.alternate) as column_name
-        FROM read_parquet(
-            '{parquet_file}',
-            hive_partitioning=false
-        )
-        """
+        if primary_category_only:
+            available_colums_sql_query = f"""
+            SELECT DISTINCT
+                categories.primary as column_name
+            FROM read_parquet(
+                '{parquet_file}',
+                hive_partitioning=false
+            )
+            """
+        else:
+            available_colums_sql_query = f"""
+            SELECT DISTINCT
+                categories.primary as column_name
+            FROM read_parquet(
+                '{parquet_file}',
+                hive_partitioning=false
+            )
+            UNION
+            SELECT DISTINCT
+                UNNEST(categories.alternate) as column_name
+            FROM read_parquet(
+                '{parquet_file}',
+                hive_partitioning=false
+            )
+            """
 
-    wide_column_definitions = (
-        connection.sql(available_colums_sql_query).fetchdf()["column_name"].sort_values()
-    )
+        wide_column_definitions = (
+            connection.sql(available_colums_sql_query).fetchdf()["column_name"].sort_values()
+        )
 
     case_clauses = []
 
@@ -196,6 +238,72 @@ def _transform_poi_to_wide_form(
     return output_path
 
 
+def _get_all_possible_column_names(
+    theme: str, type: str, release_version: str, hierarchy_columns: list[str]
+) -> "DataFrame":
+    import duckdb
+
+    connection = duckdb.connect()
+
+    connection.install_extension("spatial")
+    connection.load_extension("spatial")
+    connection.load_extension("httpfs")
+
+    dataset_path = (
+        f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
+    )
+    joined_hierarchy_columns = ",".join(hierarchy_columns)
+    df = duckdb.sql(
+        f"""
+        SELECT DISTINCT
+            {joined_hierarchy_columns}
+        FROM read_parquet(
+            '{dataset_path}',
+            hive_partitioning=false
+        )
+        ORDER BY ALL
+        """
+    ).to_df()
+
+    return df
+
+
+def _get_all_possible_column_names_for_poi(
+    theme: str, type: str, release_version: str, hierarchy_columns: list[str]
+) -> "DataFrame":
+    import duckdb
+
+    connection = duckdb.connect()
+
+    connection.install_extension("spatial")
+    connection.load_extension("spatial")
+    connection.load_extension("httpfs")
+
+    dataset_path = (
+        f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
+    )
+
+    df = duckdb.sql(
+        f"""
+        SELECT DISTINCT
+            categories.primary as column_name
+        FROM read_parquet(
+            '{dataset_path}',
+            hive_partitioning=false
+        )
+        UNION
+        SELECT DISTINCT
+            UNNEST(categories.alternate) as column_name
+        FROM read_parquet(
+            '{dataset_path}',
+            hive_partitioning=false
+        )
+        """
+    ).to_df()
+
+    return df.dropna().sort_values(by="column_name").reset_index(drop=True)
+
+
 class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
     def __call__(  # noqa: D102
         self,
@@ -220,9 +328,17 @@ class DataTransformationCallable(Protocol):  # noqa: D101
         type: str,
         parquet_file: Path,
         output_path: Path,
+        include_all_possible_columns: bool,
         hierarchy_columns: list[str],
         working_directory: Union[str, Path],
+        verbosity_mode: VERBOSITY_MODE,
     ) -> Path: ...
+
+
+class GetAllPossibleColumnNamesCallable(Protocol):  # noqa: D101
+    def __call__(  # noqa: D102
+        self, theme: str, type: str, release_version: str, hierarchy_columns: list[str]
+    ) -> "DataFrame": ...
 
 
 @dataclass
@@ -233,6 +349,9 @@ class WideFormDefinition:
     download_parameters_preparation_function: Optional[DownloadParametersPreparationCallable] = None
     depth_check_function: DepthCheckCallable = _check_depth_for_wide_form
     data_transform_function: DataTransformationCallable = _transform_to_wide_form
+    get_all_possible_column_names_function: GetAllPossibleColumnNamesCallable = (
+        _get_all_possible_column_names
+    )
 
 
 THEME_TYPE_CLASSIFICATION = {
@@ -248,6 +367,7 @@ THEME_TYPE_CLASSIFICATION = {
         hierachy_columns=["primary", "alternate"],
         download_parameters_preparation_function=_prepare_download_parameters_for_poi,
         data_transform_function=_transform_poi_to_wide_form,
+        get_all_possible_column_names_function=_get_all_possible_column_names_for_poi,
     ),
     ("buildings", "building"): WideFormDefinition(hierachy_columns=["subtype", "class"]),
 }
@@ -258,6 +378,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
     *,
+    include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -274,6 +395,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     geometry_filter: BaseGeometry,
     release: str,
     *,
+    include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -290,6 +412,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     geometry_filter: BaseGeometry,
     release: Optional[str] = None,
     *,
+    include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -306,6 +429,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     geometry_filter: BaseGeometry,
     release: Optional[str] = None,
     *,
+    include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -326,6 +450,10 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
         geometry_filter (BaseGeometry): Geometry used to filter data.
         release (Optional[str], optional): Release version. If not provided, will automatically load
             newest available release version. Defaults to None.
+        include_all_possible_columns (bool, optional): Whether to have always the same list of
+            columns in the resulting file. This ensures that always the same set of columns is
+            returned for a given release for different regions. This also means, that some columns
+            might be all filled with a False value. Defaults to True.
         hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
             be used to generate the wide form of the data. If None, will use all available columns.
             Defaults to None.
@@ -334,7 +462,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             of theme type pairs. Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
-            from filters. Defaults to `None`.
+            from filters. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -371,6 +499,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             release=release,
             theme_type_pairs=theme_type_pairs,
             geometry_filter=geometry_filter,
+            include_all_possible_columns=include_all_possible_columns,
             hierarchy_depth=hierarchy_depth,
             pyarrow_filters=pyarrow_filters_list,
         )
@@ -436,8 +565,10 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         type=type_value,
                         parquet_file=downloaded_parquet_file,
                         output_path=output_path,
+                        include_all_possible_columns=include_all_possible_columns,
                         hierarchy_columns=hierachy_columns,
                         working_directory=tmp_dir_path,
+                        verbosity_mode=verbosity_mode,
                     )
 
             if len(theme_type_pairs) > 1:
@@ -458,6 +589,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 def convert_geometry_to_wide_form_parquet_for_all_types(
     geometry_filter: BaseGeometry,
     *,
+    include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -473,6 +605,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     geometry_filter: BaseGeometry,
     release: str,
     *,
+    include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -488,6 +621,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     geometry_filter: BaseGeometry,
     release: Optional[str] = None,
     *,
+    include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -502,6 +636,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     geometry_filter: BaseGeometry,
     release: Optional[str] = None,
     *,
+    include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -521,6 +656,10 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
         geometry_filter (BaseGeometry): Geometry used to filter data.
         release (Optional[str], optional): Release version. If not provided, will automatically load
             newest available release version. Defaults to None.
+        include_all_possible_columns (bool, optional): Whether to have always the same list of
+            columns in the resulting file. This ensures that always the same set of columns is
+            returned for a given release for different regions. This also means, that some columns
+            might be all filled with a False value. Defaults to True.
         hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
             be used to generate the wide form of the data. If None, will use all available columns.
             Defaults to None.
@@ -529,7 +668,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
             of theme type pairs. Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
-            from filters. Defaults to `None`.
+            from filters. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -548,6 +687,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
         theme_type_pairs=list(THEME_TYPE_CLASSIFICATION.keys()),
         geometry_filter=geometry_filter,
         release=release,
+        include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
         pyarrow_filters=pyarrow_filters,
         result_file_path=result_file_path,
@@ -562,6 +702,7 @@ def _generate_result_file_path(
     release: str,
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
+    include_all_possible_columns: bool,
     hierarchy_depth: Optional[int],
     pyarrow_filters: Optional[list[Union["Expression", None]]],
 ) -> Path:
@@ -590,9 +731,13 @@ def _generate_result_file_path(
     if hierarchy_depth is not None:
         hierarchy_hash_part = f"_h{hierarchy_depth}"
 
+    include_all_columns_hash_part = ""
+    if not include_all_possible_columns:
+        include_all_columns_hash_part = "_pruned"
+
     return directory / (
         f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}"
-        f"_wide_form{hierarchy_hash_part}.parquet"
+        f"_wide_form{hierarchy_hash_part}{include_all_columns_hash_part}.parquet"
     )
 
 
@@ -690,3 +835,335 @@ def _combine_multiple_wide_form_files(
     """
 
     connection.execute(query)
+
+
+@overload
+def load_wide_form_all_column_names_release_index(
+    theme: str,
+    type: str,
+    *,
+    remote_index: bool = False,
+    skip_index_download: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> "DataFrame": ...
+
+
+@overload
+def load_wide_form_all_column_names_release_index(
+    theme: str,
+    type: str,
+    release: str,
+    *,
+    remote_index: bool = False,
+    skip_index_download: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> "DataFrame": ...
+
+
+@overload
+def load_wide_form_all_column_names_release_index(
+    theme: str,
+    type: str,
+    release: Optional[str] = None,
+    *,
+    remote_index: bool = False,
+    skip_index_download: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> "DataFrame": ...
+
+
+def load_wide_form_all_column_names_release_index(
+    theme: str,
+    type: str,
+    release: Optional[str] = None,
+    *,
+    remote_index: bool = False,
+    skip_index_download: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> "DataFrame":
+    """
+    Load release index as a GeoDataFrame.
+
+    Args:
+        theme (str): Theme of the dataset.
+        type (str): Type of the dataset.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
+        geometry_filter (Optional[BaseGeometry], optional): Geometry to pre-filter resulting rows.
+            Defaults to None.
+        remote_index (bool, optional): Avoid downloading the index and stream it from remote source.
+            Defaults to False.
+        skip_index_download (bool, optional): Avoid downloading the index if doesn't exist locally
+            and generate it instead. Defaults to False.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+
+    Returns:
+        gpd.GeoDataFrame: Index with bounding boxes for each row group for each parquet file.
+    """
+    if not release:
+        release = get_newest_release_version()
+
+    _check_release_version(release)
+    cache_directory = _get_global_wide_form_release_cache_directory(release)
+    index_file_path: Union[Path, str] = cache_directory / _get_wide_form_release_index_file_name(
+        theme, type
+    )
+
+    file_exists = Path(index_file_path).exists()
+    filesystem = None
+
+    if not file_exists:
+        if remote_index:
+            filesystem = HTTPFileSystem()
+            local_cache_path = _get_local_wide_form_release_cache_directory(release)
+            index_file_path = LFS_DIRECTORY_URL + str(
+                local_cache_path / _get_wide_form_release_index_file_name(theme, type)
+            )
+        elif skip_index_download:
+            # Generate the index and skip download
+            generate_wide_form_all_column_names_release_index(
+                release,
+                verbosity_mode=verbosity_mode,
+            )
+        else:
+            # Try to download the index or generate it if cannot be downloaded
+            download_existing_wide_form_all_column_names_release_index(
+                release,
+                verbosity_mode=verbosity_mode,
+            ) or generate_wide_form_all_column_names_release_index(
+                release,
+                verbosity_mode=verbosity_mode,
+            )
+
+    return pd.read_parquet(index_file_path, filesystem=filesystem)
+
+
+@overload
+def download_existing_wide_form_all_column_names_release_index(
+    *,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> bool: ...
+
+
+@overload
+def download_existing_wide_form_all_column_names_release_index(
+    release: str, *, verbosity_mode: VERBOSITY_MODE = "transient"
+) -> bool: ...
+
+
+def download_existing_wide_form_all_column_names_release_index(
+    release: Optional[str] = None,
+    *,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> bool:
+    """
+    Download a pregenerated wide form all column names index for an Overture Maps dataset release.
+
+    Args:
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+
+    Returns:
+        bool: Information whether index have been downloaded or not.
+    """
+    return _download_existing_wide_form_all_column_names_release_index(
+        release=release, verbosity_mode=verbosity_mode
+    )
+
+
+def _download_existing_wide_form_all_column_names_release_index(
+    release: Optional[str] = None,
+    theme: Optional[str] = None,
+    type: Optional[str] = None,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> bool:
+    """
+    Download a pregenerated index for an Overture Maps dataset release.
+
+    Args:
+        theme (Optional[str], optional): Specify a theme to be downloaded. Defaults to None.
+        type (Optional[str], optional): Specify a type to be downloaded. Defaults to None.
+        release (Optional[str], optional): Release version. If not provided, will automatically load
+            newest available release version. Defaults to None.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+
+    Returns:
+        bool: Information whether index have been downloaded or not.
+    """
+    if not release:
+        release = get_newest_release_version()
+
+    _check_release_version(release)
+    if (theme is None and type is not None) or (theme is not None and type is None):
+        raise ValueError("Theme and type both have to be present or None.")
+
+    global_cache_directory = _get_global_wide_form_release_cache_directory(release)
+    local_cache_directory = _get_local_wide_form_release_cache_directory(release)
+
+    logger = get_pooch_logger()
+    logger.setLevel("WARNING")
+
+    try:
+        index_content_file_name = "release_index_content.json"
+        index_content_file_url = (
+            LFS_DIRECTORY_URL + (local_cache_directory / index_content_file_name).as_posix()
+        )
+        retrieve(
+            index_content_file_url,
+            fname=index_content_file_name,
+            path=global_cache_directory,
+            progressbar=False,
+            known_hash=None,
+        )
+
+        theme_type_tuples = json.loads(
+            (global_cache_directory / index_content_file_name).read_text()
+        )
+
+        with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
+            for theme_type_tuple in progress.track(
+                theme_type_tuples,
+                description="Downloading release indexes",
+            ):
+                theme_value = theme_type_tuple["theme"]
+                type_value = theme_type_tuple["type"]
+                sha_value = theme_type_tuple["sha"]
+                file_name = _get_wide_form_release_index_file_name(theme_value, type_value)
+
+                if theme_value == theme and type_value == type:
+                    continue
+
+                index_file_url = LFS_DIRECTORY_URL + (local_cache_directory / file_name).as_posix()
+                retrieve(
+                    index_file_url,
+                    fname=file_name,
+                    path=global_cache_directory,
+                    progressbar=False,
+                    known_hash=sha_value,
+                )
+
+    except urllib.error.HTTPError as ex:
+        if ex.code == 404:
+            return False
+
+        raise
+
+    return True
+
+
+def generate_wide_form_all_column_names_release_index(
+    release: str,
+    ignore_cache: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> bool:
+    """
+    Generate a wide form all column names index for an Overture Maps dataset release.
+
+    Args:
+        release (str): Release version.
+        ignore_cache (bool, optional): Whether to ignore precalculated parquet files or not.
+            Defaults to False.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+
+    Returns:
+        bool: Information whether index have been generated or not.
+    """
+    return _generate_wide_form_all_column_names_release_index(
+        release=release, ignore_cache=ignore_cache, verbosity_mode=verbosity_mode
+    )
+
+
+def _generate_wide_form_all_column_names_release_index(
+    release: str,
+    index_location_path: Optional[Path] = None,
+    ignore_cache: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> bool:
+    """
+    Generate files with all possible wide form column names for an Overture Maps dataset release.
+
+    Args:
+        release (str): Release version.
+        dataset_path (str, optional): Specify dataset path.
+            Defaults to "overturemaps-us-west-2/release/".
+        dataset_fs (Literal["local", "s3"], optional): Which filesystem use in PyArrow operations.
+            Defaults to "s3".
+        index_location_path (Path, optional): Specify index location path. If not, will generate to
+            the global cache location. Defaults to None.
+        ignore_cache (bool, optional): Whether to ignore precalculated parquet files or not.
+            Defaults to False.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+
+    Returns:
+        bool: Information whether index have been generated or not.
+    """
+    _check_release_version(release)
+    cache_directory = Path(
+        index_location_path or _get_global_wide_form_release_cache_directory(release)
+    )
+    release_index_path = cache_directory / "release_index_content.json"
+
+    if release_index_path.exists() and not ignore_cache:
+        rprint("Cache exists. Skipping generation.")
+        return False
+
+    cache_directory.mkdir(exist_ok=True, parents=True)
+
+    file_hashes = []
+
+    with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
+        for (theme_value, type_value), definition in progress.track(
+            sorted(THEME_TYPE_CLASSIFICATION.items()), description="Saving parquet indexes"
+        ):
+            file_name = _get_wide_form_release_index_file_name(theme_value, type_value)
+            cache_file_path = cache_directory / file_name
+
+            df = definition.get_all_possible_column_names_function(
+                theme=theme_value,
+                type=type_value,
+                release_version=release,
+                hierarchy_columns=definition.hierachy_columns,
+            )
+
+            df.to_parquet(cache_file_path)
+            file_hashes.append(
+                dict(theme=theme_value, type=type_value, sha=file_hash(str(cache_file_path)))
+            )
+            rprint(f"Saved index file {cache_file_path}")
+
+    pd.DataFrame(file_hashes).to_json(release_index_path, orient="records")
+
+    return True
+
+
+def _get_wide_form_release_index_file_name(theme_value: str, type_value: str) -> str:
+    return f"{theme_value}_{type_value}.parquet"
+
+
+def get_global_wide_form_release_cache_directory() -> Path:
+    """Get global index cache location path."""
+    return Path(platformdirs.user_cache_dir("OvertureMaestro")) / "wide_form_release_indexes"
+
+
+def _get_global_wide_form_release_cache_directory(release: str) -> Path:
+    return get_global_wide_form_release_cache_directory() / release
+
+
+def _get_local_wide_form_release_cache_directory(release: str) -> Path:
+    return Path("wide_form_release_indexes") / release

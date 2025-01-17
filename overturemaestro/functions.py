@@ -117,7 +117,7 @@ def convert_geometry_to_parquet(
             Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
-            from filters. Defaults to `None`.
+            from filters. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -644,7 +644,7 @@ def convert_bounding_box_to_parquet(
             Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
-            from filters. Defaults to `None`.
+            from filters. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save

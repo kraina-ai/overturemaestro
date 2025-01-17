@@ -18,6 +18,8 @@ from overturemaestro.advanced_functions.wide_form import THEME_TYPE_CLASSIFICATI
 from overturemaestro.data_downloader import PYARROW_FILTER
 from tests.conftest import bbox
 
+# TODO: include test to compare included all vs not
+# TODO: include test to make sure columns are the same on different regions
 
 @pytest.fixture(scope="session")  # type: ignore
 def wide_form_working_directory() -> Path:
@@ -48,6 +50,7 @@ def test_theme_type_pairs(
         working_directory=wide_form_working_directory,
         verbosity_mode="verbose",
         ignore_cache=False,
+        include_all_possible_columns=False,
     )
 
 
@@ -66,6 +69,7 @@ def test_all_theme_type_pairs(
         hierarchy_depth=hierarchy_value,
         verbosity_mode="verbose",
         ignore_cache=False,
+        include_all_possible_columns=False,
     )
     prepared_theme_type_prefixes = tuple("|".join(t) for t in THEME_TYPE_CLASSIFICATION.keys())
     feature_columns = [
@@ -153,6 +157,7 @@ def test_multiple_theme_type_pairs(
             pyarrow_filters=pyarrow_filters,
             verbosity_mode="verbose",
             ignore_cache=False,
+            include_all_possible_columns=False,
         )
         prepared_theme_type_prefixes = tuple("|".join(t) for t in theme_type_pairs)
         feature_columns = [
@@ -188,6 +193,7 @@ def test_hierarchy_values(
             working_directory=wide_form_working_directory,
             verbosity_mode="verbose",
             ignore_cache=False,
+            include_all_possible_columns=False,
         )
         assert "geometry" in gdf.columns
         feature_columns = [
