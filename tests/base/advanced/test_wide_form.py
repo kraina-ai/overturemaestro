@@ -248,3 +248,24 @@ def test_include_all_possible_columns_parameter(
     columns_difference = full_columns.difference(pruned_columns)
 
     assert full_dataset.sum().loc[list(columns_difference)].sum() == 0
+
+
+def test_empty_region(
+    test_release_version: str,
+    wide_form_working_directory: Path,
+) -> None:
+    """Test if regions without data are properly parsed."""
+    gdf = convert_bounding_box_to_wide_form_geodataframe(
+        "places",
+        "place",
+        (-10, -10, -9.9, -9.9),
+        release=test_release_version,
+        working_directory=wide_form_working_directory,
+    ).drop(columns="geometry")
+
+    all_possible_columns = set(
+        get_all_possible_column_names(theme="places", type="place", release=test_release_version)
+    )
+
+    assert gdf.empty
+    assert set(gdf.columns) == all_possible_columns
