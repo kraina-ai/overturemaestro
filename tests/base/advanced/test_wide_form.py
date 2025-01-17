@@ -19,6 +19,7 @@ from overturemaestro.data_downloader import PYARROW_FILTER
 from tests.conftest import bbox
 
 # TODO: include test to compare included all vs not
+# TODO: include test to make sure columns are the same on different regions
 
 @pytest.fixture(scope="session")  # type: ignore
 def wide_form_working_directory() -> Path:
