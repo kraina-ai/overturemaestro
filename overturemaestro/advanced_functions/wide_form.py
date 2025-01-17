@@ -417,7 +417,7 @@ class WideFormDefinition:
     )
 
 
-THEME_TYPE_CLASSIFICATION = {
+THEME_TYPE_CLASSIFICATION: dict[tuple[str, str], WideFormDefinition] = {
     ("base", "infrastructure"): WideFormDefinition(hierachy_columns=["subtype", "class"]),
     ("base", "land"): WideFormDefinition(hierachy_columns=["subtype", "class"]),
     ("base", "land_cover"): WideFormDefinition(hierachy_columns=["subtype"]),
@@ -435,6 +435,22 @@ THEME_TYPE_CLASSIFICATION = {
     ),
     ("buildings", "building"): WideFormDefinition(hierachy_columns=["subtype", "class"]),
 }
+
+
+def get_theme_type_classification(release: str) -> dict[tuple[str, str], WideFormDefinition]:
+    classification = THEME_TYPE_CLASSIFICATION
+    # start from the newest release
+
+    if release < "2024-08-20.0":
+        classification[("transportation", "segment")] = WideFormDefinition(
+            hierachy_columns=["subtype", "class"]
+        )
+
+    if release < "2024-05-16-beta.0":
+        classification[("buildings", "building")] = WideFormDefinition(hierachy_columns=["class"])
+        classification.pop(("base", "land_cover"))
+
+    return classification
 
 
 @overload
@@ -574,6 +590,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
         result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
         prepared_download_parameters = _prepare_download_parameters_for_all_theme_type_pairs(
+            release=release,
             theme_type_pairs=theme_type_pairs,
             geometry_filter=geometry_filter,
             hierarchy_depth=hierarchy_depth,
@@ -615,7 +632,9 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                     total=len(theme_type_pairs),
                     description="Transforming data into wide form",
                 ):
-                    wide_form_definition = THEME_TYPE_CLASSIFICATION[(theme_value, type_value)]
+                    wide_form_definition = get_theme_type_classification(release=release)[
+                        (theme_value, type_value)
+                    ]
 
                     output_path = (
                         transformed_wide_form_directory_output
@@ -748,8 +767,11 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     Returns:
         Path: Path to the generated GeoParquet file.
     """
+    if not release:
+        release = get_newest_release_version()
+
     return convert_geometry_to_wide_form_parquet_for_multiple_types(
-        theme_type_pairs=list(THEME_TYPE_CLASSIFICATION.keys()),
+        theme_type_pairs=list(get_theme_type_classification(release=release).keys()),
         geometry_filter=geometry_filter,
         release=release,
         include_all_possible_columns=include_all_possible_columns,
@@ -800,9 +822,9 @@ def get_all_possible_column_names(
     _check_release_version(release)
 
     if theme and type:
-        definitions = {(theme, type): THEME_TYPE_CLASSIFICATION[(theme, type)]}
+        definitions = {(theme, type): get_theme_type_classification(release=release)[(theme, type)]}
     else:
-        definitions = THEME_TYPE_CLASSIFICATION
+        definitions = get_theme_type_classification(release=release)
 
     columns = []
     for (theme_value, type_value), wide_form_definition in definitions.items():
@@ -867,6 +889,7 @@ def _generate_result_file_path(
 
 
 def _prepare_download_parameters_for_all_theme_type_pairs(
+    release: str,
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
     hierarchy_depth: Optional[int] = None,
@@ -881,7 +904,9 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
             description="Preparing download parameters",
         ):
             single_pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
-            wide_form_definition = THEME_TYPE_CLASSIFICATION[(theme_value, type_value)]
+            wide_form_definition = get_theme_type_classification(release=release)[
+                (theme_value, type_value)
+            ]
 
             depth = wide_form_definition.depth_check_function(
                 wide_form_definition.hierachy_columns, hierarchy_depth
@@ -1255,7 +1280,8 @@ def _generate_wide_form_all_column_names_release_index(
 
     with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
         for (theme_value, type_value), definition in progress.track(
-            sorted(THEME_TYPE_CLASSIFICATION.items()), description="Saving parquet indexes"
+            sorted(get_theme_type_classification(release=release).items()),
+            description="Saving parquet indexes",
         ):
             file_name = _get_wide_form_release_index_file_name(theme_value, type_value)
             cache_file_path = cache_directory / file_name
