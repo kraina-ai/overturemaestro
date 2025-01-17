@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Wide format release index to precalculate all possible columns [#43](https://github.com/kraina-ai/overturemaestro/issues/43)
 - Flag `include_all_possible_columns` to keep or prune empty columns [#43](https://github.com/kraina-ai/overturemaestro/issues/43)
+- `overturemaestro.advanced_functions.wide_form.get_all_possible_column_names` for getting a list of all possible column names [#46](https://github.com/kraina-ai/overturemaestro/issues/46)
 
 ## [0.2.0] - 2025-01-16
 
