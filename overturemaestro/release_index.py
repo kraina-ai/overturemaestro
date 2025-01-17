@@ -158,6 +158,7 @@ def load_release_index(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    skip_index_download: bool = False,
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
@@ -170,6 +171,7 @@ def load_release_index(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    skip_index_download: bool = False,
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
@@ -182,6 +184,7 @@ def load_release_index(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    skip_index_download: bool = False,
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 

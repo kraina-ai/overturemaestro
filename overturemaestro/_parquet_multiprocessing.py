@@ -150,11 +150,11 @@ def map_parquet_dataset(
         function (Callable[[str, pa.Table], pa.Table]): Function to apply over a parquet file name
             and a row group table. Will save resulting table in a new parquet file.
         progress_description (str): Progress bar description.
-        columns (Optional[list[str]], optional): List of columns to read. Defaults to `None`.
+        columns (Optional[list[str]], optional): List of columns to read. Defaults to None.
         filesystem (Optional[fs.FileSystem], optional): Filesystem for the dataset.
-            Defaults to `None`.
+            Defaults to None.
         report_progress_as_text (bool, optional): Whether to report task progress every minute.
-            Defaults to `True`.
+            Defaults to True.
         verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
