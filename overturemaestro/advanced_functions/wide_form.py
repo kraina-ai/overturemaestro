@@ -211,10 +211,10 @@ def _transform_poi_to_wide_form(
         conditions = []
 
         escaped_value = _sql_escape(column_name)
-        conditions.append(f"categories.primary = '{escaped_value}'")
+        conditions.append(f"categories.{hierarchy_columns[0]} = '{escaped_value}'")
 
         if not primary_category_only:
-            conditions.append(f"'{escaped_value}' IN categories.alternate")
+            conditions.append(f"'{escaped_value}' IN categories.{hierarchy_columns[1]}")
 
         joined_conditions = " OR ".join(conditions)
         case_clauses.append(
@@ -291,14 +291,14 @@ def _get_all_possible_column_names_for_poi(
         duckdb.sql(
             f"""
         SELECT DISTINCT
-            categories.primary as column_name
+            categories.{hierarchy_columns[0]} as column_name
         FROM read_parquet(
             '{dataset_path}',
             hive_partitioning=false
         )
         UNION
         SELECT DISTINCT
-            UNNEST(categories.alternate) as column_name
+            UNNEST(categories.{hierarchy_columns[1]}) as column_name
         FROM read_parquet(
             '{dataset_path}',
             hive_partitioning=false
