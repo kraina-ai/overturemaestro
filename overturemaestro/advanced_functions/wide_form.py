@@ -178,7 +178,7 @@ def _transform_poi_to_wide_form(
         if primary_category_only:
             available_colums_sql_query = f"""
             SELECT DISTINCT
-                categories.primary as column_name
+                categories.{hierarchy_columns[0]} as column_name
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
@@ -187,14 +187,14 @@ def _transform_poi_to_wide_form(
         else:
             available_colums_sql_query = f"""
             SELECT DISTINCT
-                categories.primary as column_name
+                categories.{hierarchy_columns[0]} as column_name
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
             )
             UNION
             SELECT DISTINCT
-                UNNEST(categories.alternate) as column_name
+                UNNEST(categories.{hierarchy_columns[1]}) as column_name
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
@@ -444,6 +444,15 @@ def get_theme_type_classification(release: str) -> dict[tuple[str, str], WideFor
     if release < "2024-08-20.0":
         classification[("transportation", "segment")] = WideFormDefinition(
             hierachy_columns=["subtype", "class"]
+        )
+
+    if release < "2024-07-22.0":
+        classification[("places", "place")] = WideFormDefinition(
+            hierachy_columns=["main", "alternate"],
+            download_parameters_preparation_function=_prepare_download_parameters_for_poi,
+            data_transform_function=_transform_poi_to_wide_form,
+            get_all_possible_column_names_function=_get_all_possible_column_names_for_poi,
+            get_wide_column_definitions_function=_get_wide_column_definitions_for_poi,
         )
 
     if release < "2024-05-16-beta.0":
