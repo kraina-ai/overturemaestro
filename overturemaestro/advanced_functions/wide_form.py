@@ -55,6 +55,7 @@ def _transform_to_wide_form(
     include_all_possible_columns: bool,
     hierarchy_columns: list[str],
     working_directory: Union[str, Path],
+    verbosity_mode: VERBOSITY_MODE,
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
@@ -69,7 +70,9 @@ def _transform_to_wide_form(
                 result += f"|{value}"
             return result
 
-        all_columns_names = load_wide_form_all_column_names_release_index(theme=theme, type=type)
+        all_columns_names = load_wide_form_all_column_names_release_index(
+            theme=theme, type=type, verbosity_mode=verbosity_mode
+        )
         all_columns_names["column_name"] = all_columns_names.apply(combine_columns, axis=1)
 
         wide_column_definitions = all_columns_names.to_dict(orient="records")
@@ -156,13 +159,16 @@ def _transform_poi_to_wide_form(
     include_all_possible_columns: bool,
     hierarchy_columns: list[str],
     working_directory: Union[str, Path],
+    verbosity_mode: VERBOSITY_MODE,
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
     primary_category_only = len(hierarchy_columns) == 1
 
     if include_all_possible_columns:
-        all_columns_names = load_wide_form_all_column_names_release_index(theme=theme, type=type)
+        all_columns_names = load_wide_form_all_column_names_release_index(
+            theme=theme, type=type, verbosity_mode=verbosity_mode
+        )
         wide_column_definitions = all_columns_names["column_name"].sort_values()
     else:
         if primary_category_only:
@@ -325,6 +331,7 @@ class DataTransformationCallable(Protocol):  # noqa: D101
         include_all_possible_columns: bool,
         hierarchy_columns: list[str],
         working_directory: Union[str, Path],
+        verbosity_mode: VERBOSITY_MODE,
     ) -> Path: ...
 
 
@@ -561,6 +568,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         include_all_possible_columns=include_all_possible_columns,
                         hierarchy_columns=hierachy_columns,
                         working_directory=tmp_dir_path,
+                        verbosity_mode=verbosity_mode,
                     )
 
             if len(theme_type_pairs) > 1:
