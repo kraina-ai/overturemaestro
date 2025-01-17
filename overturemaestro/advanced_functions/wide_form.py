@@ -173,7 +173,7 @@ def _transform_poi_to_wide_form(
             release_version=release_version,
             hierarchy_columns=hierarchy_columns,
             verbosity_mode="silent",
-        )["column_name"]
+        )["category"]
     else:
         if primary_category_only:
             available_colums_sql_query = f"""
@@ -350,8 +350,9 @@ def _get_wide_column_definitions_for_poi(
     df = load_wide_form_all_column_names_release_index(
         theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
     ).sort_values(by="column_name")
+    df = df.rename(columns = {"column_name": "category"})
 
-    df["column_name"] = f"{theme}|{type}|" + df["column_name"]
+    df["column_name"] = f"{theme}|{type}|" + df["category"]
 
     return df
 
