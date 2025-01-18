@@ -191,7 +191,9 @@ def _prepare_download_parameters_for_poi(
     import pyarrow.compute as pc
 
     category_not_null_filter = pc.invert(pc.field("categories").is_null())
-    minimal_confidence_filter = pc.field("confidence") >= pc.scalar(0.75)
+    minimal_confidence_filter = pc.field("confidence") >= pc.scalar(
+        kwargs.get("places_minimal_confidence", 0.75)
+    )
     if pyarrow_filter is not None:
         pyarrow_filter = pyarrow_filter & category_not_null_filter & minimal_confidence_filter
     else:
@@ -214,7 +216,7 @@ def _transform_poi_to_wide_form(
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
-    primary_category_only = False  # TODO: add param
+    primary_category_only = kwargs.get("places_use_primary_category_only", False)
 
     primary_category_name = "primary"
     alternate_category_name = "alternate"
@@ -233,7 +235,7 @@ def _transform_poi_to_wide_form(
         if primary_category_only:
             available_colums_sql_query = f"""
             SELECT DISTINCT
-                categories.{primary_category_name} as column_name
+                categories.{primary_category_name} as category
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
@@ -717,6 +719,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             include_all_possible_columns=include_all_possible_columns,
             hierarchy_depth=hierarchy_depth,
             pyarrow_filters=pyarrow_filters_list,
+            places_use_primary_category_only=places_use_primary_category_only,
+            places_minimal_confidence=places_minimal_confidence,
         )
 
     result_file_path = Path(result_file_path)
@@ -731,6 +735,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             hierarchy_depth=hierarchy_depth,
             pyarrow_filters=pyarrow_filters_list,
             verbosity_mode=verbosity_mode,
+            places_minimal_confidence=places_minimal_confidence,
         )
 
         hierachy_columns_list, columns_to_download_list, pyarrow_filter_list = zip(
@@ -798,6 +803,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                             hierarchy_columns=hierachy_columns,
                             working_directory=tmp_dir_path,
                             verbosity_mode=verbosity_mode,
+                            places_use_primary_category_only=places_use_primary_category_only,
                         )
 
             if len(theme_type_pairs) > 1:
@@ -1011,6 +1017,7 @@ def _generate_result_file_path(
     include_all_possible_columns: bool,
     hierarchy_depth: Optional[int],
     pyarrow_filters: Optional[list[Union["Expression", None]]],
+    **kwargs: Any,
 ) -> Path:
     import hashlib
 
@@ -1024,14 +1031,14 @@ def _generate_result_file_path(
         h.update(str(sorted(theme_type_pairs)).encode())
         directory = directory / h.hexdigest()
 
-    clipping_geometry_hash_part = _generate_geometry_hash(geometry_filter)
+    clipping_geometry_hash_part = _generate_geometry_hash(geometry_filter)[:8]
 
     pyarrow_filter_hash_part = "nofilter"
     if pyarrow_filters is not None:
         h = hashlib.new("sha256")
         for single_pyarrow_filter in pyarrow_filters:
             h.update(str(single_pyarrow_filter).encode())
-        pyarrow_filter_hash_part = h.hexdigest()
+        pyarrow_filter_hash_part = h.hexdigest()[:8]
 
     hierarchy_hash_part = ""
     if hierarchy_depth is not None:
@@ -1040,6 +1047,12 @@ def _generate_result_file_path(
     include_all_columns_hash_part = ""
     if not include_all_possible_columns:
         include_all_columns_hash_part = "_pruned"
+
+    # kwargs_hash_part = ""
+    # TODO: finish hash part
+    if kwargs:
+        h = hashlib.new("sha256")
+        h.update(str(kwargs).encode())
 
     return directory / (
         f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}"
@@ -1054,6 +1067,7 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Union["Expression", None]]] = None,
     verbosity_mode: VERBOSITY_MODE = "transient",
+    **kwargs: Any,
 ) -> list[tuple[list[str], list[str], Optional[PYARROW_FILTER]]]:
     prepared_parameters = []
     with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
@@ -1068,7 +1082,7 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
             ]
 
             depth = wide_form_definition.depth_check_function(
-                wide_form_definition.hierachy_columns, hierarchy_depth
+                wide_form_definition.hierachy_columns, hierarchy_depth, **kwargs
             )
             hierachy_columns = wide_form_definition.hierachy_columns[:depth]
             columns_to_download = hierachy_columns
@@ -1081,6 +1095,7 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
                         geometry_filter=geometry_filter,
                         hierachy_columns=hierachy_columns,
                         pyarrow_filter=single_pyarrow_filter,
+                        **kwargs,
                     )
                 )
 
