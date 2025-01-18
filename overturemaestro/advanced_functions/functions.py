@@ -51,6 +51,8 @@ def convert_geometry_to_wide_form_parquet(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -69,6 +71,8 @@ def convert_geometry_to_wide_form_parquet(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -87,6 +91,8 @@ def convert_geometry_to_wide_form_parquet(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -104,6 +110,8 @@ def convert_geometry_to_wide_form_parquet(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path:
     """
     Get GeoParquet file for a given geometry in a wide format.
@@ -141,6 +149,10 @@ def convert_geometry_to_wide_form_parquet(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only the primary category
+            for places. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -157,6 +169,8 @@ def convert_geometry_to_wide_form_parquet(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )
 
 
@@ -173,6 +187,8 @@ def convert_geometry_to_wide_form_geodataframe(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -190,6 +206,8 @@ def convert_geometry_to_wide_form_geodataframe(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -207,6 +225,8 @@ def convert_geometry_to_wide_form_geodataframe(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -223,6 +243,8 @@ def convert_geometry_to_wide_form_geodataframe(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame:
     """
     Get GeoDataFrame for a given geometry in a wide format.
@@ -257,6 +279,10 @@ def convert_geometry_to_wide_form_geodataframe(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only the primary category
+            for places. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -273,6 +299,8 @@ def convert_geometry_to_wide_form_geodataframe(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )
     return geodataframe_from_parquet(parsed_geoparquet_file)
 
@@ -288,6 +316,8 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -303,6 +333,8 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -318,6 +350,8 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -332,6 +366,8 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame:
     """
     Get GeoDataFrame for a given geometry in a wide format for all types.
@@ -364,6 +400,10 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only the primary category
+            for places. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -378,6 +418,8 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )
     return geodataframe_from_parquet(parsed_geoparquet_file)
 
@@ -394,6 +436,8 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -410,6 +454,8 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -426,6 +472,8 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -441,6 +489,8 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame:
     """
     Get GeoDataFrame for a given geometry in a wide format for multiple types.
@@ -474,6 +524,10 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only the primary category
+            for places. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -489,6 +543,8 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )
     return geodataframe_from_parquet(parsed_geoparquet_file)
 
@@ -507,6 +563,8 @@ def convert_bounding_box_to_wide_form_parquet(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -525,6 +583,8 @@ def convert_bounding_box_to_wide_form_parquet(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -543,6 +603,8 @@ def convert_bounding_box_to_wide_form_parquet(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -560,6 +622,8 @@ def convert_bounding_box_to_wide_form_parquet(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path:
     """
     Get GeoParquet file for a given bounding box in a wide format.
@@ -598,6 +662,10 @@ def convert_bounding_box_to_wide_form_parquet(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only the primary category
+            for places. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -615,6 +683,8 @@ def convert_bounding_box_to_wide_form_parquet(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )
 
 
@@ -630,6 +700,8 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -646,6 +718,8 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -662,6 +736,8 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -677,6 +753,8 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path:
     """
     Get GeoParquet file for a given bounding box in a wide format for all types.
@@ -713,6 +791,10 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only the primary category
+            for places. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -728,6 +810,8 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )
 
 
@@ -744,6 +828,8 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -761,6 +847,8 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -778,6 +866,8 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -794,6 +884,8 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path:
     """
     Get GeoParquet file for a given bounding box in a wide format for multiple types.
@@ -831,6 +923,10 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only the primary category
+            for places. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -847,6 +943,8 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )
 
 
@@ -863,6 +961,8 @@ def convert_bounding_box_to_wide_form_geodataframe(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -880,6 +980,8 @@ def convert_bounding_box_to_wide_form_geodataframe(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -897,6 +999,8 @@ def convert_bounding_box_to_wide_form_geodataframe(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -913,6 +1017,8 @@ def convert_bounding_box_to_wide_form_geodataframe(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame:
     """
     Get GeoDataFrame for a given bounding box in a wide format.
@@ -948,6 +1054,10 @@ def convert_bounding_box_to_wide_form_geodataframe(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only the primary category
+            for places. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -964,6 +1074,8 @@ def convert_bounding_box_to_wide_form_geodataframe(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )
 
 
@@ -978,6 +1090,8 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -993,6 +1107,8 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -1008,6 +1124,8 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -1022,6 +1140,8 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame:
     """
     Get GeoDataFrame for a given bounding box in a wide format for all types.
@@ -1055,6 +1175,10 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only the primary category
+            for places. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -1069,6 +1193,8 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )
 
 
@@ -1084,6 +1210,8 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -1100,6 +1228,8 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -1116,6 +1246,8 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame: ...
 
 
@@ -1131,6 +1263,8 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> gpd.GeoDataFrame:
     """
     Get GeoDataFrame for a given bounding box in a wide format for multiple types.
@@ -1165,6 +1299,10 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only the primary category
+            for places. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with Overture Maps features.
@@ -1180,4 +1318,6 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )

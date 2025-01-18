@@ -6,7 +6,7 @@ import warnings
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Protocol, Union, overload
+from typing import TYPE_CHECKING, Any, Optional, Protocol, Union, overload
 
 import numpy as np
 import pandas as pd
@@ -50,7 +50,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from pyarrow.compute import Expression
 
 
-def _check_depth_for_wide_form(hierarchy_columns: list[str], depth: Optional[int] = None) -> int:
+def _check_depth_for_wide_form(
+    hierarchy_columns: list[str], depth: Optional[int] = None, **kwargs: Any
+) -> int:
     depth = depth if depth is not None else len(hierarchy_columns)
 
     if depth < 0:
@@ -79,6 +81,7 @@ def _transform_to_wide_form(
     hierarchy_columns: list[str],
     working_directory: Union[str, Path],
     verbosity_mode: VERBOSITY_MODE,
+    **kwargs: Any,
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
@@ -150,6 +153,7 @@ def _transform_to_wide_form_without_hierarchy(
     parquet_file: Path,
     output_path: Path,
     working_directory: Union[str, Path],
+    **kwargs: Any,
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
@@ -180,6 +184,7 @@ def _prepare_download_parameters_for_poi(
     geometry_filter: BaseGeometry,
     hierachy_columns: list[str],
     pyarrow_filter: Optional["Expression"] = None,
+    **kwargs: Any,
 ) -> tuple[list[str], Optional["Expression"]]:
     # TODO: swap to dedicated function?
     # TODO: add option to change minimal confidence
@@ -205,6 +210,7 @@ def _transform_poi_to_wide_form(
     hierarchy_columns: list[str],
     working_directory: Union[str, Path],
     verbosity_mode: VERBOSITY_MODE,
+    **kwargs: Any,
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
@@ -295,7 +301,7 @@ def _transform_poi_to_wide_form(
 
 
 def _get_all_possible_column_names(
-    theme: str, type: str, release_version: str, hierarchy_columns: list[str]
+    theme: str, type: str, release_version: str, hierarchy_columns: list[str], **kwargs: Any
 ) -> "DataFrame":
     import duckdb
 
@@ -325,7 +331,7 @@ def _get_all_possible_column_names(
 
 
 def _get_all_possible_column_names_for_poi(
-    theme: str, type: str, release_version: str, hierarchy_columns: list[str]
+    theme: str, type: str, release_version: str, hierarchy_columns: list[str], **kwargs: Any
 ) -> "DataFrame":
     import duckdb
 
@@ -400,6 +406,7 @@ def _get_wide_column_definitions(
     release_version: str,
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
+    **kwargs: Any,
 ) -> "DataFrame":
     if not hierarchy_columns:
         return pd.DataFrame(dict(column_name=[f"{theme}|{type}"]))
@@ -435,6 +442,7 @@ def _get_wide_column_definitions_for_poi(
     release_version: str,
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
+    **kwargs: Any,
 ) -> "DataFrame":
     if not hierarchy_columns:
         return pd.DataFrame(dict(column_name=[f"{theme}|{type}"]))
@@ -464,12 +472,16 @@ class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
         geometry_filter: BaseGeometry,
         hierachy_columns: list[str],
         pyarrow_filter: Optional["Expression"] = None,
+        **kwargs: Any,
     ) -> tuple[list[str], Optional["Expression"]]: ...
 
 
 class DepthCheckCallable(Protocol):  # noqa: D101
     def __call__(  # noqa: D102
-        self, hierarchy_columns: list[str], depth: Optional[int] = None
+        self,
+        hierarchy_columns: list[str],
+        depth: Optional[int] = None,
+        **kwargs: Any,
     ) -> int: ...
 
 
@@ -485,12 +497,18 @@ class DataTransformationCallable(Protocol):  # noqa: D101
         hierarchy_columns: list[str],
         working_directory: Union[str, Path],
         verbosity_mode: VERBOSITY_MODE,
+        **kwargs: Any,
     ) -> Path: ...
 
 
 class GetAllPossibleColumnNamesCallable(Protocol):  # noqa: D101
     def __call__(  # noqa: D102
-        self, theme: str, type: str, release_version: str, hierarchy_columns: list[str]
+        self,
+        theme: str,
+        type: str,
+        release_version: str,
+        hierarchy_columns: list[str],
+        **kwargs: Any,
     ) -> "DataFrame": ...
 
 
@@ -502,6 +520,7 @@ class GetWideColumnDefinitionsCallable(Protocol):  # noqa: D101
         release_version: str,
         hierarchy_columns: list[str],
         verbosity_mode: VERBOSITY_MODE,
+        **kwargs: Any,
     ) -> "DataFrame": ...
 
 
@@ -570,6 +589,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -587,6 +608,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -604,6 +627,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -621,6 +646,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path:
     """
     Get GeoParquet file for a given geometry in a wide format for multiple types.
@@ -657,6 +684,10 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only primary category
+            from the places dataset. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -795,6 +826,8 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -811,6 +844,8 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -827,6 +862,8 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -842,6 +879,8 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path:
     """
     Get GeoParquet file for a given geometry in a wide format for all types.
@@ -877,6 +916,10 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only primary category
+            from the places dataset. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -896,6 +939,8 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )
 
 
