@@ -142,7 +142,7 @@ def test_all_theme_type_pairs(
     [("base", "water"), ("base", "land_cover")],
     None,
     2,
-    pytest.raises(ValueError),
+    pytest.warns(HierarchyDepthOutOfBoundsWarning),
 )  # type: ignore
 def test_multiple_theme_type_pairs(
     test_release_version: str,
