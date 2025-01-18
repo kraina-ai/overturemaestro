@@ -2,6 +2,7 @@
 
 import json
 import tempfile
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Protocol, Union, overload
@@ -15,7 +16,10 @@ from rich import print as rprint
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
-from overturemaestro._exceptions import HierarchyDepthOutOfBoundsError
+from overturemaestro._exceptions import (
+    HierarchyDepthOutOfBoundsWarning,
+    NegativeHierarchyDepthError,
+)
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
 from overturemaestro.cache import (
     _get_global_wide_form_release_cache_directory,
@@ -47,10 +51,18 @@ if TYPE_CHECKING:  # pragma: no cover
 def _check_depth_for_wide_form(hierarchy_columns: list[str], depth: Optional[int] = None) -> int:
     depth = depth if depth is not None else len(hierarchy_columns)
 
-    if depth < 1 or depth > len(hierarchy_columns):
-        raise HierarchyDepthOutOfBoundsError(
-            f"Provided hierarchy depth is out of bounds (valid: 1 - {len(hierarchy_columns)})"
+    if depth < 0:
+        raise NegativeHierarchyDepthError("Hierarchy depth cannot be negative")
+    elif depth > len(hierarchy_columns):
+        warnings.warn(
+            (
+                f"Provided hierarchy depth is out of bounds (valid: 0 - {len(hierarchy_columns)})."
+                f" Value will be clipped to {len(hierarchy_columns)}."
+            ),
+            HierarchyDepthOutOfBoundsWarning,
+            stacklevel=0,
         )
+        depth = len(hierarchy_columns)
 
     return depth
 
@@ -129,6 +141,34 @@ def _transform_to_wide_form(
 
     return output_path
 
+def _transform_to_wide_form_without_hierarchy(
+    theme: str,
+    type: str,
+    parquet_file: Path,
+    output_path: Path,
+    working_directory: Union[str, Path],
+) -> Path:
+    connection = _set_up_duckdb_connection(working_directory)
+
+    query = f"""
+    COPY (
+        SELECT
+            id,
+            geometry,
+            true as "{theme}|{type}"
+        FROM read_parquet(
+            '{parquet_file}',
+            hive_partitioning=false
+        )
+    ) TO '{output_path}' (
+        FORMAT 'parquet',
+        PER_THREAD_OUTPUT false
+    )
+    """
+
+    connection.execute(query)
+
+    return output_path
 
 def _prepare_download_parameters_for_poi(
     theme: str,
@@ -148,7 +188,7 @@ def _prepare_download_parameters_for_poi(
     else:
         pyarrow_filter = category_not_null_filter & minimal_confidence_filter
 
-    return (["categories"], pyarrow_filter)
+    return (["categories"] if hierachy_columns else [], pyarrow_filter)
 
 
 def _transform_poi_to_wide_form(
@@ -319,6 +359,9 @@ def _get_wide_column_definitions(
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> "DataFrame":
+    if not hierarchy_columns:
+        return pd.DataFrame(dict(column_name=[f"{theme}|{type}"]))
+
     def combine_columns(row: pd.Series) -> str:
         result = f"{theme}|{type}"
         for column_name in hierarchy_columns:
@@ -347,6 +390,9 @@ def _get_wide_column_definitions_for_poi(
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> "DataFrame":
+    if not hierarchy_columns:
+        return pd.DataFrame(dict(column_name=[f"{theme}|{type}"]))
+
     df = (
         load_wide_form_all_column_names_release_index(
             theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
@@ -660,17 +706,26 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                     if len(theme_type_pairs) == 1:
                         output_path = result_file_path
 
-                    wide_form_definition.data_transform_function(
-                        theme=theme_value,
-                        type=type_value,
-                        release_version=release,
-                        parquet_file=downloaded_parquet_file,
-                        output_path=output_path,
-                        include_all_possible_columns=include_all_possible_columns,
-                        hierarchy_columns=hierachy_columns,
-                        working_directory=tmp_dir_path,
-                        verbosity_mode=verbosity_mode,
-                    )
+                    if not hierachy_columns:
+                        _transform_to_wide_form_without_hierarchy(
+                            theme=theme_value,
+                            type=type_value,
+                            parquet_file=downloaded_parquet_file,
+                            output_path=output_path,
+                            working_directory=tmp_dir_path,
+                        )
+                    else:
+                        wide_form_definition.data_transform_function(
+                            theme=theme_value,
+                            type=type_value,
+                            release_version=release,
+                            parquet_file=downloaded_parquet_file,
+                            output_path=output_path,
+                            include_all_possible_columns=include_all_possible_columns,
+                            hierarchy_columns=hierachy_columns,
+                            working_directory=tmp_dir_path,
+                            verbosity_mode=verbosity_mode,
+                        )
 
             if len(theme_type_pairs) > 1:
                 with TrackProgressSpinner(
