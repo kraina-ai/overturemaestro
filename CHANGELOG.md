@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added option to use any non-negative integer as a `hierarchy_depth` value for wide form processing [#64](https://github.com/kraina-ai/overturemaestro/issues/64)
 
+### Fixed
+
+- Bug where a constant value has been overwritten instead of being copied before modifying
+
 ## [0.2.3] - 2025-01-17
 
 ### Fixed
