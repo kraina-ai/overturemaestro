@@ -7,7 +7,10 @@ from typing import Any, Optional
 import pytest
 from parametrization import Parametrization as P
 
-from overturemaestro._exceptions import HierarchyDepthOutOfBoundsError
+from overturemaestro._exceptions import (
+    HierarchyDepthOutOfBoundsWarning,
+    NegativeHierarchyDepthError,
+)
 from overturemaestro.advanced_functions import (
     convert_bounding_box_to_wide_form_geodataframe,
     convert_bounding_box_to_wide_form_geodataframe_for_all_types,
@@ -139,7 +142,7 @@ def test_all_theme_type_pairs(
     [("base", "water"), ("base", "land_cover")],
     None,
     2,
-    pytest.raises(ValueError),
+    pytest.warns(HierarchyDepthOutOfBoundsWarning),
 )  # type: ignore
 def test_multiple_theme_type_pairs(
     test_release_version: str,
@@ -174,10 +177,11 @@ def test_multiple_theme_type_pairs(
 
 @P.parameters("hierarchy_value", "theme_type_pair", "expectation")  # type: ignore
 @P.case("Empty value", None, ("base", "water"), does_not_raise())  # type: ignore
-@P.case("Zero", 0, ("base", "water"), pytest.raises(HierarchyDepthOutOfBoundsError))  # type: ignore
+@P.case("Zero", 0, ("base", "water"), does_not_raise())  # type: ignore
+@P.case("Negative", -1, ("base", "water"), pytest.raises(NegativeHierarchyDepthError))  # type: ignore
 @P.case("First value", 1, ("base", "water"), does_not_raise())  # type: ignore
 @P.case("Second value", 2, ("base", "water"), does_not_raise())  # type: ignore
-@P.case("Third value", 3, ("base", "water"), pytest.raises(HierarchyDepthOutOfBoundsError))  # type: ignore
+@P.case("Third value", 3, ("base", "water"), pytest.warns(HierarchyDepthOutOfBoundsWarning))  # type: ignore
 def test_hierarchy_values(
     test_release_version: str,
     wide_form_working_directory: Path,
