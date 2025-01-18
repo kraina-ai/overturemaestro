@@ -209,13 +209,15 @@ def test_hierarchy_values(
         assert all("|" in column_name for column_name in feature_columns)
         assert (gdf.dtypes.loc[feature_columns] == "bool").all()
 
-
+@pytest.mark.parametrize(
+    "theme_type_pair",
+    [("places", "place"), ("base", "water")],
+)  # type: ignore
 def test_include_all_possible_columns_parameter(
-    test_release_version: str, wide_form_working_directory: Path
+    test_release_version: str, wide_form_working_directory: Path, theme_type_pair: tuple[str, str]
 ) -> None:
     """Check if include_all_possible_columns works as intended."""
-    theme_value = "places"
-    type_value = "place"
+    theme_value, type_value = theme_type_pair
     pruned_dataset = convert_bounding_box_to_wide_form_geodataframe(
         theme=theme_value,
         type=type_value,
