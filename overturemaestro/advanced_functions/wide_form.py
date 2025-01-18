@@ -492,7 +492,7 @@ THEME_TYPE_CLASSIFICATION: dict[tuple[str, str], WideFormDefinition] = {
 
 
 def get_theme_type_classification(release: str) -> dict[tuple[str, str], WideFormDefinition]:
-    classification = THEME_TYPE_CLASSIFICATION
+    classification = THEME_TYPE_CLASSIFICATION.copy()
     # start from the newest release
 
     if release < "2024-08-20.0":

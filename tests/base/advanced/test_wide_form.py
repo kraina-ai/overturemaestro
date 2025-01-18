@@ -22,6 +22,7 @@ from overturemaestro.advanced_functions.wide_form import (
     get_theme_type_classification,
 )
 from overturemaestro.data_downloader import PYARROW_FILTER
+from overturemaestro.release_index import MINIMAL_SUPPORTED_RELEASE_VERSION
 from tests.conftest import TEST_RELEASE_VERSION, bbox
 
 
@@ -210,12 +211,15 @@ def test_hierarchy_values(
         assert (gdf.dtypes.loc[feature_columns] == "bool").all()
 
 
+@pytest.mark.parametrize(
+    "theme_type_pair",
+    [("places", "place"), ("base", "water")],
+)  # type: ignore
 def test_include_all_possible_columns_parameter(
-    test_release_version: str, wide_form_working_directory: Path
+    test_release_version: str, wide_form_working_directory: Path, theme_type_pair: tuple[str, str]
 ) -> None:
     """Check if include_all_possible_columns works as intended."""
-    theme_value = "places"
-    type_value = "place"
+    theme_value, type_value = theme_type_pair
     pruned_dataset = convert_bounding_box_to_wide_form_geodataframe(
         theme=theme_value,
         type=type_value,
@@ -273,3 +277,17 @@ def test_empty_region(
 
     assert gdf.empty
     assert set(gdf.columns) == all_possible_columns
+
+
+def test_old_version(
+    wide_form_working_directory: Path,
+) -> None:
+    """Test if oldest supported version is working."""
+    convert_bounding_box_to_wide_form_geodataframe_for_all_types(
+        bbox=bbox(),
+        release=MINIMAL_SUPPORTED_RELEASE_VERSION,
+        working_directory=wide_form_working_directory,
+        verbosity_mode="verbose",
+        ignore_cache=False,
+        include_all_possible_columns=False,
+    )
