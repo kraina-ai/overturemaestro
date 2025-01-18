@@ -124,13 +124,14 @@ plugins:
           paths: [overturemaestro]
           options:
             show_source: true
-            show_root_heading: false
+            show_root_heading: true
             show_root_toc_entry: false
             docstring_section_style: "spacy"
             show_signature: true
-            show_signature_annotations: false
-            line_length: 60
-            members_order: "source"
+            separate_signature: true
+            show_signature_annotations: true
+            line_length: 80
+            members_order: "alphabetical"
             docstring_options:
               ignore_init_summary: true
             merge_init_into_class: true
