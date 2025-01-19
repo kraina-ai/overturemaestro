@@ -848,7 +848,7 @@ def _generate_result_file_path(
 ) -> Path:
     import hashlib
 
-    clipping_geometry_hash_part = _generate_geometry_hash(geometry_filter)[:8]
+    clipping_geometry_hash_part = _generate_geometry_hash(geometry_filter)
 
     pyarrow_filter_hash_part = "nofilter"
     if pyarrow_filter is not None:
@@ -880,7 +880,7 @@ def _generate_geometry_hash(geometry_filter: "BaseGeometry") -> str:
     h.update(wktlib.dumps(oriented_geometry).encode())
     clipping_geometry_hash_part = h.hexdigest()
 
-    return clipping_geometry_hash_part
+    return clipping_geometry_hash_part[:8]
 
 
 def _get_oriented_geometry_filter(geometry_filter: "BaseGeometry") -> "BaseGeometry":

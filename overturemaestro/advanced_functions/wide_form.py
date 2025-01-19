@@ -1031,7 +1031,7 @@ def _generate_result_file_path(
         h.update(str(sorted(theme_type_pairs)).encode())
         directory = directory / h.hexdigest()
 
-    clipping_geometry_hash_part = _generate_geometry_hash(geometry_filter)[:8]
+    clipping_geometry_hash_part = _generate_geometry_hash(geometry_filter)
 
     pyarrow_filter_hash_part = "nofilter"
     if pyarrow_filters is not None:
