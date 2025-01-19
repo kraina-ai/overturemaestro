@@ -1049,8 +1049,9 @@ def _generate_result_file_path(
         include_all_columns_hash_part = "_pruned"
 
     h = hashlib.new("sha256")
-    h.update(str(sorted(kwargs)).encode())
+    h.update(str(sorted(kwargs.items())).encode())
     kwargs_hash_part = h.hexdigest()[:8]
+    print(kwargs, kwargs_hash_part)
 
     return directory / (
         f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}_{kwargs_hash_part}"
