@@ -1048,14 +1048,12 @@ def _generate_result_file_path(
     if not include_all_possible_columns:
         include_all_columns_hash_part = "_pruned"
 
-    # kwargs_hash_part = ""
-    # TODO: finish hash part
-    if kwargs:
-        h = hashlib.new("sha256")
-        h.update(str(kwargs).encode())
+    h = hashlib.new("sha256")
+    h.update(str(sorted(kwargs)).encode())
+    kwargs_hash_part = h.hexdigest()[:8]
 
     return directory / (
-        f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}"
+        f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}_{kwargs_hash_part}"
         f"_wide_form{hierarchy_hash_part}{include_all_columns_hash_part}.parquet"
     )
 
