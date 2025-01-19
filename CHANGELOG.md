@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2025-01-19
+
 ### Added
 
 - Places hierarchy based on the official taxonomy [#63](https://github.com/kraina-ai/overturemaestro/issues/63)
@@ -134,7 +136,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.2.3...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.2.4...HEAD
+
+[0.2.4]: https://github.com/kraina-ai/overturemaestro/compare/0.2.3...0.2.4
 
 [0.2.3]: https://github.com/kraina-ai/overturemaestro/compare/0.2.2...0.2.3
 
