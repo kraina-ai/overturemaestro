@@ -1005,7 +1005,7 @@ def get_all_possible_column_names(
             hierarchy_columns=hierachy_columns,
             verbosity_mode=verbosity_mode,
         )
-        columns.extend(df["column_name"])
+        columns.extend(df["column_name"].unique())
 
     return sorted(columns)
 
