@@ -4,9 +4,11 @@ import json
 import tempfile
 import warnings
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Protocol, Union, overload
+from typing import TYPE_CHECKING, Any, Optional, Protocol, Union, overload
 
+import numpy as np
 import pandas as pd
 from fsspec.implementations.http import HTTPFileSystem
 from pooch import file_hash, retrieve
@@ -48,7 +50,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from pyarrow.compute import Expression
 
 
-def _check_depth_for_wide_form(hierarchy_columns: list[str], depth: Optional[int] = None) -> int:
+def _check_depth_for_wide_form(
+    hierarchy_columns: list[str], depth: Optional[int] = None, **kwargs: Any
+) -> int:
     depth = depth if depth is not None else len(hierarchy_columns)
 
     if depth < 0:
@@ -77,6 +81,7 @@ def _transform_to_wide_form(
     hierarchy_columns: list[str],
     working_directory: Union[str, Path],
     verbosity_mode: VERBOSITY_MODE,
+    **kwargs: Any,
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
@@ -141,12 +146,14 @@ def _transform_to_wide_form(
 
     return output_path
 
+
 def _transform_to_wide_form_without_hierarchy(
     theme: str,
     type: str,
     parquet_file: Path,
     output_path: Path,
     working_directory: Union[str, Path],
+    **kwargs: Any,
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
@@ -170,19 +177,23 @@ def _transform_to_wide_form_without_hierarchy(
 
     return output_path
 
+
 def _prepare_download_parameters_for_poi(
     theme: str,
     type: str,
     geometry_filter: BaseGeometry,
     hierachy_columns: list[str],
     pyarrow_filter: Optional["Expression"] = None,
+    **kwargs: Any,
 ) -> tuple[list[str], Optional["Expression"]]:
     # TODO: swap to dedicated function?
     # TODO: add option to change minimal confidence
     import pyarrow.compute as pc
 
     category_not_null_filter = pc.invert(pc.field("categories").is_null())
-    minimal_confidence_filter = pc.field("confidence") >= pc.scalar(0.75)
+    minimal_confidence_filter = pc.field("confidence") >= pc.scalar(
+        kwargs.get("places_minimal_confidence", 0.75)
+    )
     if pyarrow_filter is not None:
         pyarrow_filter = pyarrow_filter & category_not_null_filter & minimal_confidence_filter
     else:
@@ -201,24 +212,30 @@ def _transform_poi_to_wide_form(
     hierarchy_columns: list[str],
     working_directory: Union[str, Path],
     verbosity_mode: VERBOSITY_MODE,
+    **kwargs: Any,
 ) -> Path:
     connection = _set_up_duckdb_connection(working_directory)
 
-    primary_category_only = len(hierarchy_columns) == 1
+    primary_category_only = kwargs.get("places_use_primary_category_only", False)
 
-    if include_all_possible_columns:
-        wide_column_definitions = _get_wide_column_definitions_for_poi(
-            theme=theme,
-            type=type,
-            release_version=release_version,
-            hierarchy_columns=hierarchy_columns,
-            verbosity_mode="silent",
-        )["category"]
-    else:
+    primary_category_name = "primary"
+    alternate_category_name = "alternate"
+    if release_version < "2024-07-22.0":
+        primary_category_name = "main"
+
+    wide_column_definitions = _get_wide_column_definitions_for_poi(
+        theme=theme,
+        type=type,
+        release_version=release_version,
+        hierarchy_columns=hierarchy_columns,
+        verbosity_mode="silent",
+    )
+
+    if not include_all_possible_columns:
         if primary_category_only:
             available_colums_sql_query = f"""
             SELECT DISTINCT
-                categories.{hierarchy_columns[0]} as column_name
+                categories.{primary_category_name} as category
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
@@ -227,39 +244,42 @@ def _transform_poi_to_wide_form(
         else:
             available_colums_sql_query = f"""
             SELECT DISTINCT
-                categories.{hierarchy_columns[0]} as column_name
+                categories.{primary_category_name} as category
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
             )
             UNION
             SELECT DISTINCT
-                UNNEST(categories.{hierarchy_columns[1]}) as column_name
+                UNNEST(categories.{alternate_category_name}) as category
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
             )
             """
 
-        wide_column_definitions = (
-            connection.sql(available_colums_sql_query).fetchdf()["column_name"].sort_values()
+        existing_category_names = (
+            connection.sql(available_colums_sql_query).fetchdf()["category"].sort_values()
         )
+        wide_column_definitions = wide_column_definitions[
+            wide_column_definitions["category"].isin(existing_category_names)
+        ]
 
     case_clauses = []
 
-    for column_name in wide_column_definitions:
+    for column_name, categories_list in (
+        wide_column_definitions.groupby("column_name")["category"].agg(list).to_dict().items()
+    ):
         conditions = []
+        for category_name in categories_list:
+            escaped_value = _sql_escape(category_name)
+            conditions.append(f"categories.{primary_category_name} = '{escaped_value}'")
 
-        escaped_value = _sql_escape(column_name)
-        conditions.append(f"categories.{hierarchy_columns[0]} = '{escaped_value}'")
-
-        if not primary_category_only:
-            conditions.append(f"'{escaped_value}' IN categories.{hierarchy_columns[1]}")
+            if not primary_category_only:
+                conditions.append(f"'{escaped_value}' IN categories.{alternate_category_name}")
 
         joined_conditions = " OR ".join(conditions)
-        case_clauses.append(
-            f'COALESCE(({joined_conditions}), False) AS "{theme}|{type}|{column_name}"'
-        )
+        case_clauses.append(f'COALESCE(({joined_conditions}), False) AS "{column_name}"')
 
     query = f"""
     COPY (
@@ -283,7 +303,7 @@ def _transform_poi_to_wide_form(
 
 
 def _get_all_possible_column_names(
-    theme: str, type: str, release_version: str, hierarchy_columns: list[str]
+    theme: str, type: str, release_version: str, hierarchy_columns: list[str], **kwargs: Any
 ) -> "DataFrame":
     import duckdb
 
@@ -313,7 +333,7 @@ def _get_all_possible_column_names(
 
 
 def _get_all_possible_column_names_for_poi(
-    theme: str, type: str, release_version: str, hierarchy_columns: list[str]
+    theme: str, type: str, release_version: str, hierarchy_columns: list[str], **kwargs: Any
 ) -> "DataFrame":
     import duckdb
 
@@ -327,18 +347,23 @@ def _get_all_possible_column_names_for_poi(
         f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
     )
 
-    return (
+    primary_category_name = "primary"
+    alternate_category_name = "alternate"
+    if release_version < "2024-07-22.0":
+        primary_category_name = "main"
+
+    df = (
         duckdb.sql(
             f"""
         SELECT DISTINCT
-            categories.{hierarchy_columns[0]} as column_name
+            categories.{primary_category_name} as column_name
         FROM read_parquet(
             '{dataset_path}',
             hive_partitioning=false
         )
         UNION
         SELECT DISTINCT
-            UNNEST(categories.{hierarchy_columns[1]}) as column_name
+            UNNEST(categories.{alternate_category_name}) as column_name
         FROM read_parquet(
             '{dataset_path}',
             hive_partitioning=false
@@ -351,6 +376,31 @@ def _get_all_possible_column_names_for_poi(
         .reset_index(drop=True)
     )
 
+    hierarchy_data = pd.read_csv(
+        # List of all possible places values on CC-BY-SA 4.0 license
+        # provided by Overture Maps Foundation
+        "https://raw.githubusercontent.com/OvertureMaps/schema/refs/heads/main/docs/schema/concepts/by-theme/places/overture_categories.csv",
+        sep=";",
+        names=["category", "hierarchy"],
+        skiprows=1,
+    )
+    hierarchy_split = (
+        hierarchy_data["hierarchy"].str.strip().str[1:-1].str.split(",").apply(pd.Series)
+    )
+
+    hierarchy_split.columns = [str(i + 1) for i in range(hierarchy_split.shape[1])]
+
+    # Concatenate the original dataframe with the new hierarchy columns
+    data_split = pd.concat([hierarchy_data[["category"]], hierarchy_split], axis=1)
+
+    rows = data_split.to_dict(orient="records")
+
+    for category_name in df["column_name"]:
+        if category_name not in data_split["category"].values:
+            rows.append({"category": category_name, "1": category_name})
+
+    return pd.DataFrame(rows).replace({np.nan: None})
+
 
 def _get_wide_column_definitions(
     theme: str,
@@ -358,18 +408,10 @@ def _get_wide_column_definitions(
     release_version: str,
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
+    **kwargs: Any,
 ) -> "DataFrame":
     if not hierarchy_columns:
         return pd.DataFrame(dict(column_name=[f"{theme}|{type}"]))
-
-    def combine_columns(row: pd.Series) -> str:
-        result = f"{theme}|{type}"
-        for column_name in hierarchy_columns:
-            value = row[column_name]
-            if value is None:
-                break
-            result += f"|{value}"
-        return result
 
     all_columns_names = load_wide_form_all_column_names_release_index(
         theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
@@ -379,8 +421,21 @@ def _get_wide_column_definitions(
         all_columns_names = all_columns_names.drop(
             columns=columns_not_in_hierarchy
         ).drop_duplicates()
-    all_columns_names["column_name"] = all_columns_names.apply(combine_columns, axis=1)
+    combine_columns_fn = partial(
+        _combine_columns, theme=theme, type=type, hierarchy_columns=hierarchy_columns
+    )
+    all_columns_names["column_name"] = all_columns_names.apply(combine_columns_fn, axis=1)
     return all_columns_names.sort_values(by="column_name")
+
+
+def _combine_columns(row: pd.Series, theme: str, type: str, hierarchy_columns: list[str]) -> str:
+    result = f"{theme}|{type}"
+    for column_name in hierarchy_columns:
+        value = row[column_name]
+        if value is None:
+            break
+        result += f"|{value}"
+    return result
 
 
 def _get_wide_column_definitions_for_poi(
@@ -389,21 +444,26 @@ def _get_wide_column_definitions_for_poi(
     release_version: str,
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
+    **kwargs: Any,
 ) -> "DataFrame":
     if not hierarchy_columns:
         return pd.DataFrame(dict(column_name=[f"{theme}|{type}"]))
 
-    df = (
-        load_wide_form_all_column_names_release_index(
-            theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
-        )
-        .sort_values(by="column_name")
-        .rename(columns={"column_name": "category"})
+    all_columns_names = load_wide_form_all_column_names_release_index(
+        theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
     )
-
-    df["column_name"] = f"{theme}|{type}|" + df["category"]
-
-    return df
+    columns_not_in_hierarchy = [
+        c for c in all_columns_names.columns if c != "category" and c not in hierarchy_columns
+    ]
+    if columns_not_in_hierarchy:
+        all_columns_names = all_columns_names.drop(
+            columns=columns_not_in_hierarchy
+        ).drop_duplicates()
+    combine_columns_fn = partial(
+        _combine_columns, theme=theme, type=type, hierarchy_columns=hierarchy_columns
+    )
+    all_columns_names["column_name"] = all_columns_names.apply(combine_columns_fn, axis=1)
+    return all_columns_names.sort_values(by="column_name")
 
 
 class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
@@ -414,12 +474,16 @@ class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
         geometry_filter: BaseGeometry,
         hierachy_columns: list[str],
         pyarrow_filter: Optional["Expression"] = None,
+        **kwargs: Any,
     ) -> tuple[list[str], Optional["Expression"]]: ...
 
 
 class DepthCheckCallable(Protocol):  # noqa: D101
     def __call__(  # noqa: D102
-        self, hierarchy_columns: list[str], depth: Optional[int] = None
+        self,
+        hierarchy_columns: list[str],
+        depth: Optional[int] = None,
+        **kwargs: Any,
     ) -> int: ...
 
 
@@ -435,12 +499,18 @@ class DataTransformationCallable(Protocol):  # noqa: D101
         hierarchy_columns: list[str],
         working_directory: Union[str, Path],
         verbosity_mode: VERBOSITY_MODE,
+        **kwargs: Any,
     ) -> Path: ...
 
 
 class GetAllPossibleColumnNamesCallable(Protocol):  # noqa: D101
     def __call__(  # noqa: D102
-        self, theme: str, type: str, release_version: str, hierarchy_columns: list[str]
+        self,
+        theme: str,
+        type: str,
+        release_version: str,
+        hierarchy_columns: list[str],
+        **kwargs: Any,
     ) -> "DataFrame": ...
 
 
@@ -452,6 +522,7 @@ class GetWideColumnDefinitionsCallable(Protocol):  # noqa: D101
         release_version: str,
         hierarchy_columns: list[str],
         verbosity_mode: VERBOSITY_MODE,
+        **kwargs: Any,
     ) -> "DataFrame": ...
 
 
@@ -481,7 +552,7 @@ THEME_TYPE_CLASSIFICATION: dict[tuple[str, str], WideFormDefinition] = {
         hierachy_columns=["subtype", "class", "subclass"]
     ),
     ("places", "place"): WideFormDefinition(
-        hierachy_columns=["primary", "alternate"],
+        hierachy_columns=["1", "2", "3", "4", "5", "6"],  # 6 IS A MAX DEPTH
         download_parameters_preparation_function=_prepare_download_parameters_for_poi,
         data_transform_function=_transform_poi_to_wide_form,
         get_all_possible_column_names_function=_get_all_possible_column_names_for_poi,
@@ -498,15 +569,6 @@ def get_theme_type_classification(release: str) -> dict[tuple[str, str], WideFor
     if release < "2024-08-20.0":
         classification[("transportation", "segment")] = WideFormDefinition(
             hierachy_columns=["subtype", "class"]
-        )
-
-    if release < "2024-07-22.0":
-        classification[("places", "place")] = WideFormDefinition(
-            hierachy_columns=["main", "alternate"],
-            download_parameters_preparation_function=_prepare_download_parameters_for_poi,
-            data_transform_function=_transform_poi_to_wide_form,
-            get_all_possible_column_names_function=_get_all_possible_column_names_for_poi,
-            get_wide_column_definitions_function=_get_wide_column_definitions_for_poi,
         )
 
     if release < "2024-05-16-beta.0":
@@ -529,6 +591,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -546,6 +610,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -563,6 +629,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -580,6 +648,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path:
     """
     Get GeoParquet file for a given geometry in a wide format for multiple types.
@@ -616,6 +686,10 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only primary category
+            from the places dataset. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -645,6 +719,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             include_all_possible_columns=include_all_possible_columns,
             hierarchy_depth=hierarchy_depth,
             pyarrow_filters=pyarrow_filters_list,
+            places_use_primary_category_only=places_use_primary_category_only,
+            places_minimal_confidence=places_minimal_confidence,
         )
 
     result_file_path = Path(result_file_path)
@@ -658,6 +734,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             geometry_filter=geometry_filter,
             hierarchy_depth=hierarchy_depth,
             pyarrow_filters=pyarrow_filters_list,
+            verbosity_mode=verbosity_mode,
+            places_minimal_confidence=places_minimal_confidence,
         )
 
         hierachy_columns_list, columns_to_download_list, pyarrow_filter_list = zip(
@@ -725,6 +803,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                             hierarchy_columns=hierachy_columns,
                             working_directory=tmp_dir_path,
                             verbosity_mode=verbosity_mode,
+                            places_use_primary_category_only=places_use_primary_category_only,
                         )
 
             if len(theme_type_pairs) > 1:
@@ -753,6 +832,8 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -769,6 +850,8 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -785,6 +868,8 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path: ...
 
 
@@ -800,6 +885,8 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    places_use_primary_category_only: bool = False,
+    places_minimal_confidence: float = 0.75,
 ) -> Path:
     """
     Get GeoParquet file for a given geometry in a wide format for all types.
@@ -835,6 +922,10 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        places_use_primary_category_only (bool, optional): Whether to use only primary category
+            from the places dataset. Defaults to False.
+        places_minimal_confidence (float, optional): Minimal confidence level for the places
+            dataset. Defaults to 0.75.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -854,6 +945,8 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        places_use_primary_category_only=places_use_primary_category_only,
+        places_minimal_confidence=places_minimal_confidence,
     )
 
 
@@ -912,7 +1005,7 @@ def get_all_possible_column_names(
             hierarchy_columns=hierachy_columns,
             verbosity_mode=verbosity_mode,
         )
-        columns.extend(df["column_name"])
+        columns.extend(df["column_name"].unique())
 
     return sorted(columns)
 
@@ -924,6 +1017,7 @@ def _generate_result_file_path(
     include_all_possible_columns: bool,
     hierarchy_depth: Optional[int],
     pyarrow_filters: Optional[list[Union["Expression", None]]],
+    **kwargs: Any,
 ) -> Path:
     import hashlib
 
@@ -944,7 +1038,7 @@ def _generate_result_file_path(
         h = hashlib.new("sha256")
         for single_pyarrow_filter in pyarrow_filters:
             h.update(str(single_pyarrow_filter).encode())
-        pyarrow_filter_hash_part = h.hexdigest()
+        pyarrow_filter_hash_part = h.hexdigest()[:8]
 
     hierarchy_hash_part = ""
     if hierarchy_depth is not None:
@@ -954,8 +1048,12 @@ def _generate_result_file_path(
     if not include_all_possible_columns:
         include_all_columns_hash_part = "_pruned"
 
+    h = hashlib.new("sha256")
+    h.update(str(sorted(kwargs.items())).encode())
+    kwargs_hash_part = h.hexdigest()[:8]
+
     return directory / (
-        f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}"
+        f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}_{kwargs_hash_part}"
         f"_wide_form{hierarchy_hash_part}{include_all_columns_hash_part}.parquet"
     )
 
@@ -967,6 +1065,7 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[list[Union["Expression", None]]] = None,
     verbosity_mode: VERBOSITY_MODE = "transient",
+    **kwargs: Any,
 ) -> list[tuple[list[str], list[str], Optional[PYARROW_FILTER]]]:
     prepared_parameters = []
     with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
@@ -981,7 +1080,7 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
             ]
 
             depth = wide_form_definition.depth_check_function(
-                wide_form_definition.hierachy_columns, hierarchy_depth
+                wide_form_definition.hierachy_columns, hierarchy_depth, **kwargs
             )
             hierachy_columns = wide_form_definition.hierachy_columns[:depth]
             columns_to_download = hierachy_columns
@@ -994,6 +1093,7 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
                         geometry_filter=geometry_filter,
                         hierachy_columns=hierachy_columns,
                         pyarrow_filter=single_pyarrow_filter,
+                        **kwargs,
                     )
                 )
 

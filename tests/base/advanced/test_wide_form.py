@@ -279,6 +279,83 @@ def test_empty_region(
     assert set(gdf.columns) == all_possible_columns
 
 
+def test_confidence_parameter(
+    test_release_version: str,
+    wide_form_working_directory: Path,
+) -> None:
+    """Test if confidence parameter for places is working."""
+    default_confidence = convert_bounding_box_to_wide_form_geodataframe(
+        theme="places",
+        type="place",
+        bbox=bbox(),
+        release=test_release_version,
+        working_directory=wide_form_working_directory,
+        verbosity_mode="verbose",
+        ignore_cache=False,
+        include_all_possible_columns=False,
+    )
+    higher_confidence = convert_bounding_box_to_wide_form_geodataframe(
+        theme="places",
+        type="place",
+        bbox=bbox(),
+        release=test_release_version,
+        working_directory=wide_form_working_directory,
+        verbosity_mode="verbose",
+        ignore_cache=False,
+        include_all_possible_columns=False,
+        places_minimal_confidence=0.95,
+    )
+    lower_confidence = convert_bounding_box_to_wide_form_geodataframe(
+        theme="places",
+        type="place",
+        bbox=bbox(),
+        release=test_release_version,
+        working_directory=wide_form_working_directory,
+        verbosity_mode="verbose",
+        ignore_cache=False,
+        include_all_possible_columns=False,
+        places_minimal_confidence=0.05,
+    )
+
+    assert len(default_confidence) > len(higher_confidence)
+    assert len(default_confidence) < len(lower_confidence)
+
+
+def test_places_use_primary_category_only_parameter(
+    test_release_version: str,
+    wide_form_working_directory: Path,
+) -> None:
+    """Test if places_use_primary_category_only parameter is working."""
+    primary_only = convert_bounding_box_to_wide_form_geodataframe(
+        theme="places",
+        type="place",
+        bbox=bbox(),
+        release=test_release_version,
+        working_directory=wide_form_working_directory,
+        verbosity_mode="verbose",
+        ignore_cache=False,
+        include_all_possible_columns=False,
+        places_use_primary_category_only=True,
+    ).drop(columns="geometry")
+
+    all_categories = convert_bounding_box_to_wide_form_geodataframe(
+        theme="places",
+        type="place",
+        bbox=bbox(),
+        release=test_release_version,
+        working_directory=wide_form_working_directory,
+        verbosity_mode="verbose",
+        ignore_cache=False,
+        include_all_possible_columns=False,
+        places_use_primary_category_only=False,
+    ).drop(columns="geometry")
+
+    assert (primary_only.sum(axis=1) == 1).all(), "Not all rows have exactly one primary category."
+    assert (
+        primary_only.sum().sum() < all_categories.sum().sum()
+    ), "Primary only has more categories than all categories."
+
+
 def test_old_version(
     wide_form_working_directory: Path,
 ) -> None:

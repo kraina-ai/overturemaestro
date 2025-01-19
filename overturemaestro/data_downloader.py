@@ -854,13 +854,13 @@ def _generate_result_file_path(
     if pyarrow_filter is not None:
         h = hashlib.new("sha256")
         h.update(str(pyarrow_filter).encode())
-        pyarrow_filter_hash_part = h.hexdigest()
+        pyarrow_filter_hash_part = h.hexdigest()[:8]
 
     columns_hash_part = ""
     if columns_to_download is not None:
         h = hashlib.new("sha256")
         h.update(str(sorted(columns_to_download)).encode())
-        columns_hash_part = f"_{h.hexdigest()}"
+        columns_hash_part = f"_{h.hexdigest()[:8]}"
 
     return (
         Path(release)
@@ -880,7 +880,7 @@ def _generate_geometry_hash(geometry_filter: "BaseGeometry") -> str:
     h.update(wktlib.dumps(oriented_geometry).encode())
     clipping_geometry_hash_part = h.hexdigest()
 
-    return clipping_geometry_hash_part
+    return clipping_geometry_hash_part[:8]
 
 
 def _get_oriented_geometry_filter(geometry_filter: "BaseGeometry") -> "BaseGeometry":

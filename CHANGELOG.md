@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Places hierarchy based on the official taxonomy [#63](https://github.com/kraina-ai/overturemaestro/issues/63)
+- Option to change minimal confidence score for places and select only primary category for the wide form transformation [#63](https://github.com/kraina-ai/overturemaestro/issues/63)
+
 ### Changed
 
 - Added option to use any non-negative integer as a `hierarchy_depth` value for wide form processing [#64](https://github.com/kraina-ai/overturemaestro/issues/64)
+- Shortened hash parts for generated file names to 8 characters per part
 
 ### Fixed
 
