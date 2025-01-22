@@ -45,7 +45,7 @@ def convert_geometry_to_wide_form_parquet(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -65,7 +65,7 @@ def convert_geometry_to_wide_form_parquet(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -85,7 +85,7 @@ def convert_geometry_to_wide_form_parquet(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -104,7 +104,7 @@ def convert_geometry_to_wide_form_parquet(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -130,12 +130,11 @@ def convert_geometry_to_wide_form_parquet(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
-        pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
-            expressions used to filter specific theme type pair. Must be the same length as the list
-            of theme type pairs. Defaults to None.
+        hierarchy_depth (Optional[int], optional): Depth used to calculate how many hierarchy
+            columns should be used to generate the wide form of the data. If None, will use all
+            available columns. Defaults to None.
+        pyarrow_filters (Optional[PYARROW_FILTER], optional): A pyarrow expression used to filter
+            specific theme type pair. Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to None.
@@ -163,7 +162,7 @@ def convert_geometry_to_wide_form_parquet(
         release=release,
         include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
-        pyarrow_filters=pyarrow_filters,
+        pyarrow_filters=[pyarrow_filters],
         result_file_path=result_file_path,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
@@ -182,7 +181,7 @@ def convert_geometry_to_wide_form_geodataframe(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -201,7 +200,7 @@ def convert_geometry_to_wide_form_geodataframe(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -220,7 +219,7 @@ def convert_geometry_to_wide_form_geodataframe(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -238,7 +237,7 @@ def convert_geometry_to_wide_form_geodataframe(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -263,12 +262,11 @@ def convert_geometry_to_wide_form_geodataframe(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
-        pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
-            expressions used to filter specific theme type pair. Must be the same length as the list
-            of theme type pairs. Defaults to None.
+        hierarchy_depth (Optional[int], optional): Depth used to calculate how many hierarchy
+            columns should be used to generate the wide form of the data. If None, will use all
+            available columns. Defaults to None.
+        pyarrow_filters (Optional[PYARROW_FILTER], optional): A pyarrow expression used to filter
+            specific theme type pair. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -310,7 +308,7 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     geometry_filter: BaseGeometry,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -327,7 +325,7 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     release: str,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -344,7 +342,7 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -360,7 +358,7 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -384,9 +382,10 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -430,7 +429,7 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     geometry_filter: BaseGeometry,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -448,7 +447,7 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     release: str,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -466,7 +465,7 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -483,7 +482,7 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -508,9 +507,10 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -557,7 +557,7 @@ def convert_bounding_box_to_wide_form_parquet(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -577,7 +577,7 @@ def convert_bounding_box_to_wide_form_parquet(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -597,7 +597,7 @@ def convert_bounding_box_to_wide_form_parquet(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -616,7 +616,7 @@ def convert_bounding_box_to_wide_form_parquet(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -643,12 +643,11 @@ def convert_bounding_box_to_wide_form_parquet(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
-        pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
-            expressions used to filter specific theme type pair. Must be the same length as the list
-            of theme type pairs. Defaults to None.
+        hierarchy_depth (Optional[int], optional): Depth used to calculate how many hierarchy
+            columns should be used to generate the wide form of the data. If None, will use all
+            available columns. Defaults to None.
+        pyarrow_filters (Optional[PYARROW_FILTER], optional): A pyarrow
+            expression used to filter specific theme type pair. Defaults to None.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to None.
@@ -693,7 +692,7 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     bbox: tuple[float, float, float, float],
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -711,7 +710,7 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     release: str,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -729,7 +728,7 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -746,7 +745,7 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -772,9 +771,10 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -821,7 +821,7 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     bbox: tuple[float, float, float, float],
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -840,7 +840,7 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     release: str,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -859,7 +859,7 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -877,7 +877,7 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -904,9 +904,10 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -956,7 +957,7 @@ def convert_bounding_box_to_wide_form_geodataframe(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -975,7 +976,7 @@ def convert_bounding_box_to_wide_form_geodataframe(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -994,7 +995,7 @@ def convert_bounding_box_to_wide_form_geodataframe(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1012,7 +1013,7 @@ def convert_bounding_box_to_wide_form_geodataframe(
     *,
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
-    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    pyarrow_filters: Optional[PYARROW_FILTER] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1038,12 +1039,11 @@ def convert_bounding_box_to_wide_form_geodataframe(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
-        pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
-            expressions used to filter specific theme type pair. Must be the same length as the list
-            of theme type pairs. Defaults to None.
+        hierarchy_depth (Optional[int], optional): Depth used to calculate how many hierarchy
+            columns should be used to generate the wide form of the data. If None, will use all
+            available columns. Defaults to None.
+        pyarrow_filters (Optional[PYARROW_FILTER], optional): A pyarrow expression used to filter
+            specific theme type pair. Defaults to None.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -1084,7 +1084,7 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     bbox: tuple[float, float, float, float],
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -1101,7 +1101,7 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     release: str,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -1118,7 +1118,7 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -1134,7 +1134,7 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -1159,9 +1159,10 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -1204,7 +1205,7 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     bbox: tuple[float, float, float, float],
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -1222,7 +1223,7 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     release: str,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -1240,7 +1241,7 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -1257,7 +1258,7 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -1283,9 +1284,10 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.

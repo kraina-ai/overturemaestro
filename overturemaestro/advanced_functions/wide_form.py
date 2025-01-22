@@ -51,7 +51,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 def _check_depth_for_wide_form(
-    hierarchy_columns: list[str], depth: Optional[int] = None, **kwargs: Any
+    theme: str, type: str, hierarchy_columns: list[str], depth: Optional[int] = None, **kwargs: Any
 ) -> int:
     depth = depth if depth is not None else len(hierarchy_columns)
 
@@ -60,7 +60,8 @@ def _check_depth_for_wide_form(
     elif depth > len(hierarchy_columns):
         warnings.warn(
             (
-                f"Provided hierarchy depth is out of bounds (valid: 0 - {len(hierarchy_columns)})."
+                f"Provided hierarchy depth is out of bounds"
+                f" (valid for {theme}/{type}: 0 - {len(hierarchy_columns)})."
                 f" Value will be clipped to {len(hierarchy_columns)}."
             ),
             HierarchyDepthOutOfBoundsWarning,
@@ -187,7 +188,6 @@ def _prepare_download_parameters_for_poi(
     **kwargs: Any,
 ) -> tuple[list[str], Optional["Expression"]]:
     # TODO: swap to dedicated function?
-    # TODO: add option to change minimal confidence
     import pyarrow.compute as pc
 
     category_not_null_filter = pc.invert(pc.field("categories").is_null())
@@ -473,7 +473,7 @@ class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
         type: str,
         geometry_filter: BaseGeometry,
         hierachy_columns: list[str],
-        pyarrow_filter: Optional["Expression"] = None,
+        pyarrow_filter: Optional["Expression"],
         **kwargs: Any,
     ) -> tuple[list[str], Optional["Expression"]]: ...
 
@@ -481,8 +481,10 @@ class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
 class DepthCheckCallable(Protocol):  # noqa: D101
     def __call__(  # noqa: D102
         self,
+        theme: str,
+        type: str,
         hierarchy_columns: list[str],
-        depth: Optional[int] = None,
+        depth: Optional[int],
         **kwargs: Any,
     ) -> int: ...
 
@@ -584,7 +586,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     geometry_filter: BaseGeometry,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -603,7 +605,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     release: str,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -622,7 +624,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -641,7 +643,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -667,9 +669,10 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -696,6 +699,9 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     """
     if pyarrow_filters is not None and len(theme_type_pairs) != len(pyarrow_filters):
         raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
+
+    if isinstance(hierarchy_depth, list) and len(theme_type_pairs) != len(hierarchy_depth):
+        raise ValueError("Hierarchy depth list length doesn't match length of theme type pairs.")
 
     if not release:
         release = get_newest_release_version()
@@ -825,7 +831,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     geometry_filter: BaseGeometry,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -843,7 +849,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     release: str,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -861,7 +867,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -878,7 +884,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     release: Optional[str] = None,
     *,
     include_all_possible_columns: bool = True,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
@@ -903,9 +909,10 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
-            be used to generate the wide form of the data. If None, will use all available columns.
-            Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -994,7 +1001,10 @@ def get_all_possible_column_names(
     columns = []
     for (theme_value, type_value), wide_form_definition in definitions.items():
         depth = wide_form_definition.depth_check_function(
-            wide_form_definition.hierachy_columns, hierarchy_depth
+            theme=theme_value,
+            type=type_value,
+            hierarchy_columns=wide_form_definition.hierachy_columns,
+            depth=hierarchy_depth,
         )
         hierachy_columns = wide_form_definition.hierachy_columns[:depth]
 
@@ -1015,7 +1025,7 @@ def _generate_result_file_path(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
     include_all_possible_columns: bool,
-    hierarchy_depth: Optional[int],
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]],
     pyarrow_filters: Optional[list[Union["Expression", None]]],
     **kwargs: Any,
 ) -> Path:
@@ -1023,12 +1033,22 @@ def _generate_result_file_path(
 
     directory = Path(release)
 
+    params_per_theme_type_pair = {
+        theme_type_pair: (
+            hierarchy_depth[idx] if isinstance(hierarchy_depth, list) else hierarchy_depth,
+            pyarrow_filters[idx] if pyarrow_filters else None,
+        )
+        for idx, theme_type_pair in enumerate(theme_type_pairs)
+    }
+
+    sorted_theme_type_pairs = sorted(theme_type_pairs)
+
     if len(theme_type_pairs) == 1:
         theme_value, type_value = theme_type_pairs[0]
         directory = directory / f"theme={theme_value}" / f"type={type_value}"
     else:
         h = hashlib.new("sha256")
-        h.update(str(sorted(theme_type_pairs)).encode())
+        h.update(str(sorted_theme_type_pairs).encode())
         directory = directory / h.hexdigest()
 
     clipping_geometry_hash_part = _generate_geometry_hash(geometry_filter)
@@ -1036,13 +1056,16 @@ def _generate_result_file_path(
     pyarrow_filter_hash_part = "nofilter"
     if pyarrow_filters is not None:
         h = hashlib.new("sha256")
-        for single_pyarrow_filter in pyarrow_filters:
-            h.update(str(single_pyarrow_filter).encode())
+        for theme_type_pair in sorted_theme_type_pairs:
+            h.update(str(params_per_theme_type_pair[theme_type_pair][1]).encode())
         pyarrow_filter_hash_part = h.hexdigest()[:8]
 
     hierarchy_hash_part = ""
     if hierarchy_depth is not None:
-        hierarchy_hash_part = f"_h{hierarchy_depth}"
+        h = hashlib.new("sha256")
+        for theme_type_pair in sorted_theme_type_pairs:
+            h.update(str(params_per_theme_type_pair[theme_type_pair][0]).encode())
+        hierarchy_hash_part = f"_h{h.hexdigest()[:8]}"
 
     include_all_columns_hash_part = ""
     if not include_all_possible_columns:
@@ -1062,7 +1085,7 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
     release: str,
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
-    hierarchy_depth: Optional[int] = None,
+    hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Union["Expression", None]]] = None,
     verbosity_mode: VERBOSITY_MODE = "transient",
     **kwargs: Any,
@@ -1075,12 +1098,19 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
             description="Preparing download parameters",
         ):
             single_pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
+            single_hierarchy_depth = (
+                hierarchy_depth[idx] if isinstance(hierarchy_depth, list) else hierarchy_depth
+            )
             wide_form_definition = get_theme_type_classification(release=release)[
                 (theme_value, type_value)
             ]
 
             depth = wide_form_definition.depth_check_function(
-                wide_form_definition.hierachy_columns, hierarchy_depth, **kwargs
+                theme=theme_value,
+                type=type_value,
+                hierarchy_columns=wide_form_definition.hierachy_columns,
+                depth=single_hierarchy_depth,
+                **kwargs,
             )
             hierachy_columns = wide_form_definition.hierachy_columns[:depth]
             columns_to_download = hierachy_columns
