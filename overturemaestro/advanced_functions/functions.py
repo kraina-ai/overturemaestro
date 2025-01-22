@@ -382,9 +382,10 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[Union[int, list[Optional[int]]]]): Depth used to calculate how
-            many hierarchy columns should be used to generate the wide form of the data.
-            If None, will use all available columns. Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -506,9 +507,10 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[Union[int, list[Optional[int]]]]): Depth used to calculate how
-            many hierarchy columns should be used to generate the wide form of the data.
-            If None, will use all available columns. Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -769,9 +771,10 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[Union[int, list[Optional[int]]]]): Depth used to calculate how
-            many hierarchy columns should be used to generate the wide form of the data.
-            If None, will use all available columns. Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -901,9 +904,10 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[Union[int, list[Optional[int]]]]): Depth used to calculate how
-            many hierarchy columns should be used to generate the wide form of the data.
-            If None, will use all available columns. Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -1155,9 +1159,10 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[Union[int, list[Optional[int]]]]): Depth used to calculate how
-            many hierarchy columns should be used to generate the wide form of the data.
-            If None, will use all available columns. Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
@@ -1279,9 +1284,10 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
             columns in the resulting file. This ensures that always the same set of columns is
             returned for a given release for different regions. This also means, that some columns
             might be all filled with a False value. Defaults to True.
-        hierarchy_depth (Optional[Union[int, list[Optional[int]]]]): Depth used to calculate how
-            many hierarchy columns should be used to generate the wide form of the data.
-            If None, will use all available columns. Defaults to None.
+        hierarchy_depth (Optional[Union[int, list[Optional[int]]]], optional): Depth used to
+            calculate how many hierarchy columns should be used to generate the wide form of
+            the data. Can be a single integer or a list of integers. If None, will use all
+            available columns. Defaults to None.
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
