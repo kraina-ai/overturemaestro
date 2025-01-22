@@ -1033,12 +1033,22 @@ def _generate_result_file_path(
 
     directory = Path(release)
 
+    params_per_theme_type_pair = {
+        theme_type_pair: (
+            hierarchy_depth[idx] if isinstance(hierarchy_depth, list) else hierarchy_depth,
+            pyarrow_filters[idx] if pyarrow_filters else None,
+        )
+        for idx, theme_type_pair in enumerate(theme_type_pairs)
+    }
+
+    sorted_theme_type_pairs = sorted(theme_type_pairs)
+
     if len(theme_type_pairs) == 1:
         theme_value, type_value = theme_type_pairs[0]
         directory = directory / f"theme={theme_value}" / f"type={type_value}"
     else:
         h = hashlib.new("sha256")
-        h.update(str(sorted(theme_type_pairs)).encode())
+        h.update(str(sorted_theme_type_pairs).encode())
         directory = directory / h.hexdigest()
 
     clipping_geometry_hash_part = _generate_geometry_hash(geometry_filter)
@@ -1046,17 +1056,15 @@ def _generate_result_file_path(
     pyarrow_filter_hash_part = "nofilter"
     if pyarrow_filters is not None:
         h = hashlib.new("sha256")
-        for single_pyarrow_filter in pyarrow_filters:
-            h.update(str(single_pyarrow_filter).encode())
+        for theme_type_pair in sorted_theme_type_pairs:
+            h.update(str(params_per_theme_type_pair[theme_type_pair][1]).encode())
         pyarrow_filter_hash_part = h.hexdigest()[:8]
 
     hierarchy_hash_part = ""
     if hierarchy_depth is not None:
         h = hashlib.new("sha256")
-        if not isinstance(hierarchy_depth, list):
-            hierarchy_depth = [hierarchy_depth]
-        for single_hierarchy_depth in hierarchy_depth:
-            h.update(str(single_hierarchy_depth).encode())
+        for theme_type_pair in sorted_theme_type_pairs:
+            h.update(str(params_per_theme_type_pair[theme_type_pair][0]).encode())
         hierarchy_hash_part = f"_h{h.hexdigest()[:8]}"
 
     include_all_columns_hash_part = ""

@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 import pytest
 from parametrization import Parametrization as P
+from shapely import box
 
 from overturemaestro._exceptions import (
     HierarchyDepthOutOfBoundsWarning,
@@ -18,6 +19,7 @@ from overturemaestro.advanced_functions import (
     convert_bounding_box_to_wide_form_parquet,
 )
 from overturemaestro.advanced_functions.wide_form import (
+    _generate_result_file_path,
     get_all_possible_column_names,
     get_theme_type_classification,
 )
@@ -393,3 +395,36 @@ def test_old_version(
         ignore_cache=False,
         include_all_possible_columns=False,
     )
+
+
+def test_generate_result_file_name_order(
+    test_release_version: str,
+) -> None:
+    """Test if result file name is generated correctly."""
+    theme_type_pairs = [
+        ("base", "water"),
+        ("base", "land_cover"),
+        ("base", "infrastructure"),
+        ("places", "place"),
+    ]
+    pyarrow_filters = [None, None, [("class", "==", "bridge")], [("confidence", ">", 0.95)]]
+    hierarchy_depths = [None, 1, 2, 3]
+    result = _generate_result_file_path(
+        release=test_release_version,
+        theme_type_pairs=theme_type_pairs,
+        geometry_filter=box(*bbox()),
+        pyarrow_filters=pyarrow_filters,
+        hierarchy_depth=hierarchy_depths,
+        include_all_possible_columns=False,
+    )
+
+    reverse_order_result = _generate_result_file_path(
+        release=test_release_version,
+        theme_type_pairs=theme_type_pairs[::-1],
+        geometry_filter=box(*bbox()),
+        pyarrow_filters=pyarrow_filters[::-1],
+        hierarchy_depth=hierarchy_depths[::-1],
+        include_all_possible_columns=False,
+    )
+
+    assert result == reverse_order_result
