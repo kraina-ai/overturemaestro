@@ -51,7 +51,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 def _check_depth_for_wide_form(
-    hierarchy_columns: list[str], depth: Optional[int] = None, **kwargs: Any
+    theme: str, type: str, hierarchy_columns: list[str], depth: Optional[int] = None, **kwargs: Any
 ) -> int:
     depth = depth if depth is not None else len(hierarchy_columns)
 
@@ -60,7 +60,8 @@ def _check_depth_for_wide_form(
     elif depth > len(hierarchy_columns):
         warnings.warn(
             (
-                f"Provided hierarchy depth is out of bounds (valid: 0 - {len(hierarchy_columns)})."
+                f"Provided hierarchy depth is out of bounds"
+                f" (valid for {theme}/{type}: 0 - {len(hierarchy_columns)})."
                 f" Value will be clipped to {len(hierarchy_columns)}."
             ),
             HierarchyDepthOutOfBoundsWarning,
@@ -481,6 +482,8 @@ class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
 class DepthCheckCallable(Protocol):  # noqa: D101
     def __call__(  # noqa: D102
         self,
+        theme: str,
+        type: str,
         hierarchy_columns: list[str],
         depth: Optional[int] = None,
         **kwargs: Any,
@@ -997,7 +1000,10 @@ def get_all_possible_column_names(
     columns = []
     for (theme_value, type_value), wide_form_definition in definitions.items():
         depth = wide_form_definition.depth_check_function(
-            wide_form_definition.hierachy_columns, hierarchy_depth
+            theme=theme_value,
+            type=type_value,
+            hierarchy_columns=wide_form_definition.hierachy_columns,
+            hierarchy_depth=hierarchy_depth,
         )
         hierachy_columns = wide_form_definition.hierachy_columns[:depth]
 
@@ -1045,7 +1051,12 @@ def _generate_result_file_path(
 
     hierarchy_hash_part = ""
     if hierarchy_depth is not None:
-        hierarchy_hash_part = f"_h{hierarchy_depth}"
+        h = hashlib.new("sha256")
+        if not isinstance(hierarchy_depth, list):
+            hierarchy_depth = [hierarchy_depth]
+        for single_hierarchy_depth in hierarchy_depth:
+            h.update(str(single_hierarchy_depth).encode())
+        hierarchy_hash_part = f"_h{h.hexdigest()[:8]}"
 
     include_all_columns_hash_part = ""
     if not include_all_possible_columns:
@@ -1086,7 +1097,11 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
             ]
 
             depth = wide_form_definition.depth_check_function(
-                wide_form_definition.hierachy_columns, single_hierarchy_depth, **kwargs
+                theme=theme_value,
+                type=type_value,
+                hierarchy_columns=wide_form_definition.hierachy_columns,
+                hierarchy_depth=single_hierarchy_depth,
+                **kwargs,
             )
             hierachy_columns = wide_form_definition.hierachy_columns[:depth]
             columns_to_download = hierachy_columns
