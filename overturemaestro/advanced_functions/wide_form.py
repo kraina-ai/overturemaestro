@@ -473,7 +473,7 @@ class DownloadParametersPreparationCallable(Protocol):  # noqa: D101
         type: str,
         geometry_filter: BaseGeometry,
         hierachy_columns: list[str],
-        pyarrow_filter: Optional["Expression"] = None,
+        pyarrow_filter: Optional["Expression"],
         **kwargs: Any,
     ) -> tuple[list[str], Optional["Expression"]]: ...
 
@@ -484,7 +484,7 @@ class DepthCheckCallable(Protocol):  # noqa: D101
         theme: str,
         type: str,
         hierarchy_columns: list[str],
-        depth: Optional[int] = None,
+        depth: Optional[int],
         **kwargs: Any,
     ) -> int: ...
 
@@ -1004,7 +1004,7 @@ def get_all_possible_column_names(
             theme=theme_value,
             type=type_value,
             hierarchy_columns=wide_form_definition.hierachy_columns,
-            hierarchy_depth=hierarchy_depth,
+            depth=hierarchy_depth,
         )
         hierachy_columns = wide_form_definition.hierachy_columns[:depth]
 
@@ -1101,7 +1101,7 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
                 theme=theme_value,
                 type=type_value,
                 hierarchy_columns=wide_form_definition.hierachy_columns,
-                hierarchy_depth=single_hierarchy_depth,
+                depth=single_hierarchy_depth,
                 **kwargs,
             )
             hierachy_columns = wide_form_definition.hierachy_columns[:depth]

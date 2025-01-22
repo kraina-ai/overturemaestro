@@ -176,25 +176,50 @@ def test_multiple_theme_type_pairs(
         assert (gdf.dtypes.loc[feature_columns] == "bool").all()
 
 
-@P.parameters("hierarchy_value", "theme_type_pair", "expectation")  # type: ignore
-@P.case("Empty value", None, ("base", "water"), does_not_raise())  # type: ignore
-@P.case("Zero", 0, ("base", "water"), does_not_raise())  # type: ignore
-@P.case("Negative", -1, ("base", "water"), pytest.raises(NegativeHierarchyDepthError))  # type: ignore
-@P.case("First value", 1, ("base", "water"), does_not_raise())  # type: ignore
-@P.case("Second value", 2, ("base", "water"), does_not_raise())  # type: ignore
-@P.case("Third value", 3, ("base", "water"), pytest.warns(HierarchyDepthOutOfBoundsWarning))  # type: ignore
+@P.parameters("hierarchy_value", "theme_type_pairs", "expectation")  # type: ignore
+@P.case("Empty value", None, [("base", "water")], does_not_raise())  # type: ignore
+@P.case("Zero", 0, [("base", "water")], does_not_raise())  # type: ignore
+@P.case("Negative", -1, [("base", "water")], pytest.raises(NegativeHierarchyDepthError))  # type: ignore
+@P.case("First value", 1, [("base", "water")], does_not_raise())  # type: ignore
+@P.case("Second value", 2, [("base", "water")], does_not_raise())  # type: ignore
+@P.case("Third value", 3, [("base", "water")], pytest.warns(HierarchyDepthOutOfBoundsWarning))  # type: ignore
+@P.case("Single value as list", [0], [("base", "water")], does_not_raise())  # type: ignore
+@P.case("Multiple values wrong length", [0, 0], [("base", "water")], pytest.raises(ValueError))  # type: ignore
+@P.case(
+    "Multiple values same length",
+    [0, 0],
+    [("base", "water"), ("base", "infrastructure")],
+    does_not_raise(),
+)  # type: ignore
+@P.case(
+    "Multiple values negative wrong length",
+    [-1, -1],
+    [("base", "water")],
+    pytest.raises(ValueError),
+)  # type: ignore
+@P.case(
+    "Multiple values negative same length",
+    [-1, -1],
+    [("base", "water"), ("base", "infrastructure")],
+    pytest.raises(NegativeHierarchyDepthError),
+)  # type: ignore
+@P.case(
+    "Multiple values same length with warning",
+    [99, 99],
+    [("base", "water"), ("base", "infrastructure")],
+    pytest.warns(HierarchyDepthOutOfBoundsWarning),
+)  # type: ignore
 def test_hierarchy_values(
     test_release_version: str,
     wide_form_working_directory: Path,
     hierarchy_value: Optional[int],
-    theme_type_pair: tuple[str, str],
+    theme_type_pairs: list[tuple[str, str]],
     expectation: Any,
 ) -> None:
     """Test if hierarchy values are parsed correctly."""
     with expectation:
-        gdf = convert_bounding_box_to_wide_form_geodataframe(
-            theme=theme_type_pair[0],
-            type=theme_type_pair[1],
+        gdf = convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
+            theme_type_pairs=theme_type_pairs,
             bbox=bbox(),
             hierarchy_depth=hierarchy_value,
             release=test_release_version,
