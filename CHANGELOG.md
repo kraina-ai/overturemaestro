@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2025-01-22
+
 ### Added
 
 - Option to pass list of `hierarchy_depth` values for multiple theme / type pairs
@@ -141,7 +143,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.2.4...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.2.5...HEAD
+
+[0.2.5]: https://github.com/kraina-ai/overturemaestro/compare/0.2.4...0.2.5
 
 [0.2.4]: https://github.com/kraina-ai/overturemaestro/compare/0.2.3...0.2.4
 
