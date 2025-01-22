@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to pass list of `hierarchy_depth` values for multiple theme / type pairs
+- Info about current theme / type pair to the `HierarchyDepthOutOfBoundsWarning`
+
 ## [0.2.4] - 2025-01-19
 
 ### Added
