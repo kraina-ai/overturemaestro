@@ -14,7 +14,7 @@ Run this notebook in Google Colab:
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 
-Remember to install the `srai` library before running the notebook:
+Remember to install the `overturemaestro` library before running the notebook:
 ```python
 %pip install overturemaestro[cli]
 ```
