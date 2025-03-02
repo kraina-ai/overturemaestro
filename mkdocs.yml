@@ -147,6 +147,9 @@ plugins:
       allow_errors: false
   - mermaid2
   - awesome-pages
+  - social:
+      cards_layout_options:
+        background_color: "#111F3F"
 
 markdown_extensions:
   - attr_list
