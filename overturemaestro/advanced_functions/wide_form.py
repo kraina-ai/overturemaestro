@@ -17,19 +17,19 @@ from requests import HTTPError
 from rich import print as rprint
 from shapely.geometry.base import BaseGeometry
 
+from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
 from overturemaestro._exceptions import (
     HierarchyDepthOutOfBoundsWarning,
     NegativeHierarchyDepthError,
 )
+from overturemaestro._geometry_sorting import sort_geoparquet_file_by_geometry
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
 from overturemaestro.cache import (
     _get_global_wide_form_release_cache_directory,
     _get_local_wide_form_release_cache_directory,
 )
 from overturemaestro.data_downloader import (
-    PARQUET_COMPRESSION,
-    PARQUET_ROW_GROUP_SIZE,
     PYARROW_FILTER,
     _generate_geometry_hash,
     download_data_for_multiple_types,
@@ -601,6 +601,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
     places_use_primary_category_only: bool = False,
     places_minimal_confidence: float = 0.75,
 ) -> Path: ...
@@ -620,6 +621,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
     places_use_primary_category_only: bool = False,
     places_minimal_confidence: float = 0.75,
 ) -> Path: ...
@@ -639,6 +641,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
     places_use_primary_category_only: bool = False,
     places_minimal_confidence: float = 0.75,
 ) -> Path: ...
@@ -658,6 +661,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
     places_use_primary_category_only: bool = False,
     places_minimal_confidence: float = 0.75,
 ) -> Path:
@@ -697,6 +701,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         places_use_primary_category_only (bool, optional): Whether to use only primary category
             from the places dataset. Defaults to False.
         places_minimal_confidence (float, optional): Minimal confidence level for the places
@@ -733,6 +739,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             include_all_possible_columns=include_all_possible_columns,
             hierarchy_depth=hierarchy_depth,
             pyarrow_filters=pyarrow_filters_list,
+            sort_result=sort_result,
             places_use_primary_category_only=places_use_primary_category_only,
             places_minimal_confidence=places_minimal_confidence,
         )
@@ -762,17 +769,24 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             geometry_filter=geometry_filter,
             pyarrow_filters=pyarrow_filter_list,
             columns_to_download=[
-                ["id", "geometry", *columns_to_download]
+                ["id", GEOMETRY_COLUMN, *columns_to_download]
                 for columns_to_download in columns_to_download_list
             ],
             ignore_cache=ignore_cache,
             working_directory=working_directory,
             verbosity_mode=verbosity_mode,
             max_workers=max_workers,
+            sort_result=False,
         )
 
         with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
             tmp_dir_path = Path(tmp_dir_name)
+
+            merged_parquet_path = (
+                tmp_dir_path / f"{result_file_path.stem}_merged{result_file_path.suffix}"
+                if sort_result
+                else result_file_path
+            )
 
             transformed_wide_form_directory_output = tmp_dir_path / "wide_form_files"
             transformed_wide_form_directory_output.mkdir(parents=True, exist_ok=True)
@@ -796,7 +810,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         / f"{theme_value}_{type_value}.parquet"
                     )
                     if len(theme_type_pairs) == 1:
-                        output_path = result_file_path
+                        output_path = merged_parquet_path
 
                     if not hierachy_columns:
                         _transform_to_wide_form_without_hierarchy(
@@ -827,8 +841,17 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                     _combine_multiple_wide_form_files(
                         theme_type_pairs=theme_type_pairs,
                         transformed_wide_form_directory=transformed_wide_form_directory_output,
-                        output_path=result_file_path,
+                        output_path=merged_parquet_path,
                         working_directory=tmp_dir_path,
+                    )
+
+            if sort_result:
+                with TrackProgressSpinner("Sorting result", verbosity_mode=verbosity_mode):
+                    sort_geoparquet_file_by_geometry(
+                        input_file_path=merged_parquet_path,
+                        output_file_path=result_file_path,
+                        working_directory=working_directory,
+                        sort_extent=geometry_filter.bounds,
                     )
 
     return result_file_path
@@ -846,6 +869,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
     places_use_primary_category_only: bool = False,
     places_minimal_confidence: float = 0.75,
 ) -> Path: ...
@@ -864,6 +888,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
     places_use_primary_category_only: bool = False,
     places_minimal_confidence: float = 0.75,
 ) -> Path: ...
@@ -882,6 +907,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
     places_use_primary_category_only: bool = False,
     places_minimal_confidence: float = 0.75,
 ) -> Path: ...
@@ -899,6 +925,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
     places_use_primary_category_only: bool = False,
     places_minimal_confidence: float = 0.75,
 ) -> Path:
@@ -937,6 +964,8 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         places_use_primary_category_only (bool, optional): Whether to use only primary category
             from the places dataset. Defaults to False.
         places_minimal_confidence (float, optional): Minimal confidence level for the places
@@ -960,6 +989,7 @@ def convert_geometry_to_wide_form_parquet_for_all_types(
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
         max_workers=max_workers,
+        sort_result=sort_result,
         places_use_primary_category_only=places_use_primary_category_only,
         places_minimal_confidence=places_minimal_confidence,
     )
@@ -1035,6 +1065,7 @@ def _generate_result_file_path(
     include_all_possible_columns: bool,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]],
     pyarrow_filters: Optional[list[Union["Expression", None]]],
+    sort_result: bool,
     **kwargs: Any,
 ) -> Path:
     import hashlib
@@ -1083,9 +1114,11 @@ def _generate_result_file_path(
     h.update(str(sorted(kwargs.items())).encode())
     kwargs_hash_part = h.hexdigest()[:8]
 
+    sort_result_part = "_sorted" if sort_result else ""
+
     return directory / (
         f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}_{kwargs_hash_part}"
-        f"_wide_form{hierarchy_hash_part}{include_all_columns_hash_part}.parquet"
+        f"_wide_form{hierarchy_hash_part}{include_all_columns_hash_part}{sort_result_part}.parquet"
     )
 
 
@@ -1160,7 +1193,7 @@ def _combine_multiple_wide_form_files(
         available_columns = [
             col
             for col in pq.read_metadata(current_parquet_file).schema.names
-            if col not in ("id", "geometry")
+            if col not in ("id", GEOMETRY_COLUMN)
         ]
 
         combined_columns_select = ", ".join(f'"{column}"' for column in available_columns)

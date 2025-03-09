@@ -24,6 +24,7 @@ from rich import print as rprint
 from shapely import box
 from shapely.geometry.base import BaseGeometry
 
+from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 from overturemaestro._geometry_clustering import calculate_row_group_bounding_box
 from overturemaestro._geometry_sorting import sort_geoparquet_file_by_geometry
 from overturemaestro._parquet_multiprocessing import map_parquet_dataset
@@ -33,7 +34,6 @@ from overturemaestro.cache import (
     _get_local_release_cache_directory,
     get_global_release_cache_directory,
 )
-from overturemaestro.data_downloader import PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 
 __all__ = [
     "download_existing_release_index",
@@ -556,7 +556,7 @@ def _generate_release_index(
                         "filename",
                         "row_group",
                         "row_indexes_ranges",
-                        "geometry",
+                        GEOMETRY_COLUMN,
                     ]
                 ].to_parquet(
                     unsorted_path,

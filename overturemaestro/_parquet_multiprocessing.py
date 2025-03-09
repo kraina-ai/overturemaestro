@@ -5,8 +5,8 @@ from queue import Empty, Queue
 from time import sleep, time
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
+from overturemaestro._constants import PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
-from overturemaestro.data_downloader import PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 
 if TYPE_CHECKING:  # pragma: no cover
     from multiprocessing.managers import ValueProxy
@@ -164,6 +164,8 @@ def map_parquet_dataset(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
     """
     with TrackProgressSpinner(
         "Preparing multiprocessing environment", verbosity_mode=verbosity_mode

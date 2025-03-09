@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pyarrow.compute as pc
 
+from overturemaestro._constants import GEOMETRY_COLUMN
 from overturemaestro.data_downloader import _download_single_parquet_row_group_multiprocessing
 
 # TODO: add test for checking if metadata is ok
@@ -45,7 +46,7 @@ def test_download_single_parquet_row_group() -> None:
             "theme": "places",
             "type": "place",
             "user_defined_pyarrow_filter": pc.field("confidence") > 0.95,
-            "columns_to_download": ["id", "geometry", "categories"],
+            "columns_to_download": ["id", GEOMETRY_COLUMN, "categories"],
         },
         bbox=(7.416486207767861, 43.7310867041912, 7.421931388477276, 43.73370705597216),
         working_directory=Path("files"),

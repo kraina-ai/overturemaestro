@@ -9,7 +9,9 @@ import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
+from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 from overturemaestro._exceptions import MissingColumnError
+from overturemaestro._geometry_sorting import sort_geoparquet_file_by_geometry
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -21,9 +23,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
 PYARROW_EXPRESSION = tuple[Any, Any, Any]
 PYARROW_FILTER = Union["Expression", list[PYARROW_EXPRESSION], list[list[PYARROW_EXPRESSION]]]
-
-PARQUET_ROW_GROUP_SIZE = 100_000
-PARQUET_COMPRESSION = "zstd"
 
 __all__ = [
     "download_data",
@@ -42,6 +41,7 @@ def download_data_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
 ) -> list[Path]: ...
 
 
@@ -57,6 +57,7 @@ def download_data_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
 ) -> list[Path]: ...
 
 
@@ -72,6 +73,7 @@ def download_data_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
 ) -> list[Path]: ...
 
 
@@ -87,6 +89,7 @@ def download_data_for_multiple_types(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
 ) -> list[Path]:
     """
     Downloads the data for the given release for multiple types.
@@ -112,6 +115,8 @@ def download_data_for_multiple_types(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
 
     Returns:
         list[Path]: List of saved Geoparquet files paths.
@@ -157,6 +162,7 @@ def download_data_for_multiple_types(
             geometry_filter=geometry_filter,
             pyarrow_filter=_pyarrow_filter,
             columns_to_download=_columns_to_download,
+            sort_result=sort_result,
         )
         all_result_file_paths.append(result_file_path)
 
@@ -188,13 +194,27 @@ def download_data_for_multiple_types(
                 ):
                     final_dataset = ds.dataset(raw_parquet_files)
                     result_file_path.parent.mkdir(exist_ok=True, parents=True)
+
+                    merged_parquet_path = (
+                        tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
+                        if sort_result
+                        else result_file_path
+                    )
                     with pq.ParquetWriter(
-                        result_file_path,
+                        merged_parquet_path,
                         schema=final_dataset.schema,
                         compression=PARQUET_COMPRESSION,
                     ) as writer:
                         for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):
                             writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
+
+                    if sort_result:
+                        sort_geoparquet_file_by_geometry(
+                            input_file_path=merged_parquet_path,
+                            output_file_path=result_file_path,
+                            working_directory=working_directory,
+                            sort_extent=geometry_filter.bounds,
+                        )
 
     return all_result_file_paths
 
@@ -212,6 +232,7 @@ def download_data(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
 ) -> Path: ...
 
 
@@ -229,6 +250,7 @@ def download_data(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
 ) -> Path: ...
 
 
@@ -246,6 +268,7 @@ def download_data(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
 ) -> Path: ...
 
 
@@ -263,6 +286,7 @@ def download_data(
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
     max_workers: Optional[int] = None,
+    sort_result: bool = True,
 ) -> Path:
     """
     Downloads the data for the given release.
@@ -291,6 +315,8 @@ def download_data(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
 
     Returns:
         Path: Saved Geoparquet file path.
@@ -322,6 +348,7 @@ def download_data(
             geometry_filter=geometry_filter,
             pyarrow_filter=pyarrow_filter,
             columns_to_download=columns_to_download,
+            sort_result=sort_result,
         )
 
     result_file_path = Path(result_file_path)
@@ -344,14 +371,29 @@ def download_data(
 
             result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
+            merged_parquet_path = (
+                tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
+                if sort_result
+                else result_file_path
+            )
             with (
                 TrackProgressSpinner("Saving final geoparquet file", verbosity_mode=verbosity_mode),
                 pq.ParquetWriter(
-                    result_file_path, schema=final_dataset.schema, compression=PARQUET_COMPRESSION
+                    merged_parquet_path,
+                    schema=final_dataset.schema,
+                    compression=PARQUET_COMPRESSION,
                 ) as writer,
             ):
                 for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):
                     writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
+
+            if sort_result:
+                sort_geoparquet_file_by_geometry(
+                    input_file_path=merged_parquet_path,
+                    output_file_path=result_file_path,
+                    working_directory=working_directory,
+                    sort_extent=geometry_filter.bounds,
+                )
 
     return result_file_path
 
@@ -640,8 +682,8 @@ def _generate_empty_file(
                     f"Cannot download given columns: {', '.join(sorted(nonexistent_columns))}"
                 )
 
-            if "geometry" not in columns_to_download:
-                columns_to_download.append("geometry")
+            if GEOMETRY_COLUMN not in columns_to_download:
+                columns_to_download.append(GEOMETRY_COLUMN)
 
             # Reorder list of columns to download to match pyarrow schema
             columns_to_download = [
@@ -744,8 +786,8 @@ def _download_single_parquet_row_group(
                 f"Cannot download given columns: {', '.join(sorted(nonexistent_columns))}"
             )
 
-        if "geometry" not in columns_to_download:
-            columns_to_download.append("geometry")
+        if GEOMETRY_COLUMN not in columns_to_download:
+            columns_to_download.append(GEOMETRY_COLUMN)
 
         # Create list of columns used to filter data by bbox
         columns_required_for_filtering = {"bbox"}
@@ -850,6 +892,7 @@ def _generate_result_file_path(
     geometry_filter: "BaseGeometry",
     pyarrow_filter: Optional["Expression"],
     columns_to_download: Optional[list[str]],
+    sort_result: bool,
     # keep_all_tags: bool,
     # explode_tags: bool,
     # filter_osm_ids: list[str],
@@ -871,11 +914,16 @@ def _generate_result_file_path(
         h.update(str(sorted(columns_to_download)).encode())
         columns_hash_part = f"_{h.hexdigest()[:8]}"
 
+    sort_result_part = "_sorted" if sort_result else ""
+
     return (
         Path(release)
         / f"theme={theme}"
         / f"type={type}"
-        / f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}{columns_hash_part}.parquet"
+        / (
+            f"{clipping_geometry_hash_part}_{pyarrow_filter_hash_part}"
+            f"{columns_hash_part}{sort_result_part}.parquet"
+        )
     )
 
 
@@ -950,7 +998,7 @@ def _filter_data_properly(
 
     matching_indexes = STRtree(
         gpd.GeoSeries.from_arrow(
-            GeometryArray.from_arrow(pyarrow_table["geometry"].combine_chunks())
+            GeometryArray.from_arrow(pyarrow_table[GEOMETRY_COLUMN].combine_chunks())
         )
     ).query(geometry_filter, predicate="intersects")
     return pyarrow_table.take(matching_indexes)

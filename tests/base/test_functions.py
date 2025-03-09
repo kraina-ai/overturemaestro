@@ -7,8 +7,8 @@ import pyarrow.parquet as pq
 import pytest
 from parametrization import Parametrization as P
 
+from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION
 from overturemaestro._exceptions import MissingColumnError
-from overturemaestro.data_downloader import PARQUET_COMPRESSION
 from overturemaestro.functions import (
     convert_bounding_box_to_geodataframe,
     convert_bounding_box_to_parquet,
@@ -31,10 +31,10 @@ def test_theme_type_pairs(theme_type_pair: tuple[str, str], test_release_version
         verbosity_mode="verbose",
         ignore_cache=True,
     )
-    assert (
-        pq.ParquetFile(result).metadata.row_group(0).column(0).compression.lower()
-        == PARQUET_COMPRESSION.lower()
-    )
+    pq_file = pq.ParquetFile(result).metadata
+
+    if pq_file.num_row_groups > 0:
+        assert pq_file.row_group(0).column(0).compression.lower() == PARQUET_COMPRESSION.lower()
 
 
 def test_pyarrow_filtering(test_release_version: str) -> None:
@@ -79,7 +79,7 @@ def test_columns_download(
             verbosity_mode="verbose",
             ignore_cache=True,
         )
-        assert "geometry" in gdf.columns
+        assert GEOMETRY_COLUMN in gdf.columns
         assert all(
             column_name in gdf.columns
             for column_name in (columns_to_download or [])
@@ -97,7 +97,7 @@ def test_empty_region(test_release_version: str) -> None:
     assert all(
         c in gdf.columns
         for c in (
-            "geometry",
+            GEOMETRY_COLUMN,
             "bbox",
             "version",
             "sources",
