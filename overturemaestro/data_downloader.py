@@ -22,6 +22,9 @@ if TYPE_CHECKING:  # pragma: no cover
 PYARROW_EXPRESSION = tuple[Any, Any, Any]
 PYARROW_FILTER = Union["Expression", list[PYARROW_EXPRESSION], list[list[PYARROW_EXPRESSION]]]
 
+PARQUET_ROW_GROUP_SIZE = 100_000
+PARQUET_COMPRESSION = "zstd"
+
 __all__ = [
     "download_data",
     "download_data_for_multiple_types",
@@ -185,9 +188,13 @@ def download_data_for_multiple_types(
                 ):
                     final_dataset = ds.dataset(raw_parquet_files)
                     result_file_path.parent.mkdir(exist_ok=True, parents=True)
-                    with pq.ParquetWriter(result_file_path, final_dataset.schema) as writer:
-                        for batch in final_dataset.to_batches():
-                            writer.write_batch(batch)
+                    with pq.ParquetWriter(
+                        result_file_path,
+                        schema=final_dataset.schema,
+                        compression=PARQUET_COMPRESSION,
+                    ) as writer:
+                        for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):
+                            writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
 
     return all_result_file_paths
 
@@ -339,10 +346,12 @@ def download_data(
 
             with (
                 TrackProgressSpinner("Saving final geoparquet file", verbosity_mode=verbosity_mode),
-                pq.ParquetWriter(result_file_path, final_dataset.schema) as writer,
+                pq.ParquetWriter(
+                    result_file_path, schema=final_dataset.schema, compression=PARQUET_COMPRESSION
+                ) as writer,
             ):
-                for batch in final_dataset.to_batches():
-                    writer.write_batch(batch)
+                for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):
+                    writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
 
     return result_file_path
 

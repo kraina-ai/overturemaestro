@@ -25,6 +25,7 @@ from shapely import box
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._geometry_clustering import calculate_row_group_bounding_box
+from overturemaestro._geometry_sorting import sort_geoparquet_file_by_geometry
 from overturemaestro._parquet_multiprocessing import map_parquet_dataset
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
 from overturemaestro.cache import (
@@ -32,6 +33,7 @@ from overturemaestro.cache import (
     _get_local_release_cache_directory,
     get_global_release_cache_directory,
 )
+from overturemaestro.data_downloader import PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 
 __all__ = [
     "download_existing_release_index",
@@ -548,6 +550,7 @@ def _generate_release_index(
                 ].sort_values(["filename", "row_group"])
                 cache_file_path = cache_directory / file_name
 
+                unsorted_path = tmp_dir_path / file_name
                 df_subset[
                     [
                         "filename",
@@ -556,10 +559,17 @@ def _generate_release_index(
                         "geometry",
                     ]
                 ].to_parquet(
-                    cache_file_path,
-                    geometry_encoding="geoarrow",
+                    unsorted_path,
                     schema_version="1.1.0",
                     write_covering_bbox=True,
+                    row_group_size=PARQUET_ROW_GROUP_SIZE,
+                    compression=PARQUET_COMPRESSION,
+                    index=False,
+                )
+                sort_geoparquet_file_by_geometry(
+                    input_file_path=unsorted_path,
+                    output_file_path=cache_file_path,
+                    sort_extent=(-180, -90, 180, 90),
                 )
                 file_hashes.append(file_hash(str(cache_file_path)))
                 rprint(f"Saved index file {cache_file_path}")

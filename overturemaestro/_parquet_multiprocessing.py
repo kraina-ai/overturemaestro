@@ -6,6 +6,7 @@ from time import sleep, time
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
+from overturemaestro.data_downloader import PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 
 if TYPE_CHECKING:  # pragma: no cover
     from multiprocessing.managers import ValueProxy
@@ -70,9 +71,11 @@ def _job(
             if schema_hash not in writers:
                 filepath = save_path / str(current_pid) / f"{schema_hash}.parquet"
                 filepath.parent.mkdir(exist_ok=True, parents=True)
-                writers[schema_hash] = pq.ParquetWriter(filepath, result_table.schema)
+                writers[schema_hash] = pq.ParquetWriter(
+                    filepath, schema=result_table.schema, compression=PARQUET_COMPRESSION
+                )
 
-            writers[schema_hash].write_table(result_table)
+            writers[schema_hash].write_table(result_table, row_group_size=PARQUET_ROW_GROUP_SIZE)
 
             with tracker_lock:
                 tracker.value += 1

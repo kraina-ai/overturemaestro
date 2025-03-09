@@ -70,6 +70,7 @@ def calculate_ranges(i: Iterable[int]) -> Generator[tuple[int, int]]:
 def decompress_ranges(ranges: list[list[int]]) -> list[int]:
     return list(
         itertools.chain.from_iterable(
-            range(range_bounds[0], range_bounds[1] + 1) for range_bounds in ranges
+            range(range_bounds[0], range_bounds[1] + 1)
+            for range_bounds in sorted(ranges, key=lambda x: x[0])
         )
     )

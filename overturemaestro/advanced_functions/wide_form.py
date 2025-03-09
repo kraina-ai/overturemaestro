@@ -28,6 +28,8 @@ from overturemaestro.cache import (
     _get_local_wide_form_release_cache_directory,
 )
 from overturemaestro.data_downloader import (
+    PARQUET_COMPRESSION,
+    PARQUET_ROW_GROUP_SIZE,
     PYARROW_FILTER,
     _generate_geometry_hash,
     download_data_for_multiple_types,
@@ -139,6 +141,8 @@ def _transform_to_wide_form(
         )
     ) TO '{output_path}' (
         FORMAT 'parquet',
+        ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
+        COMPRESSION {PARQUET_COMPRESSION},
         PER_THREAD_OUTPUT false
     )
     """
@@ -170,6 +174,8 @@ def _transform_to_wide_form_without_hierarchy(
         )
     ) TO '{output_path}' (
         FORMAT 'parquet',
+        ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
+        COMPRESSION {PARQUET_COMPRESSION},
         PER_THREAD_OUTPUT false
     )
     """
@@ -293,6 +299,8 @@ def _transform_poi_to_wide_form(
         )
     ) TO '{output_path}' (
         FORMAT 'parquet',
+        ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
+        COMPRESSION {PARQUET_COMPRESSION},
         PER_THREAD_OUTPUT false
     )
     """
@@ -1182,6 +1190,8 @@ def _combine_multiple_wide_form_files(
         )
     ) TO '{output_path}' (
         FORMAT 'parquet',
+        ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
+        COMPRESSION {PARQUET_COMPRESSION},
         PER_THREAD_OUTPUT false
     )
     """

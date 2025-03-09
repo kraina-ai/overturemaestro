@@ -3,10 +3,12 @@
 from contextlib import nullcontext as does_not_raise
 from typing import Any, Optional
 
+import pyarrow.parquet as pq
 import pytest
 from parametrization import Parametrization as P
 
 from overturemaestro._exceptions import MissingColumnError
+from overturemaestro.data_downloader import PARQUET_COMPRESSION
 from overturemaestro.functions import (
     convert_bounding_box_to_geodataframe,
     convert_bounding_box_to_parquet,
@@ -21,13 +23,17 @@ from tests.conftest import TEST_RELEASE_VERSION, bbox
 )  # type: ignore
 def test_theme_type_pairs(theme_type_pair: tuple[str, str], test_release_version: str) -> None:
     """Test if all theme type pairs are working."""
-    convert_bounding_box_to_parquet(
+    result = convert_bounding_box_to_parquet(
         theme=theme_type_pair[0],
         type=theme_type_pair[1],
         bbox=bbox(),
         release=test_release_version,
         verbosity_mode="verbose",
         ignore_cache=True,
+    )
+    assert (
+        pq.ParquetFile(result).metadata.row_group(0).column(0).compression.lower()
+        == PARQUET_COMPRESSION.lower()
     )
 
 

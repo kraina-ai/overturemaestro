@@ -8,6 +8,7 @@ import pyarrow.parquet as pq
 
 from overturemaestro import convert_bounding_box_to_parquet_for_multiple_types
 from overturemaestro._geometry_clustering import decompress_ranges
+from overturemaestro.data_downloader import PARQUET_COMPRESSION
 from overturemaestro.release_index import (
     _generate_release_index,
     download_existing_release_index,
@@ -56,7 +57,12 @@ def test_generate_release_indexes(test_release_version: str) -> None:
 
     # Check if all row_groups are mapped and if all rows are covered by the index
     for theme_value, type_value in selected_pairs:
-        index_gdf = gpd.read_parquet(f"test_index/{theme_value}_{type_value}.parquet")
+        index_file_path = f"test_index/{theme_value}_{type_value}.parquet"
+        assert (
+            pq.ParquetFile(index_file_path).metadata.row_group(0).column(0).compression.lower()
+            == PARQUET_COMPRESSION.lower()
+        )
+        index_gdf = gpd.read_parquet(index_file_path)
         unique_files = index_gdf["filename"].unique()
 
         for unique_file in unique_files:
