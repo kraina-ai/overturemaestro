@@ -388,12 +388,15 @@ def download_data(
                     writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
 
             if sort_result:
-                sort_geoparquet_file_by_geometry(
-                    input_file_path=merged_parquet_path,
-                    output_file_path=result_file_path,
-                    working_directory=working_directory,
-                    sort_extent=geometry_filter.bounds,
-                )
+                with TrackProgressSpinner(
+                    "Sorting result file by geometry", verbosity_mode=verbosity_mode
+                ):
+                    sort_geoparquet_file_by_geometry(
+                        input_file_path=merged_parquet_path,
+                        output_file_path=result_file_path,
+                        working_directory=working_directory,
+                        sort_extent=geometry_filter.bounds,
+                    )
 
     return result_file_path
 

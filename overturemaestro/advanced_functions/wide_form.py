@@ -849,7 +849,9 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                     )
 
             if sort_result:
-                with TrackProgressSpinner("Sorting result", verbosity_mode=verbosity_mode):
+                with TrackProgressSpinner(
+                    "Sorting result file by geometry", verbosity_mode=verbosity_mode
+                ):
                     sort_geoparquet_file_by_geometry(
                         input_file_path=merged_parquet_path,
                         output_file_path=result_file_path,
