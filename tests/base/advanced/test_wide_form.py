@@ -8,6 +8,7 @@ import pytest
 from parametrization import Parametrization as P
 from shapely import box
 
+from overturemaestro._constants import GEOMETRY_COLUMN
 from overturemaestro._exceptions import (
     HierarchyDepthOutOfBoundsWarning,
     NegativeHierarchyDepthError,
@@ -82,7 +83,7 @@ def test_all_theme_type_pairs(
         "|".join(t) for t in get_theme_type_classification(release=test_release_version).keys()
     )
     feature_columns = [
-        column_name for column_name in gdf.columns if column_name not in ("id", "geometry")
+        column_name for column_name in gdf.columns if column_name not in ("id", GEOMETRY_COLUMN)
     ]
     assert all(
         column_name.startswith(prepared_theme_type_prefixes) for column_name in feature_columns
@@ -170,7 +171,7 @@ def test_multiple_theme_type_pairs(
         )
         prepared_theme_type_prefixes = tuple("|".join(t) for t in theme_type_pairs)
         feature_columns = [
-            column_name for column_name in gdf.columns if column_name not in ("id", "geometry")
+            column_name for column_name in gdf.columns if column_name not in ("id", GEOMETRY_COLUMN)
         ]
         assert all(
             column_name.startswith(prepared_theme_type_prefixes) for column_name in feature_columns
@@ -230,9 +231,9 @@ def test_hierarchy_values(
             ignore_cache=False,
             include_all_possible_columns=False,
         )
-        assert "geometry" in gdf.columns
+        assert GEOMETRY_COLUMN in gdf.columns
         feature_columns = [
-            column_name for column_name in gdf.columns if column_name not in ("id", "geometry")
+            column_name for column_name in gdf.columns if column_name not in ("id", GEOMETRY_COLUMN)
         ]
         assert all("|" in column_name for column_name in feature_columns)
         assert (gdf.dtypes.loc[feature_columns] == "bool").all()
@@ -256,7 +257,7 @@ def test_include_all_possible_columns_parameter(
         verbosity_mode="verbose",
         ignore_cache=False,
         include_all_possible_columns=False,
-    ).drop(columns="geometry")
+    ).drop(columns=GEOMETRY_COLUMN)
 
     full_dataset = convert_bounding_box_to_wide_form_geodataframe(
         theme=theme_value,
@@ -267,7 +268,7 @@ def test_include_all_possible_columns_parameter(
         verbosity_mode="verbose",
         ignore_cache=False,
         include_all_possible_columns=True,
-    ).drop(columns="geometry")
+    ).drop(columns=GEOMETRY_COLUMN)
 
     all_possible_columns = set(
         get_all_possible_column_names(
@@ -296,7 +297,7 @@ def test_empty_region(
         (-10, -10, -9.9, -9.9),
         release=test_release_version,
         working_directory=wide_form_working_directory,
-    ).drop(columns="geometry")
+    ).drop(columns=GEOMETRY_COLUMN)
 
     all_possible_columns = set(
         get_all_possible_column_names(theme="places", type="place", release=test_release_version)
@@ -363,7 +364,7 @@ def test_places_use_primary_category_only_parameter(
         ignore_cache=False,
         include_all_possible_columns=False,
         places_use_primary_category_only=True,
-    ).drop(columns="geometry")
+    ).drop(columns=GEOMETRY_COLUMN)
 
     all_categories = convert_bounding_box_to_wide_form_geodataframe(
         theme="places",
@@ -375,7 +376,7 @@ def test_places_use_primary_category_only_parameter(
         ignore_cache=False,
         include_all_possible_columns=False,
         places_use_primary_category_only=False,
-    ).drop(columns="geometry")
+    ).drop(columns=GEOMETRY_COLUMN)
 
     assert (primary_only.sum(axis=1) == 1).all(), "Not all rows have exactly one primary category."
     assert (
@@ -416,6 +417,7 @@ def test_generate_result_file_name_order(
         pyarrow_filters=pyarrow_filters,
         hierarchy_depth=hierarchy_depths,
         include_all_possible_columns=False,
+        sort_result=True,
     )
 
     reverse_order_result = _generate_result_file_path(
@@ -425,6 +427,7 @@ def test_generate_result_file_name_order(
         pyarrow_filters=pyarrow_filters[::-1],
         hierarchy_depth=hierarchy_depths[::-1],
         include_all_possible_columns=False,
+        sort_result=True,
     )
 
     assert result == reverse_order_result

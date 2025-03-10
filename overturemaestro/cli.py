@@ -493,6 +493,14 @@ def main(
             show_default=False,
         ),
     ] = False,
+    sort_result: Annotated[
+        bool,
+        typer.Option(
+            "--sort/--no-sort",
+            help="Whether to sort the final geoparquet file by geometry or not.",
+            show_default=True,
+        ),
+    ] = True,
     working_directory: Annotated[
         Path,
         typer.Option(
@@ -644,6 +652,7 @@ def main(
         result_file_path=result_file_path,
         verbosity_mode=verbosity_mode,
         pyarrow_filter=pyarrow_filter,
+        sort_result=sort_result,
     )
 
     typer.secho(geoparquet_path, fg="green")

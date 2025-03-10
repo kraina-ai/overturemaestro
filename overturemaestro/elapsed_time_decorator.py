@@ -58,7 +58,12 @@ def is_inside_decorated_calling_function() -> bool:
             except (KeyError, AttributeError):
                 pass
             else:
-                if func is not None and hasattr(func, "__code__") and func.__code__ == co and is_decorated(func):
+                if (
+                    func is not None
+                    and hasattr(func, "__code__")
+                    and func.__code__ == co
+                    and is_decorated(func)
+                ):
                     return True
 
     return False

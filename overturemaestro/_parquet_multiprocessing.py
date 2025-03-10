@@ -5,6 +5,7 @@ from queue import Empty, Queue
 from time import sleep, time
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
+from overturemaestro._constants import PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -70,9 +71,11 @@ def _job(
             if schema_hash not in writers:
                 filepath = save_path / str(current_pid) / f"{schema_hash}.parquet"
                 filepath.parent.mkdir(exist_ok=True, parents=True)
-                writers[schema_hash] = pq.ParquetWriter(filepath, result_table.schema)
+                writers[schema_hash] = pq.ParquetWriter(
+                    filepath, schema=result_table.schema, compression=PARQUET_COMPRESSION
+                )
 
-            writers[schema_hash].write_table(result_table)
+            writers[schema_hash].write_table(result_table, row_group_size=PARQUET_ROW_GROUP_SIZE)
 
             with tracker_lock:
                 tracker.value += 1
@@ -161,6 +164,8 @@ def map_parquet_dataset(
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         max_workers (Optional[int], optional): Max number of multiprocessing workers used to
             process the dataset. Defaults to None.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
     """
     with TrackProgressSpinner(
         "Preparing multiprocessing environment", verbosity_mode=verbosity_mode

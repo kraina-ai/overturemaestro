@@ -83,7 +83,7 @@ def test_basic_run(test_release_version: str) -> None:
     assert (
         str(
             Path(f"files/{test_release_version}/theme={theme_value}/type={type_value}")
-            / f"{geometry_hash}_nofilter.parquet"
+            / f"{geometry_hash}_nofilter_sorted.parquet"
         )
         in result.stdout
     )
@@ -115,7 +115,7 @@ def test_silent_mode(test_release_version: str) -> None:
     assert (
         str(
             Path(f"files/{test_release_version}/theme={theme_value}/type={type_value}")
-            / f"{geometry_hash}_nofilter.parquet"
+            / f"{geometry_hash}_nofilter_sorted.parquet"
         )
         == result.stdout.strip()
     )
@@ -148,7 +148,7 @@ def test_transient_mode(test_release_version: str) -> None:
     assert (
         str(
             Path(f"files/{test_release_version}/theme={theme_value}/type={type_value}")
-            / f"{geometry_hash}_nofilter.parquet"
+            / f"{geometry_hash}_nofilter_sorted.parquet"
         )
         == output_lines[1]
     )
@@ -159,7 +159,7 @@ def test_transient_mode(test_release_version: str) -> None:
     "Output",
     [
         "--output",
-        "files/monaco_output_long.parquet",
+        "files/monaco_output_long_sorted.parquet",
         "--release",
         TEST_RELEASE_VERSION,
         "--geom-filter-bbox",
@@ -167,13 +167,13 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    "files/monaco_output_long.parquet",
+    "files/monaco_output_long_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Output short",
     [
         "-o",
-        "files/monaco_output_short.parquet",
+        "files/monaco_output_short_sorted.parquet",
         "--release",
         TEST_RELEASE_VERSION,
         "--geom-filter-bbox",
@@ -181,13 +181,37 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    "files/monaco_output_short.parquet",
+    "files/monaco_output_short_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Base without release",
     [
         "--geom-filter-bbox",
         geometry_bbox_str(),
+        "buildings",
+        "building",
+    ],
+    f"files/{TEST_RELEASE_VERSIONS_LIST[-1]}/"
+    f"theme=buildings/type=building/{_generate_geometry_hash(geometry_box())}_nofilter_sorted.parquet",
+)  # type: ignore
+@P.case(
+    "Explicit sort",
+    [
+        "--geom-filter-bbox",
+        geometry_bbox_str(),
+        "--sort",
+        "buildings",
+        "building",
+    ],
+    f"files/{TEST_RELEASE_VERSIONS_LIST[-1]}/"
+    f"theme=buildings/type=building/{_generate_geometry_hash(geometry_box())}_nofilter_sorted.parquet",
+)  # type: ignore
+@P.case(
+    "No sort",
+    [
+        "--geom-filter-bbox",
+        geometry_bbox_str(),
+        "--no-sort",
         "buildings",
         "building",
     ],
@@ -207,7 +231,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "files/workdir",
     ],
     f"files/workdir/{TEST_RELEASE_VERSION}/"
-    f"theme=buildings/type=building/{_generate_geometry_hash(geometry_box())}_nofilter.parquet",
+    f"theme=buildings/type=building/{_generate_geometry_hash(geometry_box())}_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Ignore cache",
@@ -219,10 +243,10 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
         "--output",
-        "files/monaco_output.parquet",
+        "files/monaco_output_sorted.parquet",
         "--ignore-cache",
     ],
-    "files/monaco_output.parquet",
+    "files/monaco_output_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Ignore cache short",
@@ -234,10 +258,10 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
         "--output",
-        "files/monaco_output.parquet",
+        "files/monaco_output_sorted.parquet",
         "--no-cache",
     ],
-    "files/monaco_output.parquet",
+    "files/monaco_output_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Silent",
@@ -250,9 +274,9 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
         "--silent",
         "--output",
-        "files/monaco_output.parquet",
+        "files/monaco_output_sorted.parquet",
     ],
-    "files/monaco_output.parquet",
+    "files/monaco_output_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Transient",
@@ -265,9 +289,9 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
         "--transient",
         "--output",
-        "files/monaco_output.parquet",
+        "files/monaco_output_sorted.parquet",
     ],
-    "files/monaco_output.parquet",
+    "files/monaco_output_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Output with working directory",
@@ -281,9 +305,9 @@ def test_transient_mode(test_release_version: str) -> None:
         "--working-directory",
         "files/workdir",
         "-o",
-        "files/monaco_output.parquet",
+        "files/monaco_output_sorted.parquet",
     ],
-    "files/monaco_output.parquet",
+    "files/monaco_output_sorted.parquet",
 )  # type: ignore
 @P.case(
     "PyArrow filtering",
@@ -298,7 +322,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "subtype = residential",
     ],
     f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/"
-    f"{_generate_geometry_hash(geometry_box())}_b22759b5.parquet",
+    f"{_generate_geometry_hash(geometry_box())}_b22759b5_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry WKT filter",
@@ -311,7 +335,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
     ],
     f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/09c3fc04_nofilter.parquet",
+    "theme=buildings/type=building/09c3fc04_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry GeoJSON filter",
@@ -324,7 +348,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
     ],
     f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/82c0fdfa_nofilter.parquet",
+    "theme=buildings/type=building/82c0fdfa_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry file filter",
@@ -337,7 +361,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
     ],
     f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/6a869bcf_nofilter.parquet",
+    "theme=buildings/type=building/6a869bcf_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry geocode filter",
@@ -350,7 +374,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
     ],
     f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/e7f0b78a_nofilter.parquet",
+    "theme=buildings/type=building/e7f0b78a_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter",
@@ -363,7 +387,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
     ],
     f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/c08889e8_nofilter.parquet",
+    "theme=buildings/type=building/c08889e8_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter multiple",
@@ -376,7 +400,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
     ],
     f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/1bd33e0a_nofilter.parquet",
+    "theme=buildings/type=building/1bd33e0a_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter",
@@ -389,7 +413,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
     ],
     f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/a2f8d511_nofilter.parquet",
+    "theme=buildings/type=building/a2f8d511_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter multiple",
@@ -402,7 +426,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
     ],
     f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/e50e6489_nofilter.parquet",
+    "theme=buildings/type=building/e50e6489_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter",
@@ -415,7 +439,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
     ],
     f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/5c3d61eb_nofilter.parquet",
+    "theme=buildings/type=building/5c3d61eb_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter multiple",
@@ -428,7 +452,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "building",
     ],
     f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/cda5d65e_nofilter.parquet",
+    "theme=buildings/type=building/cda5d65e_nofilter_sorted.parquet",
 )  # type: ignore
 def test_proper_args(args: list[str], expected_result: str) -> None:
     """Test if runs properly with options."""

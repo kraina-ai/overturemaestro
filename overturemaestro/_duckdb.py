@@ -11,12 +11,14 @@ def _sql_escape(value: str) -> str:
     return value.replace("'", "''")
 
 
-def _set_up_duckdb_connection(tmp_dir_path: Union[str, Path]) -> "duckdb.DuckDBPyConnection":
+def _set_up_duckdb_connection(
+    tmp_dir_path: Union[str, Path], preserve_insertion_order: bool = False
+) -> "duckdb.DuckDBPyConnection":
     """Create DuckDB connection in a given directory."""
     local_db_file = "db.duckdb"
     connection = duckdb.connect(
         database=str(Path(tmp_dir_path) / local_db_file),
-        config=dict(preserve_insertion_order=False),
+        config=dict(preserve_insertion_order=preserve_insertion_order),
     )
     connection.sql("SET enable_progress_bar = false;")
     connection.sql("SET enable_progress_bar_print = false;")
