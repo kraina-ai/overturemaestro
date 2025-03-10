@@ -108,4 +108,6 @@ def sort_geoparquet_file_by_geometry(
             compression=PARQUET_COMPRESSION,
         )
 
+        connection.close()
+
     return output_file_path
