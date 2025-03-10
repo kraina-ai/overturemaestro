@@ -7,8 +7,8 @@ import geopandas as gpd
 import pyarrow.parquet as pq
 
 from overturemaestro import convert_bounding_box_to_parquet_for_multiple_types
+from overturemaestro._constants import PARQUET_COMPRESSION
 from overturemaestro._geometry_clustering import decompress_ranges
-from overturemaestro.data_downloader import PARQUET_COMPRESSION
 from overturemaestro.release_index import (
     _generate_release_index,
     download_existing_release_index,
