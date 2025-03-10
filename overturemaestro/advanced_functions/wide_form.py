@@ -148,6 +148,7 @@ def _transform_to_wide_form(
     """
 
     connection.execute(query)
+    connection.close()
 
     return output_path
 
@@ -181,6 +182,7 @@ def _transform_to_wide_form_without_hierarchy(
     """
 
     connection.execute(query)
+    connection.close()
 
     return output_path
 
@@ -306,6 +308,7 @@ def _transform_poi_to_wide_form(
     """
 
     connection.execute(query)
+    connection.close()
 
     return output_path
 
@@ -1230,6 +1233,7 @@ def _combine_multiple_wide_form_files(
     """
 
     connection.execute(query)
+    connection.close()
 
 
 @overload
