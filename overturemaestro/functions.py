@@ -145,7 +145,7 @@ def convert_geometry_to_parquet(
         ...     geometry_filter=london_bbox,
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/2024-08-20.0/theme=buildings/type=building/7ed11f0d_nofilter.parquet'
+        'files/2024-08-20.0/theme=buildings/type=building/7ed11f0d_nofilter_sorted.parquet'
 
         Inspect the content
         >>> import geopandas as gpd
@@ -671,7 +671,7 @@ def convert_bounding_box_to_parquet(
         ...     bbox=london_bbox,
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/2024-08-20.0/theme=buildings/type=building/7ed11f0d_nofilter.parquet'
+        'files/2024-08-20.0/theme=buildings/type=building/7ed11f0d_nofilter_sorted.parquet'
 
         Inspect the content
         >>> import geopandas as gpd
