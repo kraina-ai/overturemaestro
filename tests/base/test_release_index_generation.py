@@ -41,6 +41,7 @@ def test_generate_release_indexes(test_release_version: str) -> None:
             bbox=bounding_box,
             release=test_release_version,
             working_directory=working_directory,
+            sort_result=False,
         )
 
     # Generate local index
