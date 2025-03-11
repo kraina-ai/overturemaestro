@@ -35,6 +35,8 @@ def sort_geoparquet_file_by_geometry(
 
     assert input_file_path.resolve().as_posix() != output_file_path.resolve().as_posix()
 
+    Path(working_directory).mkdir(parents=True, exist_ok=True)
+
     with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
         tmp_dir_path = Path(tmp_dir_name)
 

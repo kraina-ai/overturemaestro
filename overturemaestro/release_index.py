@@ -570,6 +570,7 @@ def _generate_release_index(
                     input_file_path=unsorted_path,
                     output_file_path=cache_file_path,
                     sort_extent=(-180, -90, 180, 90),
+                    working_directory=tmp_dir_path,
                 )
                 file_hashes.append(file_hash(str(cache_file_path)))
                 rprint(f"Saved index file {cache_file_path}")

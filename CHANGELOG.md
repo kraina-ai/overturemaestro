@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Create a working directory during sorting operation if it doesn't exist
+- Pass a working directory to the sorting operation during release index generation
+
 ## [0.3.0] - 2025-03-10
 
 ### Added
