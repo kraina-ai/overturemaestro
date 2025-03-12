@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2025-03-11
+
 ### Fixed
 
 - Create a working directory during sorting operation if it doesn't exist
@@ -165,7 +167,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.3.1...HEAD
+
+[0.3.1]: https://github.com/kraina-ai/overturemaestro/compare/0.3.0...0.3.1
 
 [0.3.0]: https://github.com/kraina-ai/overturemaestro/compare/0.2.6...0.3.0
 
