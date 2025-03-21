@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2025-03-21
+
 ### Fixed
 
 - Copy original parquet file schema metadata during geometries sorting
@@ -171,7 +173,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.3.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.3.2...HEAD
+
+[0.3.2]: https://github.com/kraina-ai/overturemaestro/compare/0.3.1...0.3.2
 
 [0.3.1]: https://github.com/kraina-ai/overturemaestro/compare/0.3.0...0.3.1
 
