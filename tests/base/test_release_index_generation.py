@@ -88,3 +88,6 @@ def test_generate_release_indexes(test_release_version: str) -> None:
             decompressed_range = decompress_ranges(row_group_to_check["row_indexes_ranges"])
 
             assert data_index.difference(decompressed_range).empty
+
+        for bounding_box in SELECTED_CITIES_BOUNDING_BOXES:
+            gpd.read_parquet(index_file_path, bbox=bounding_box)

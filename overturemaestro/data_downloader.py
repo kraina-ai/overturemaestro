@@ -9,7 +9,12 @@ import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
-from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
+from overturemaestro._constants import (
+    GEOMETRY_COLUMN,
+    PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
+    PARQUET_ROW_GROUP_SIZE,
+)
 from overturemaestro._exceptions import MissingColumnError
 from overturemaestro._geometry_sorting import sort_geoparquet_file_by_geometry
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
@@ -204,6 +209,7 @@ def download_data_for_multiple_types(
                         merged_parquet_path,
                         schema=final_dataset.schema,
                         compression=PARQUET_COMPRESSION,
+                        compression_level=PARQUET_COMPRESSION_LEVEL,
                     ) as writer:
                         for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):
                             writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
@@ -382,6 +388,7 @@ def download_data(
                     merged_parquet_path,
                     schema=final_dataset.schema,
                     compression=PARQUET_COMPRESSION,
+                    compression_level=PARQUET_COMPRESSION_LEVEL,
                 ) as writer,
             ):
                 for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):

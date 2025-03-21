@@ -17,7 +17,12 @@ from requests import HTTPError
 from rich import print as rprint
 from shapely.geometry.base import BaseGeometry
 
-from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
+from overturemaestro._constants import (
+    GEOMETRY_COLUMN,
+    PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
+    PARQUET_ROW_GROUP_SIZE,
+)
 from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
 from overturemaestro._exceptions import (
     HierarchyDepthOutOfBoundsWarning,
@@ -143,6 +148,7 @@ def _transform_to_wide_form(
         FORMAT 'parquet',
         ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
         COMPRESSION {PARQUET_COMPRESSION},
+        COMPRESSION_LEVEL {PARQUET_COMPRESSION_LEVEL},
         PER_THREAD_OUTPUT false
     )
     """
@@ -177,6 +183,7 @@ def _transform_to_wide_form_without_hierarchy(
         FORMAT 'parquet',
         ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
         COMPRESSION {PARQUET_COMPRESSION},
+        COMPRESSION_LEVEL {PARQUET_COMPRESSION_LEVEL},
         PER_THREAD_OUTPUT false
     )
     """
@@ -303,6 +310,7 @@ def _transform_poi_to_wide_form(
         FORMAT 'parquet',
         ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
         COMPRESSION {PARQUET_COMPRESSION},
+        COMPRESSION_LEVEL {PARQUET_COMPRESSION_LEVEL},
         PER_THREAD_OUTPUT false
     )
     """
@@ -1230,6 +1238,7 @@ def _combine_multiple_wide_form_files(
         FORMAT 'parquet',
         ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
         COMPRESSION {PARQUET_COMPRESSION},
+        COMPRESSION_LEVEL {PARQUET_COMPRESSION_LEVEL},
         PER_THREAD_OUTPUT false
     )
     """
