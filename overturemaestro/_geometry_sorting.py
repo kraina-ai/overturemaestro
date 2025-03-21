@@ -4,7 +4,13 @@ import tempfile
 from pathlib import Path
 from typing import Optional, Union
 
-from overturemaestro._constants import PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
+import pyarrow.parquet as pq
+
+from overturemaestro._constants import (
+    PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
+    PARQUET_ROW_GROUP_SIZE,
+)
 from overturemaestro._duckdb import _set_up_duckdb_connection
 
 
@@ -96,20 +102,37 @@ def sort_geoparquet_file_by_geometry(
             )
             """
 
-        relation = connection.sql(
-            f"""
-            SELECT *
-            FROM read_parquet('{input_file_path}', hive_partitioning=false)
-            ORDER BY {order_clause}
-            """
-        )
+        original_metadata_string = _parquet_schema_metadata_to_duckdb_kv_metadata(input_file_path)
 
-        relation.to_parquet(
-            str(output_file_path),
-            row_group_size=PARQUET_ROW_GROUP_SIZE,
-            compression=PARQUET_COMPRESSION,
+        connection.execute(
+            f"""
+            COPY (
+                SELECT *
+                FROM read_parquet('{input_file_path}', hive_partitioning=false)
+                ORDER BY {order_clause}
+            ) TO '{output_file_path}' (
+                FORMAT parquet,
+                COMPRESSION {PARQUET_COMPRESSION},
+                COMPRESSION_LEVEL {PARQUET_COMPRESSION_LEVEL},
+                ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
+                KV_METADATA {original_metadata_string}
+            );
+            """
         )
 
         connection.close()
 
     return output_file_path
+
+
+def _parquet_schema_metadata_to_duckdb_kv_metadata(parquet_file_path: Path) -> str:
+    def escape_single_quotes(s: str) -> str:
+        return s.replace("'", "''")
+
+    kv_pairs = []
+    for key, value in pq.read_metadata(parquet_file_path).metadata.items():
+        escaped_key = escape_single_quotes(key.decode())
+        escaped_value = escape_single_quotes(value.decode())
+        kv_pairs.append(f"'{escaped_key}': '{escaped_value}'")
+
+    return "{ " + ", ".join(kv_pairs) + " }"

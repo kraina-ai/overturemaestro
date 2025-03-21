@@ -24,7 +24,12 @@ from rich import print as rprint
 from shapely import box
 from shapely.geometry.base import BaseGeometry
 
-from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
+from overturemaestro._constants import (
+    GEOMETRY_COLUMN,
+    PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
+    PARQUET_ROW_GROUP_SIZE,
+)
 from overturemaestro._geometry_clustering import calculate_row_group_bounding_box
 from overturemaestro._geometry_sorting import sort_geoparquet_file_by_geometry
 from overturemaestro._parquet_multiprocessing import map_parquet_dataset
@@ -564,6 +569,7 @@ def _generate_release_index(
                     write_covering_bbox=True,
                     row_group_size=PARQUET_ROW_GROUP_SIZE,
                     compression=PARQUET_COMPRESSION,
+                    compression_level=PARQUET_COMPRESSION_LEVEL,
                     index=False,
                 )
                 sort_geoparquet_file_by_geometry(
