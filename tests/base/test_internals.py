@@ -74,6 +74,6 @@ def test_sorting(test_release_version: str) -> None:
         release=test_release_version,
     )
 
-    assert unsorted_pq.stat().st_size < sorted_pq.stat().st_size
+    assert unsorted_pq.stat().st_size > sorted_pq.stat().st_size
 
     assert pq.read_schema(unsorted_pq).equals(pq.read_schema(sorted_pq))
