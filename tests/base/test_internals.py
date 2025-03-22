@@ -3,18 +3,20 @@
 from pathlib import Path
 
 import pyarrow.compute as pc
+import pyarrow.parquet as pq
 
+from overturemaestro import convert_bounding_box_to_parquet
 from overturemaestro._constants import GEOMETRY_COLUMN
 from overturemaestro.data_downloader import _download_single_parquet_row_group_multiprocessing
-
-# TODO: add test for checking if metadata is ok
 
 
 def test_download_single_parquet_row_group() -> None:
     """Test if downloading single parquet row group is working."""
     _download_single_parquet_row_group_multiprocessing(
         params={
-            "filename": "overturemaps-us-west-2/release/2024-08-20.0/theme=places/type=place/part-00002-93118862-ebe9-4b31-8277-1a87d792bd5d-c000.zstd.parquet",  # noqa: E501
+            "filename": (
+                "overturemaps-us-west-2/release/2024-08-20.0/theme=places/type=place/part-00002-93118862-ebe9-4b31-8277-1a87d792bd5d-c000.zstd.parquet"
+            ),  # noqa: E501
             "row_group": 53,
             "row_indexes_ranges": [
                 [0, 1904],
@@ -51,3 +53,27 @@ def test_download_single_parquet_row_group() -> None:
         bbox=(7.416486207767861, 43.7310867041912, 7.421931388477276, 43.73370705597216),
         working_directory=Path("files"),
     )
+
+
+def test_sorting(test_release_version: str) -> None:
+    """Test if sorted file is smaller and metadata in both files is equal."""
+    bbox = (7.416486207767861, 43.7310867041912, 7.421931388477276, 43.73370705597216)
+
+    unsorted_pq = convert_bounding_box_to_parquet(
+        theme="buildings",
+        type="building",
+        bbox=bbox,
+        sort_result=False,
+        release=test_release_version,
+    )
+    sorted_pq = convert_bounding_box_to_parquet(
+        theme="buildings",
+        type="building",
+        bbox=bbox,
+        sort_result=True,
+        release=test_release_version,
+    )
+
+    assert unsorted_pq.stat().st_size < sorted_pq.stat().st_size
+
+    assert pq.read_schema(unsorted_pq).equals(pq.read_schema(sorted_pq))
