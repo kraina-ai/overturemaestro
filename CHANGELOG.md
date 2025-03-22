@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped minimal DuckDB version to 1.1.2
+
+### Fixed
+
+- Removed duplicate geo metadata entry in the sorted geoparquet schema
+
 ## [0.3.2] - 2025-03-21
 
 ### Fixed
