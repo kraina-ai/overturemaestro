@@ -57,13 +57,14 @@ def test_download_single_parquet_row_group() -> None:
 
 def test_sorting(test_release_version: str) -> None:
     """Test if sorted file is smaller and metadata in both files is equal."""
-    bbox = (7.416486207767861, 43.7310867041912, 7.421931388477276, 43.73370705597216)
+    bbox = (-0.120077, 51.498164, -0.090809, 51.508849)
 
     unsorted_pq = convert_bounding_box_to_parquet(
         theme="buildings",
         type="building",
         bbox=bbox,
         sort_result=False,
+        ignore_cache=True,
         release=test_release_version,
     )
     sorted_pq = convert_bounding_box_to_parquet(
@@ -71,6 +72,7 @@ def test_sorting(test_release_version: str) -> None:
         type="building",
         bbox=bbox,
         sort_result=True,
+        ignore_cache=True,
         release=test_release_version,
     )
 
