@@ -138,13 +138,15 @@ def _compress_with_memory_limit(
     input_file_path: Path,
     output_file_path: Path,
     original_metadata_string: str,
-    current_memory_limit: int,
+    current_memory_limit: float,
     tmp_dir_path: Path,
 ) -> None:
     connection = _set_up_duckdb_connection(tmp_dir_path, preserve_insertion_order=True)
 
     connection.execute("SET enable_geoparquet_conversion = false;")
     connection.execute(f"SET memory_limit = '{current_memory_limit}GB';")
+    if current_memory_limit <= 1:
+        connection.execute("SET threads = 1;")
 
     connection.execute(
         f"""
@@ -175,7 +177,7 @@ def _sort_with_memory_limit(
     input_file_path: Path,
     output_file_path: Path,
     sort_extent: Optional[tuple[float, float, float, float]],
-    current_memory_limit: int,
+    current_memory_limit: float,
     tmp_dir_path: Path,
 ) -> None:
     connection = _set_up_duckdb_connection(tmp_dir_path, preserve_insertion_order=True)
@@ -238,6 +240,8 @@ def _sort_with_memory_limit(
         """
 
     connection.execute(f"SET memory_limit = '{current_memory_limit:.2f}GB';")
+    if current_memory_limit <= 1:
+        connection.execute("SET threads = 1;")
 
     connection.execute(
         f"""
