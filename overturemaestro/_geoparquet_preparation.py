@@ -70,7 +70,7 @@ def compress_parquet_with_duckdb(
             verbosity_mode=verbosity_mode,
             current_memory_limit=None,
             function=_compress_with_memory_limit,
-            args=(input_file_path, output_file_path, working_directory, original_metadata_string),
+            args=(input_file_path, output_file_path, tmp_dir_path, original_metadata_string),
         )
 
     return output_file_path
@@ -118,7 +118,7 @@ def sort_geoparquet_file_by_geometry(
             verbosity_mode=verbosity_mode,
             current_memory_limit=None,
             function=_sort_with_memory_limit,
-            args=(input_file_path, order_file_path, working_directory, sort_extent),
+            args=(input_file_path, order_file_path, tmp_dir_path, sort_extent),
         )
 
         original_metadata_string = _parquet_schema_metadata_to_duckdb_kv_metadata(
@@ -129,7 +129,7 @@ def sort_geoparquet_file_by_geometry(
             verbosity_mode=verbosity_mode,
             current_memory_limit=current_memory_limit,
             function=_compress_with_memory_limit,
-            args=(order_file_path, output_file_path, working_directory, original_metadata_string),
+            args=(order_file_path, output_file_path, tmp_dir_path, original_metadata_string),
         )
 
     return output_file_path
@@ -138,13 +138,13 @@ def sort_geoparquet_file_by_geometry(
 def _compress_with_memory_limit(
     input_file_path: Path,
     output_file_path: Path,
-    working_directory: Path,
+    tmp_dir_path: Path,
     original_metadata_string: str,
     current_memory_limit: int,
 ) -> None:
-    with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
-        tmp_dir_path = Path(tmp_dir_name)
-        connection = _set_up_duckdb_connection(tmp_dir_path, preserve_insertion_order=True)
+    with tempfile.TemporaryDirectory(dir=Path(tmp_dir_path).resolve()) as tmp_dir_name:
+        nested_tmp_dir_path = Path(tmp_dir_name)
+        connection = _set_up_duckdb_connection(nested_tmp_dir_path, preserve_insertion_order=True)
 
         connection.execute("SET enable_geoparquet_conversion = false;")
         connection.execute(f"SET memory_limit = '{current_memory_limit}GB';")
@@ -164,19 +164,26 @@ def _compress_with_memory_limit(
             """
         )
 
-    connection.close()
+        connection.close()
+
+        db_path = Path(tmp_dir_path) / "db.duckdb"
+        while db_path.exists():
+            try:
+                db_path.unlink(missing_ok=True)
+            except PermissionError:
+                sleep(0.1)
 
 
 def _sort_with_memory_limit(
     input_file_path: Path,
     output_file_path: Path,
-    working_directory: Path,
+    tmp_dir_path: Path,
     sort_extent: Optional[tuple[float, float, float, float]],
     current_memory_limit: int,
 ) -> None:
-    with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
-        tmp_dir_path = Path(tmp_dir_name)
-        connection = _set_up_duckdb_connection(tmp_dir_path, preserve_insertion_order=True)
+    with tempfile.TemporaryDirectory(dir=Path(tmp_dir_path).resolve()) as tmp_dir_name:
+        nested_tmp_dir_path = Path(tmp_dir_name)
+        connection = _set_up_duckdb_connection(nested_tmp_dir_path, preserve_insertion_order=True)
 
         struct_type = "::STRUCT(min_x DOUBLE, min_y DOUBLE, max_x DOUBLE, max_y DOUBLE)"
         connection.sql(
@@ -250,6 +257,13 @@ def _sort_with_memory_limit(
         )
 
         connection.close()
+
+        db_path = Path(tmp_dir_path) / "db.duckdb"
+        while db_path.exists():
+            try:
+                db_path.unlink(missing_ok=True)
+            except PermissionError:
+                sleep(0.1)
 
 
 def _run_query_with_memory_limit(
