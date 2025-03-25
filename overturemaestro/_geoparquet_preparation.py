@@ -65,7 +65,7 @@ def compress_parquet_with_duckdb(
         _run_query_with_memory_limit(
             tmp_dir_path=tmp_dir_path,
             verbosity_mode=verbosity_mode,
-            current_memory_limit=None,
+            current_memory_gb_limit=None,
             function=_compress_with_memory_limit,
             args=(input_file_path, output_file_path, original_metadata_string),
         )
@@ -111,10 +111,10 @@ def sort_geoparquet_file_by_geometry(
         tmp_dir_path = Path(tmp_dir_name)
         order_file_path = tmp_dir_path / "order_file.parquet"
 
-        current_memory_limit = _run_query_with_memory_limit(
+        current_memory_gb_limit = _run_query_with_memory_limit(
             tmp_dir_path=tmp_dir_path,
             verbosity_mode=verbosity_mode,
-            current_memory_limit=None,
+            current_memory_gb_limit=None,
             function=_sort_with_memory_limit,
             args=(input_file_path, order_file_path, sort_extent),
         )
@@ -126,7 +126,7 @@ def sort_geoparquet_file_by_geometry(
         _run_query_with_memory_limit(
             tmp_dir_path=tmp_dir_path,
             verbosity_mode=verbosity_mode,
-            current_memory_limit=current_memory_limit,
+            current_memory_gb_limit=current_memory_gb_limit,
             function=_compress_with_memory_limit,
             args=(order_file_path, output_file_path, original_metadata_string),
         )
@@ -138,14 +138,14 @@ def _compress_with_memory_limit(
     input_file_path: Path,
     output_file_path: Path,
     original_metadata_string: str,
-    current_memory_limit: float,
+    current_memory_gb_limit: float,
     tmp_dir_path: Path,
 ) -> None:
     connection = _set_up_duckdb_connection(tmp_dir_path, preserve_insertion_order=True)
 
     connection.execute("SET enable_geoparquet_conversion = false;")
-    connection.execute(f"SET memory_limit = '{current_memory_limit}GB';")
-    if current_memory_limit <= 1:
+    connection.execute(f"SET memory_limit = '{current_memory_gb_limit}GB';")
+    if current_memory_gb_limit <= 1:
         connection.execute("SET threads = 1;")
 
     connection.execute(
@@ -177,7 +177,7 @@ def _sort_with_memory_limit(
     input_file_path: Path,
     output_file_path: Path,
     sort_extent: Optional[tuple[float, float, float, float]],
-    current_memory_limit: float,
+    current_memory_gb_limit: float,
     tmp_dir_path: Path,
 ) -> None:
     connection = _set_up_duckdb_connection(tmp_dir_path, preserve_insertion_order=True)
@@ -239,8 +239,8 @@ def _sort_with_memory_limit(
         )
         """
 
-    connection.execute(f"SET memory_limit = '{current_memory_limit:.2f}GB';")
-    if current_memory_limit <= 1:
+    connection.execute(f"SET memory_limit = '{current_memory_gb_limit:.2f}GB';")
+    if current_memory_gb_limit <= 1:
         connection.execute("SET threads = 1;")
 
     connection.execute(
@@ -268,13 +268,15 @@ def _sort_with_memory_limit(
 def _run_query_with_memory_limit(
     tmp_dir_path: Path,
     verbosity_mode: "VERBOSITY_MODE",
-    current_memory_limit: Optional[float],
+    current_memory_gb_limit: Optional[float],
     function: Callable[..., None],
     args: Any,
 ) -> float:
-    current_memory_limit = current_memory_limit or ceil(psutil.virtual_memory().total / MEMORY_1GB)
+    current_memory_gb_limit = current_memory_gb_limit or ceil(
+        psutil.virtual_memory().total / MEMORY_1GB
+    )
 
-    while current_memory_limit > 0:
+    while current_memory_gb_limit > 0:
         try:
             with (
                 tempfile.TemporaryDirectory(dir=Path(tmp_dir_path).resolve()) as tmp_dir_name,
@@ -284,7 +286,7 @@ def _run_query_with_memory_limit(
                 r = pool.apply_async(
                     func=partial(
                         function,
-                        current_memory_limit=current_memory_limit,
+                        current_memory_gb_limit=current_memory_gb_limit,
                         tmp_dir_path=nested_tmp_dir_path,
                     ),
                     args=args,
@@ -302,23 +304,23 @@ def _run_query_with_memory_limit(
 
                     sleep(0.5)
                 r.get()
-            return current_memory_limit
+            return current_memory_gb_limit
         except (duckdb.OutOfMemoryException, MemoryError) as ex:
-            if current_memory_limit < 1:
+            if current_memory_gb_limit < 1:
                 raise RuntimeError(
                     "Not enough memory to run the ordering query. Please rerun without sorting."
                 ) from ex
 
-            if current_memory_limit == 1:
-                current_memory_limit /= 2
+            if current_memory_gb_limit == 1:
+                current_memory_gb_limit /= 2
             else:
-                current_memory_limit = ceil(current_memory_limit / 2)
+                current_memory_gb_limit = ceil(current_memory_gb_limit / 2)
 
             if not verbosity_mode == "silent":
                 rprint(
                     f"Encountered {ex.__class__.__name__} during operation."
                     " Retrying with lower memory limit"
-                    f" ({current_memory_limit:.2f}GB)."
+                    f" ({current_memory_gb_limit:.2f}GB)."
                 )
 
     raise RuntimeError("Not enough memory to run the ordering query. Please rerun without sorting.")
