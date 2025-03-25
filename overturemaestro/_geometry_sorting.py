@@ -47,7 +47,6 @@ def sort_geoparquet_file_by_geometry(
         tmp_dir_path = Path(tmp_dir_name)
 
         connection = _set_up_duckdb_connection(tmp_dir_path, preserve_insertion_order=True)
-        connection.execute("SET enable_geoparquet_conversion = false;")
 
         struct_type = "::STRUCT(min_x DOUBLE, min_y DOUBLE, max_x DOUBLE, max_y DOUBLE)"
         connection.sql(
@@ -70,9 +69,9 @@ def sort_geoparquet_file_by_geometry(
             # Calculate extent from the geometries in the file
             order_clause = f"""
             ST_Hilbert(
-                ST_GeomFromWKB(geometry),
+                geometry,
                 (
-                    SELECT ST_Extent(ST_Extent_Agg(ST_GeomFromWKB(geometry)))::BOX_2D
+                    SELECT ST_Extent(ST_Extent_Agg(geometry))::BOX_2D
                     FROM read_parquet('{input_file_path}', hive_partitioning=false)
                 )
             )
@@ -92,28 +91,50 @@ def sort_geoparquet_file_by_geometry(
             # Then sort by Hilbert curve but readjust the extent to all geometries that
             # are not fully within the extent, but also not bigger than the extent overall.
             order_clause = f"""
-            bbox_within(({extent_box_clause}), ST_Extent(ST_GeomFromWKB(geometry))),
+            bbox_within(({extent_box_clause}), ST_Extent(geometry)),
             ST_Hilbert(
-                ST_GeomFromWKB(geometry),
+                geometry,
                 (
-                    SELECT ST_Extent(ST_Extent_Agg(ST_GeomFromWKB(geometry)))::BOX_2D
+                    SELECT ST_Extent(ST_Extent_Agg(geometry))::BOX_2D
                     FROM read_parquet('{input_file_path}', hive_partitioning=false)
                     WHERE NOT bbox_within(
                         ({extent_box_clause}),
-                        ST_Extent(ST_GeomFromWKB(geometry))
+                        ST_Extent(geometry)
                     )
                 )
             )
             """
 
-        original_metadata_string = _parquet_schema_metadata_to_duckdb_kv_metadata(input_file_path)
+        order_file_path = tmp_dir_path / "order_file.parquet"
 
         connection.execute(
             f"""
             COPY (
-                SELECT *
+                SELECT id
                 FROM read_parquet('{input_file_path}', hive_partitioning=false)
                 ORDER BY {order_clause}
+            ) TO '{order_file_path}' (
+                FORMAT parquet,
+                COMPRESSION {PARQUET_COMPRESSION},
+                COMPRESSION_LEVEL {PARQUET_COMPRESSION_LEVEL},
+                ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE}
+            );
+            """
+        )
+
+        original_metadata_string = _parquet_schema_metadata_to_duckdb_kv_metadata(input_file_path)
+
+        connection.execute("SET enable_geoparquet_conversion = false;")
+
+        connection.execute(
+            f"""
+            COPY (
+                SELECT original_data.*
+                FROM read_parquet('{input_file_path}', hive_partitioning=false) original_data
+                JOIN read_parquet(
+                    '{order_file_path}', hive_partitioning=false, file_row_number=true
+                ) order_file USING (id)
+                ORDER BY order_file.file_row_number
             ) TO '{output_file_path}' (
                 FORMAT parquet,
                 COMPRESSION {PARQUET_COMPRESSION},
