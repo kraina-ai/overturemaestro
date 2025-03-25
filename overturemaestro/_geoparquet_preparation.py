@@ -241,7 +241,7 @@ def _sort_with_memory_limit(
         )
         """
 
-    connection.execute(f"SET memory_limit = '{current_memory_limit}GB';")
+    connection.execute(f"SET memory_limit = '{current_memory_limit:.2f}GB';")
 
     connection.execute(
         f"""
@@ -268,19 +268,17 @@ def _sort_with_memory_limit(
 def _run_query_with_memory_limit(
     tmp_dir_path: Path,
     verbosity_mode: "VERBOSITY_MODE",
-    current_memory_limit: Optional[int],
+    current_memory_limit: Optional[float],
     function: Callable[..., None],
     args: Any,
-) -> int:
-    current_memory_limit = current_memory_limit or ceil(
-        psutil.virtual_memory().total * 0.8 / MEMORY_1GB
-    )
+) -> float:
+    current_memory_limit = current_memory_limit or ceil(psutil.virtual_memory().total / MEMORY_1GB)
 
-    while current_memory_limit >= 1:
+    while current_memory_limit > 0:
         try:
             with (
-                multiprocessing.get_context("spawn").Pool() as pool,
                 tempfile.TemporaryDirectory(dir=Path(tmp_dir_path).resolve()) as tmp_dir_name,
+                multiprocessing.get_context("spawn").Pool() as pool,
             ):
                 nested_tmp_dir_path = Path(tmp_dir_name)
                 r = pool.apply_async(
@@ -306,18 +304,21 @@ def _run_query_with_memory_limit(
                 r.get()
             return current_memory_limit
         except (duckdb.OutOfMemoryException, MemoryError) as ex:
-            if current_memory_limit == 1:
+            if current_memory_limit < 1:
                 raise RuntimeError(
                     "Not enough memory to run the ordering query. Please rerun without sorting."
                 ) from ex
 
-            current_memory_limit = ceil(current_memory_limit / 2)
+            if current_memory_limit == 1:
+                current_memory_limit /= 2
+            else:
+                current_memory_limit = ceil(current_memory_limit / 2)
 
             if not verbosity_mode == "silent":
                 rprint(
                     f"Encountered {ex.__class__.__name__} during operation."
                     " Retrying with lower memory limit"
-                    f" ({current_memory_limit}GB)."
+                    f" ({current_memory_limit:.2f}GB)."
                 )
 
     raise RuntimeError("Not enough memory to run the ordering query. Please rerun without sorting.")
