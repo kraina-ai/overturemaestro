@@ -58,7 +58,7 @@ def test_download_single_parquet_row_group() -> None:
 
 def test_sorting(test_release_version: str) -> None:
     """Test if sorted file is smaller and metadata in both files is equal."""
-    geometry = geocode_to_geometry("City of Westminster")
+    geometry = geocode_to_geometry("City of London")
 
     unsorted_pq = convert_geometry_to_parquet(
         theme="buildings",
