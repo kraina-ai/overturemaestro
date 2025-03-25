@@ -9,14 +9,12 @@ import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
-from overturemaestro._constants import (
-    GEOMETRY_COLUMN,
-    PARQUET_COMPRESSION,
-    PARQUET_COMPRESSION_LEVEL,
-    PARQUET_ROW_GROUP_SIZE,
-)
+from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 from overturemaestro._exceptions import MissingColumnError
-from overturemaestro._geometry_sorting import sort_geoparquet_file_by_geometry
+from overturemaestro._geoparquet_preparation import (
+    compress_parquet_with_duckdb,
+    sort_geoparquet_file_by_geometry,
+)
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -200,16 +198,11 @@ def download_data_for_multiple_types(
                     final_dataset = ds.dataset(raw_parquet_files)
                     result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
-                    merged_parquet_path = (
-                        tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
-                        if sort_result
-                        else result_file_path
-                    )
+                    merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
                     with pq.ParquetWriter(
                         merged_parquet_path,
                         schema=final_dataset.schema,
                         compression=PARQUET_COMPRESSION,
-                        compression_level=PARQUET_COMPRESSION_LEVEL,
                     ) as writer:
                         for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):
                             writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
@@ -220,6 +213,13 @@ def download_data_for_multiple_types(
                             output_file_path=result_file_path,
                             working_directory=working_directory,
                             sort_extent=geometry_filter.bounds,
+                            verbosity_mode=verbosity_mode,
+                        )
+                    else:
+                        compress_parquet_with_duckdb(
+                            input_file_path=merged_parquet_path,
+                            output_file_path=result_file_path,
+                            working_directory=working_directory,
                         )
 
     return all_result_file_paths
@@ -377,18 +377,13 @@ def download_data(
 
             result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
-            merged_parquet_path = (
-                tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
-                if sort_result
-                else result_file_path
-            )
+            merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
             with (
                 TrackProgressSpinner("Saving final geoparquet file", verbosity_mode=verbosity_mode),
                 pq.ParquetWriter(
                     merged_parquet_path,
                     schema=final_dataset.schema,
                     compression=PARQUET_COMPRESSION,
-                    compression_level=PARQUET_COMPRESSION_LEVEL,
                 ) as writer,
             ):
                 for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):
@@ -403,6 +398,14 @@ def download_data(
                         output_file_path=result_file_path,
                         working_directory=working_directory,
                         sort_extent=geometry_filter.bounds,
+                        verbosity_mode=verbosity_mode,
+                    )
+            else:
+                with TrackProgressSpinner("Compressing result file", verbosity_mode=verbosity_mode):
+                    compress_parquet_with_duckdb(
+                        input_file_path=merged_parquet_path,
+                        output_file_path=result_file_path,
+                        working_directory=working_directory,
                     )
 
     return result_file_path
@@ -954,7 +957,7 @@ def _get_oriented_geometry_filter(geometry_filter: "BaseGeometry") -> "BaseGeome
     import itertools
 
     from shapely import LinearRing, Polygon
-    from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+    from shapely.geometry.base import BaseMultipartGeometry
 
     geometry = geometry_filter
 
@@ -978,7 +981,7 @@ def _get_oriented_geometry_filter(geometry_filter: "BaseGeometry") -> "BaseGeome
     if isinstance(geometry, Polygon):
         oriented_exterior = _get_oriented_geometry_filter(geometry.exterior)
         oriented_interiors = [
-            cast(BaseGeometry, _get_oriented_geometry_filter(interior))
+            cast("BaseGeometry", _get_oriented_geometry_filter(interior))
             for interior in geometry.interiors
         ]
         return Polygon(
@@ -987,7 +990,7 @@ def _get_oriented_geometry_filter(geometry_filter: "BaseGeometry") -> "BaseGeome
         )
     elif isinstance(geometry, BaseMultipartGeometry):
         oriented_geoms = [
-            cast(BaseGeometry, _get_oriented_geometry_filter(geom)) for geom in geometry.geoms
+            cast("BaseGeometry", _get_oriented_geometry_filter(geom)) for geom in geometry.geoms
         ]
         return geometry.__class__(
             sorted(oriented_geoms, key=lambda geom: (geom.centroid.x, geom.centroid.y))

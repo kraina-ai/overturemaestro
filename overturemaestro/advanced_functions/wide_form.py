@@ -28,7 +28,10 @@ from overturemaestro._exceptions import (
     HierarchyDepthOutOfBoundsWarning,
     NegativeHierarchyDepthError,
 )
-from overturemaestro._geometry_sorting import sort_geoparquet_file_by_geometry
+from overturemaestro._geoparquet_preparation import (
+    compress_parquet_with_duckdb,
+    sort_geoparquet_file_by_geometry,
+)
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
 from overturemaestro.cache import (
     _get_global_wide_form_release_cache_directory,
@@ -795,8 +798,6 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 
             merged_parquet_path = (
                 tmp_dir_path / f"{result_file_path.stem}_merged{result_file_path.suffix}"
-                if sort_result
-                else result_file_path
             )
 
             transformed_wide_form_directory_output = tmp_dir_path / "wide_form_files"
@@ -865,6 +866,14 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         output_file_path=result_file_path,
                         working_directory=working_directory,
                         sort_extent=geometry_filter.bounds,
+                        verbosity_mode=verbosity_mode,
+                    )
+            else:
+                with TrackProgressSpinner("Compressing result file", verbosity_mode=verbosity_mode):
+                    compress_parquet_with_duckdb(
+                        input_file_path=merged_parquet_path,
+                        output_file_path=result_file_path,
+                        working_directory=working_directory,
                     )
 
     return result_file_path
