@@ -58,10 +58,6 @@ def compress_parquet_with_duckdb(
     with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
         tmp_dir_path = Path(tmp_dir_name)
 
-        connection = _set_up_duckdb_connection(tmp_dir_path, preserve_insertion_order=True)
-
-        connection.execute("SET enable_geoparquet_conversion = false;")
-
         original_metadata_string = _parquet_schema_metadata_to_duckdb_kv_metadata(
             parquet_metadata or pq.read_metadata(input_file_path)
         )
