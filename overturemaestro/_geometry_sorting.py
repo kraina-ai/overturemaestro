@@ -110,8 +110,10 @@ def sort_geoparquet_file_by_geometry(
         connection.execute(
             f"""
             COPY (
-                SELECT id
-                FROM read_parquet('{input_file_path}', hive_partitioning=false)
+                SELECT file_row_number as original_file_row_number
+                FROM read_parquet(
+                    '{input_file_path}', hive_partitioning=false, file_row_number=true
+                )
                 ORDER BY {order_clause}
             ) TO '{order_file_path}' (
                 FORMAT parquet,
@@ -129,11 +131,14 @@ def sort_geoparquet_file_by_geometry(
         connection.execute(
             f"""
             COPY (
-                SELECT original_data.*
-                FROM read_parquet('{input_file_path}', hive_partitioning=false) original_data
+                SELECT original_data.* EXCLUDE (file_row_number)
+                FROM read_parquet(
+                    '{input_file_path}', hive_partitioning=false, file_row_number=true
+                ) original_data
                 JOIN read_parquet(
                     '{order_file_path}', hive_partitioning=false, file_row_number=true
-                ) order_file USING (id)
+                ) order_file
+                ON original_data.file_row_number = order_file.original_file_row_number
                 ORDER BY order_file.file_row_number
             ) TO '{output_file_path}' (
                 FORMAT parquet,
