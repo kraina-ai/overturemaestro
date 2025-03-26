@@ -5,6 +5,8 @@ from pathlib import Path
 import geopandas as gpd
 import pyarrow.parquet as pq
 
+from overturemaestro._constants import INDEX_COLUMN
+
 
 def geodataframe_from_parquet(parquet_path: Path) -> gpd.GeoDataFrame:
     """
@@ -14,7 +16,7 @@ def geodataframe_from_parquet(parquet_path: Path) -> gpd.GeoDataFrame:
     """
     schema = pq.ParquetDataset(parquet_path, partitioning=None).schema
     gdf = gpd.read_parquet(parquet_path, partitioning=None, columns=schema.names)
-    if "id" in gdf.columns:
-        gdf.set_index("id", inplace=True)
+    if INDEX_COLUMN in gdf.columns:
+        gdf.set_index(INDEX_COLUMN, inplace=True)
 
     return gdf

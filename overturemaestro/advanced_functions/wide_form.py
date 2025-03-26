@@ -19,6 +19,7 @@ from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._constants import (
     GEOMETRY_COLUMN,
+    INDEX_COLUMN,
     PARQUET_COMPRESSION,
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
@@ -780,7 +781,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             geometry_filter=geometry_filter,
             pyarrow_filters=pyarrow_filter_list,
             columns_to_download=[
-                ["id", GEOMETRY_COLUMN, *columns_to_download]
+                [INDEX_COLUMN, GEOMETRY_COLUMN, *columns_to_download]
                 for columns_to_download in columns_to_download_list
             ],
             ignore_cache=ignore_cache,
@@ -1206,7 +1207,7 @@ def _combine_multiple_wide_form_files(
         available_columns = [
             col
             for col in pq.read_metadata(current_parquet_file).schema.names
-            if col not in ("id", GEOMETRY_COLUMN)
+            if col not in (INDEX_COLUMN, GEOMETRY_COLUMN)
         ]
 
         combined_columns_select = ", ".join(f'"{column}"' for column in available_columns)

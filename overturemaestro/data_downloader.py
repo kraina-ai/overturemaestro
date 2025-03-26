@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
 from overturemaestro._constants import (
     GEOMETRY_COLUMN,
+    INDEX_COLUMN,
     PARQUET_COMPRESSION,
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
@@ -795,6 +796,9 @@ def _download_single_parquet_row_group(
             raise MissingColumnError(
                 f"Cannot download given columns: {', '.join(sorted(nonexistent_columns))}"
             )
+
+        if INDEX_COLUMN not in columns_to_download:
+            columns_to_download.append(INDEX_COLUMN)
 
         if GEOMETRY_COLUMN not in columns_to_download:
             columns_to_download.append(GEOMETRY_COLUMN)

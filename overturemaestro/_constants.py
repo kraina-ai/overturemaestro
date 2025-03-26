@@ -1,5 +1,6 @@
 """Constants used across the project."""
 
+INDEX_COLUMN = "id"
 GEOMETRY_COLUMN = "geometry"
 
 PARQUET_ROW_GROUP_SIZE = 100_000
