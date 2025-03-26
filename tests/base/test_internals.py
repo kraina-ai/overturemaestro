@@ -5,9 +5,10 @@ from pathlib import Path
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
-from overturemaestro import convert_bounding_box_to_parquet
 from overturemaestro._constants import GEOMETRY_COLUMN, INDEX_COLUMN
 from overturemaestro.data_downloader import _download_single_parquet_row_group_multiprocessing
+from overturemaestro.functions import convert_geometry_to_parquet
+from overturemaestro.geocode import geocode_to_geometry
 
 
 def test_download_single_parquet_row_group() -> None:
@@ -57,25 +58,25 @@ def test_download_single_parquet_row_group() -> None:
 
 def test_sorting(test_release_version: str) -> None:
     """Test if sorted file is smaller and metadata in both files is equal."""
-    bbox = (-0.120077, 51.498164, -0.090809, 51.508849)
+    geometry = geocode_to_geometry("City of London")
 
-    unsorted_pq = convert_bounding_box_to_parquet(
+    unsorted_pq = convert_geometry_to_parquet(
         theme="buildings",
         type="building",
-        bbox=bbox,
+        geometry_filter=geometry,
         sort_result=False,
         ignore_cache=True,
         release=test_release_version,
     )
-    sorted_pq = convert_bounding_box_to_parquet(
+    sorted_pq = convert_geometry_to_parquet(
         theme="buildings",
         type="building",
-        bbox=bbox,
+        geometry_filter=geometry,
         sort_result=True,
         ignore_cache=True,
         release=test_release_version,
     )
 
-    assert unsorted_pq.stat().st_size > sorted_pq.stat().st_size
-
     assert pq.read_schema(unsorted_pq).equals(pq.read_schema(sorted_pq))
+
+    assert unsorted_pq.stat().st_size > sorted_pq.stat().st_size

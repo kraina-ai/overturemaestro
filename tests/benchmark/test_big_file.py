@@ -12,7 +12,7 @@ def test_big_file(
 ) -> None:
     """Test if big file is working in a low memory environment."""
     geometry_filter = geocode_to_geometry(geocode_filter)
-    convert_geometry_to_parquet(
+    output_file = convert_geometry_to_parquet(
         geometry_filter=geometry_filter,
         theme=theme_type_pair[0],
         type=theme_type_pair[1],
@@ -20,3 +20,4 @@ def test_big_file(
         verbosity_mode="verbose",
         ignore_cache=True,
     )
+    print(output_file)
