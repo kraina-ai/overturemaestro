@@ -8,7 +8,7 @@ import pytest
 from parametrization import Parametrization as P
 from shapely import box
 
-from overturemaestro._constants import GEOMETRY_COLUMN
+from overturemaestro._constants import GEOMETRY_COLUMN, INDEX_COLUMN
 from overturemaestro._exceptions import (
     HierarchyDepthOutOfBoundsWarning,
     NegativeHierarchyDepthError,
@@ -83,7 +83,9 @@ def test_all_theme_type_pairs(
         "|".join(t) for t in get_theme_type_classification(release=test_release_version).keys()
     )
     feature_columns = [
-        column_name for column_name in gdf.columns if column_name not in ("id", GEOMETRY_COLUMN)
+        column_name
+        for column_name in gdf.columns
+        if column_name not in (INDEX_COLUMN, GEOMETRY_COLUMN)
     ]
     assert all(
         column_name.startswith(prepared_theme_type_prefixes) for column_name in feature_columns
@@ -171,7 +173,9 @@ def test_multiple_theme_type_pairs(
         )
         prepared_theme_type_prefixes = tuple("|".join(t) for t in theme_type_pairs)
         feature_columns = [
-            column_name for column_name in gdf.columns if column_name not in ("id", GEOMETRY_COLUMN)
+            column_name
+            for column_name in gdf.columns
+            if column_name not in (INDEX_COLUMN, GEOMETRY_COLUMN)
         ]
         assert all(
             column_name.startswith(prepared_theme_type_prefixes) for column_name in feature_columns
@@ -233,7 +237,9 @@ def test_hierarchy_values(
         )
         assert GEOMETRY_COLUMN in gdf.columns
         feature_columns = [
-            column_name for column_name in gdf.columns if column_name not in ("id", GEOMETRY_COLUMN)
+            column_name
+            for column_name in gdf.columns
+            if column_name not in (INDEX_COLUMN, GEOMETRY_COLUMN)
         ]
         assert all("|" in column_name for column_name in feature_columns)
         assert (gdf.dtypes.loc[feature_columns] == "bool").all()

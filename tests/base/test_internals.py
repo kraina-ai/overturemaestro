@@ -6,7 +6,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from overturemaestro import convert_bounding_box_to_parquet
-from overturemaestro._constants import GEOMETRY_COLUMN
+from overturemaestro._constants import GEOMETRY_COLUMN, INDEX_COLUMN
 from overturemaestro.data_downloader import _download_single_parquet_row_group_multiprocessing
 
 
@@ -48,7 +48,7 @@ def test_download_single_parquet_row_group() -> None:
             "theme": "places",
             "type": "place",
             "user_defined_pyarrow_filter": pc.field("confidence") > 0.95,
-            "columns_to_download": ["id", GEOMETRY_COLUMN, "categories"],
+            "columns_to_download": [INDEX_COLUMN, GEOMETRY_COLUMN, "categories"],
         },
         bbox=(7.416486207767861, 43.7310867041912, 7.421931388477276, 43.73370705597216),
         working_directory=Path("files"),
