@@ -125,6 +125,8 @@ def sort_geoparquet_file_by_geometry(
             pq.read_metadata(input_file_path)
         )
 
+        input_file_path.unlink()
+
         _run_query_with_memory_limit(
             tmp_dir_path=tmp_dir_path,
             verbosity_mode=verbosity_mode,
@@ -252,7 +254,7 @@ def _sort_with_memory_limit(
 
     relation.to_parquet(
         str(output_file_path),
-        row_group_size=PARQUET_ROW_GROUP_SIZE,
+        row_group_size_bytes=10_000_000, # 10 MB
         compression=PARQUET_COMPRESSION,
     )
 
