@@ -254,7 +254,7 @@ def _sort_with_memory_limit(
 
     relation.to_parquet(
         str(output_file_path),
-        row_group_size_bytes=10_000_000, # 10 MB
+        row_group_size=10_000,
         compression=PARQUET_COMPRESSION,
     )
 
