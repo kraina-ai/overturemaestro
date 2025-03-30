@@ -687,6 +687,14 @@ def _generate_empty_file(
 
         geoarrow_full_schema = geoarrow_schema_adapter(schema)
         metadata = geoarrow_full_schema.metadata or {}
+
+        spark_keys_to_drop = [
+            key for key in metadata.keys() if key.decode().startswith("org.apache.spark.")
+        ]
+
+        for key in spark_keys_to_drop:
+            del metadata[key]
+
         metadata["_theme"] = theme
         metadata["_type"] = type
         geoarrow_full_schema = geoarrow_full_schema.with_metadata(metadata)
@@ -787,6 +795,14 @@ def _download_single_parquet_row_group(
     )
     geoarrow_full_schema = geoarrow_schema_adapter(fragment_manual.physical_schema)
     metadata = geoarrow_full_schema.metadata or {}
+
+    spark_keys_to_drop = [
+        key for key in metadata.keys() if key.decode().startswith("org.apache.spark.")
+    ]
+
+    for key in spark_keys_to_drop:
+        del metadata[key]
+
     metadata["_theme"] = theme
     metadata["_type"] = type
     geoarrow_full_schema = geoarrow_full_schema.with_metadata(metadata)
