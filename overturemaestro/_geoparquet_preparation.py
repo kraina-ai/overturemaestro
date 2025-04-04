@@ -3,6 +3,7 @@
 import multiprocessing
 import tempfile
 from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from math import ceil
 from pathlib import Path
@@ -10,6 +11,7 @@ from time import sleep
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 import duckdb
+import polars as pl
 import psutil
 import pyarrow.parquet as pq
 from rich import print as rprint
@@ -20,8 +22,6 @@ from overturemaestro._constants import (
     PARQUET_ROW_GROUP_SIZE,
 )
 from overturemaestro._duckdb import _set_up_duckdb_connection
-
-# from overturemaestro._parquet_compression import compress_parquet_with_duckdb
 
 if TYPE_CHECKING:  # pragma: no cover
     from overturemaestro._rich_progress import VERBOSITY_MODE
@@ -110,15 +110,14 @@ def sort_geoparquet_file_by_geometry(
 
     with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
         tmp_dir_path = Path(tmp_dir_name)
-        order_file_path = tmp_dir_path / "order_file.parquet"
+        order_dir_path = tmp_dir_path / "ordered"
+        order_dir_path.mkdir(parents=True, exist_ok=True)
 
-        _run_query_with_memory_limit(
+        _sort_with_multiprocessing(
+            input_file_path=input_file_path,
+            output_dir_path=order_dir_path,
+            sort_extent=sort_extent,
             tmp_dir_path=tmp_dir_path,
-            verbosity_mode=verbosity_mode,
-            current_memory_gb_limit=None,
-            current_threads_limit=None,
-            function=_sort_with_memory_limit,
-            args=(input_file_path, order_file_path, sort_extent),
         )
 
         original_metadata_string = _parquet_schema_metadata_to_duckdb_kv_metadata(
@@ -127,20 +126,22 @@ def sort_geoparquet_file_by_geometry(
 
         input_file_path.unlink()
 
+        order_files = sorted(order_dir_path.glob("*.parquet"), key=lambda x: int(x.stem))
+
         _run_query_with_memory_limit(
             tmp_dir_path=tmp_dir_path,
             verbosity_mode=verbosity_mode,
             current_memory_gb_limit=None,
             current_threads_limit=None,
             function=_compress_with_memory_limit,
-            args=(order_file_path, output_file_path, original_metadata_string),
+            args=(order_files, output_file_path, original_metadata_string),
         )
 
     return output_file_path
 
 
 def _compress_with_memory_limit(
-    input_file_path: Path,
+    input_file_path: Union[list[Path], Path],
     output_file_path: Path,
     original_metadata_string: str,
     current_memory_gb_limit: float,
@@ -153,11 +154,16 @@ def _compress_with_memory_limit(
     connection.execute(f"SET memory_limit = '{current_memory_gb_limit}GB';")
     connection.execute(f"SET threads = {current_threads_limit};")
 
+    if isinstance(input_file_path, Path):
+        sql_input_str = f"'{input_file_path}'"
+    else:
+        sql_input_str = f"[{', '.join([f"'{path}'" for path in input_file_path])}]"
+
     connection.execute(
         f"""
         COPY (
             SELECT original_data.*
-            FROM read_parquet('{input_file_path}', hive_partitioning=false) original_data
+            FROM read_parquet({sql_input_str}, hive_partitioning=false) original_data
         ) TO '{output_file_path}' (
             FORMAT parquet,
             COMPRESSION {PARQUET_COMPRESSION},
@@ -170,25 +176,14 @@ def _compress_with_memory_limit(
 
     connection.close()
 
-    # db_path = Path(tmp_dir_path) / "db.duckdb"
-    # while db_path.exists():
-    #     try:
-    #         db_path.unlink(missing_ok=True)
-    #     except PermissionError:
-    #         sleep(0.1)
 
-
-def _sort_with_memory_limit(
+def _sort_with_multiprocessing(
     input_file_path: Path,
-    output_file_path: Path,
+    output_dir_path: Path,
     sort_extent: Optional[tuple[float, float, float, float]],
-    current_memory_gb_limit: float,
-    current_threads_limit: int,
     tmp_dir_path: Path,
 ) -> None:
     connection = _set_up_duckdb_connection(tmp_dir_path, preserve_insertion_order=True)
-    connection.execute(f"SET memory_limit = '{current_memory_gb_limit:.2f}GB';")
-    connection.execute(f"SET threads = {current_threads_limit};")
 
     struct_type = "::STRUCT(min_x DOUBLE, min_y DOUBLE, max_x DOUBLE, max_y DOUBLE)"
     connection.sql(
@@ -246,26 +241,35 @@ def _sort_with_memory_limit(
 
     relation = connection.sql(
         f"""
-        SELECT *
-        FROM read_parquet('{input_file_path}', hive_partitioning=false)
-        ORDER BY {order_clause}
+        SELECT file_row_number, row_number() OVER (ORDER BY {order_clause}) as order_id
+        FROM read_parquet('{input_file_path}', hive_partitioning=false, file_row_number=true)
         """
     )
 
+    order_file_path = tmp_dir_path / "order_index.parquet"
+
     relation.to_parquet(
-        str(output_file_path),
-        row_group_size=10_000,
+        str(order_file_path),
+        row_group_size=100_000,
         compression=PARQUET_COMPRESSION,
     )
 
     connection.close()
 
-    # db_path = Path(tmp_dir_path) / "db.duckdb"
-    # while db_path.exists():
-    #     try:
-    #         db_path.unlink(missing_ok=True)
-    #     except PermissionError:
-    #         sleep(0.1)
+    # Calculate mapping of ranges which file row ids exist in each row group
+    original_file_row_group_mapping = _calculate_row_group_mapping(input_file_path)
+
+    # Order each row group from the ordered index in separate processes by reading
+    # selected row groups from the original file
+    with ProcessPoolExecutor(mp_context=multiprocessing.get_context("spawn")) as ex:
+        fn = partial(
+            _order_single_row_group,
+            output_dir_path=output_dir_path,
+            order_file_path=order_file_path,
+            original_file_path=input_file_path,
+            original_file_row_group_mapping=original_file_row_group_mapping,
+        )
+        ex.map(fn, list(range(pq.read_metadata(order_file_path).num_row_groups)), chunksize=1)
 
 
 def _run_query_with_memory_limit(
@@ -334,6 +338,101 @@ def _run_query_with_memory_limit(
     raise RuntimeError("Not enough memory to run the ordering query. Please rerun without sorting.")
 
 
+def _order_single_row_group(
+    row_group_id: int,
+    output_dir_path: Path,
+    order_file_path: Path,
+    original_file_path: Path,
+    original_file_row_group_mapping: dict[int, tuple[int, int]],
+) -> None:
+    # Calculate row_groups and local indexes withing those row_groups
+    ordering_row_group_extended = (
+        pl.from_arrow(pq.ParquetFile(order_file_path).read_row_group(row_group_id))
+        .with_columns(
+            # Assign row group based on file row number using original file mapping
+            pl.col("file_row_number")
+            .map_elements(
+                lambda row_number: next(
+                    row_group_id
+                    for row_group_id, (
+                        start_row_number,
+                        end_row_number,
+                    ) in original_file_row_group_mapping.items()
+                    if start_row_number <= row_number <= end_row_number
+                ),
+                return_dtype=pl.Int64(),
+            )
+            .alias("row_group_id")
+        )
+        .with_columns(
+            # Assign local row index within the row group using
+            # original file mapping and total row number
+            pl.struct(pl.col("file_row_number"), pl.col("row_group_id"))
+            .map_elements(
+                lambda struct: struct["file_row_number"]
+                - original_file_row_group_mapping[struct["row_group_id"]][0],
+                return_dtype=pl.Int64(),
+            )
+            .alias("local_index")
+        )
+    )
+
+    # Example of ordered file mapping:
+    # order_id, file_row_number, row_group_id, local_index
+    # 1,        1,               1,            0
+    # 2,        5,               1,            5
+    # 3,        15,              2,            1
+    # 4,        3,               1,            3
+
+    # Read all expected rows from each row group at once to avoid multiple reads
+    # Group matching consecutive row group and save local indexes
+    # indexes_to_read_per_row_group = {1: [0, 5, 3], 2: [1]}
+    # reshuffled_indexes_to_read = [(1, [0, 5]), (2, [1]), (1, [3])]
+
+    # Dictionary with row group id and a list of local indices to read from each row group.
+    indexes_to_read_per_row_group: dict[int, list[int]] = {}
+    # Grouped list of local indexes to read per row group in order
+    reshuffled_indexes_to_read: list[tuple[int, list[int]]] = []
+    # Cache objects to keep track of each group withing multiple row groups
+    current_index_per_row_group: dict[int, int] = {}
+    current_reshuffled_indexes_group: list[int] = []
+    current_rg_id = ordering_row_group_extended["row_group_id"][0]
+
+    # Iterate rows in order
+    for rg_id, local_index in ordering_row_group_extended[
+        ["row_group_id", "local_index"]
+    ].iter_rows():
+        if rg_id not in indexes_to_read_per_row_group:
+            indexes_to_read_per_row_group[rg_id] = []
+            current_index_per_row_group[rg_id] = 0
+
+        indexes_to_read_per_row_group[rg_id].append(local_index)
+
+        if rg_id != current_rg_id:
+            reshuffled_indexes_to_read.append((current_rg_id, current_reshuffled_indexes_group))
+            current_rg_id = rg_id
+            current_reshuffled_indexes_group = [current_index_per_row_group[rg_id]]
+        else:
+            current_reshuffled_indexes_group.append(current_index_per_row_group[rg_id])
+
+        current_index_per_row_group[rg_id] += 1
+
+    if current_reshuffled_indexes_group:
+        reshuffled_indexes_to_read.append((current_rg_id, current_reshuffled_indexes_group))
+
+    # Read expected rows per row group
+    read_tables_per_row_group = {
+        rg_id: pq.ParquetFile(original_file_path).read_row_group(rg_id).take(local_rows_ids)
+        for rg_id, local_rows_ids in indexes_to_read_per_row_group.items()
+    }
+
+    schema = pq.read_schema(original_file_path)
+    with pq.ParquetWriter(output_dir_path / f"{row_group_id}.parquet", schema=schema) as writer:
+        # Read rows from each read row group using reshuffled local indexes
+        for rg_id, reshuffled_indexes in reshuffled_indexes_to_read:
+            writer.write(read_tables_per_row_group[rg_id].take(reshuffled_indexes))
+
+
 def _parquet_schema_metadata_to_duckdb_kv_metadata(parquet_file_metadata: pq.FileMetaData) -> str:
     def escape_single_quotes(s: str) -> str:
         return s.replace("'", "''")
@@ -345,3 +444,18 @@ def _parquet_schema_metadata_to_duckdb_kv_metadata(parquet_file_metadata: pq.Fil
         kv_pairs.append(f"'{escaped_key}': '{escaped_value}'")
 
     return "{ " + ", ".join(kv_pairs) + " }"
+
+
+def _calculate_row_group_mapping(file_path: Path) -> dict[int, tuple[int, int]]:
+    pq_f = pq.ParquetFile(file_path)
+
+    mapping = {}
+    total_rows = 0
+    for i in range(pq_f.num_row_groups):
+        start_index = total_rows
+        rows_in_row_group = pq_f.metadata.row_group(i).num_rows
+        total_rows += rows_in_row_group
+        end_index = total_rows - 1
+        mapping[i] = (start_index, end_index)
+
+    return mapping
