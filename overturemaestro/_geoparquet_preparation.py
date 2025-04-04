@@ -157,7 +157,8 @@ def _compress_with_memory_limit(
     if isinstance(input_file_path, Path):
         sql_input_str = f"'{input_file_path}'"
     else:
-        sql_input_str = f"[{', '.join([f"'{path}'" for path in input_file_path])}]"
+        mapped_paths = ", ".join(f"'{path}'" for path in input_file_path)
+        sql_input_str = f"[{mapped_paths}]"
 
     connection.execute(
         f"""
