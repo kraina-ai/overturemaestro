@@ -55,6 +55,9 @@ def compress_parquet_with_duckdb(
 
     Path(working_directory).mkdir(parents=True, exist_ok=True)
 
+    if pq.read_metadata(input_file_path).num_rows == 0:
+        return input_file_path.rename(output_file_path)
+
     with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
         tmp_dir_path = Path(tmp_dir_name)
 
@@ -105,6 +108,9 @@ def sort_geoparquet_file_by_geometry(
         )
 
     assert input_file_path.resolve().as_posix() != output_file_path.resolve().as_posix()
+
+    if pq.read_metadata(input_file_path).num_rows == 0:
+        return input_file_path.rename(output_file_path)
 
     Path(working_directory).mkdir(parents=True, exist_ok=True)
 
