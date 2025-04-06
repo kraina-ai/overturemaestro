@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING, Annotated, Optional, cast
 
 import click
 import typer
-
-from overturemaestro._geopandas_api_version import GEOPANDAS_NEW_API
+from rq_geo_toolkit._geopandas_api_version import GEOPANDAS_NEW_API
 
 if TYPE_CHECKING:  # pragma: no cover
     from overturemaestro._rich_progress import VERBOSITY_MODE
