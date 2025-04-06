@@ -15,6 +15,9 @@ from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
 from requests import HTTPError
 from rich import print as rprint
+from rq_geo_toolkit.duckdb import set_up_duckdb_connection, sql_escape
+from rq_geo_toolkit.geoparquet_compression import compress_parquet_with_duckdb
+from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._constants import (
@@ -24,14 +27,9 @@ from overturemaestro._constants import (
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
 )
-from overturemaestro._duckdb import _set_up_duckdb_connection, _sql_escape
 from overturemaestro._exceptions import (
     HierarchyDepthOutOfBoundsWarning,
     NegativeHierarchyDepthError,
-)
-from overturemaestro._geoparquet_preparation import (
-    compress_parquet_with_duckdb,
-    sort_geoparquet_file_by_geometry,
 )
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
 from overturemaestro.cache import (
@@ -95,7 +93,7 @@ def _transform_to_wide_form(
     verbosity_mode: VERBOSITY_MODE,
     **kwargs: Any,
 ) -> Path:
-    connection = _set_up_duckdb_connection(working_directory)
+    connection = set_up_duckdb_connection(working_directory)
 
     if include_all_possible_columns:
         wide_column_definitions = _get_wide_column_definitions(
@@ -132,7 +130,7 @@ def _transform_to_wide_form(
             if wide_column_definition[condition_column] is None:
                 conditions.append(f"{condition_column} IS NULL")
             else:
-                escaped_value = _sql_escape(wide_column_definition[condition_column])
+                escaped_value = sql_escape(wide_column_definition[condition_column])
                 conditions.append(f"{condition_column} = '{escaped_value}'")
 
         joined_conditions = " AND ".join(conditions)
@@ -171,7 +169,7 @@ def _transform_to_wide_form_without_hierarchy(
     working_directory: Union[str, Path],
     **kwargs: Any,
 ) -> Path:
-    connection = _set_up_duckdb_connection(working_directory)
+    connection = set_up_duckdb_connection(working_directory)
 
     query = f"""
     COPY (
@@ -233,7 +231,7 @@ def _transform_poi_to_wide_form(
     verbosity_mode: VERBOSITY_MODE,
     **kwargs: Any,
 ) -> Path:
-    connection = _set_up_duckdb_connection(working_directory)
+    connection = set_up_duckdb_connection(working_directory)
 
     primary_category_only = kwargs.get("places_use_primary_category_only", False)
 
@@ -291,7 +289,7 @@ def _transform_poi_to_wide_form(
     ):
         conditions = []
         for category_name in categories_list:
-            escaped_value = _sql_escape(category_name)
+            escaped_value = sql_escape(category_name)
             conditions.append(f"categories.{primary_category_name} = '{escaped_value}'")
 
             if not primary_category_only:
@@ -1234,7 +1232,7 @@ def _combine_multiple_wide_form_files(
     )
     joined_subqueries = " UNION ALL BY NAME ".join(subqueries)
 
-    connection = _set_up_duckdb_connection(working_directory)
+    connection = set_up_duckdb_connection(working_directory)
     query = f"""
     COPY (
         SELECT

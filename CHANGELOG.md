@@ -7,10 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to specify compression and compression_level for result parquet files
+
 ### Changed
 
 - Bumped minimal DuckDB version to 1.1.2
-- ZSTD compression level from 3 to 22
+- Refactored sorting algorithm and added dedicated compression function
+- Refactored components logic and exported it to an external library
 
 ### Fixed
 

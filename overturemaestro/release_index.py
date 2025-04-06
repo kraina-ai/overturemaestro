@@ -21,12 +21,12 @@ from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
 from requests import HTTPError
 from rich import print as rprint
+from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 from shapely import box
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 from overturemaestro._geometry_clustering import calculate_row_group_bounding_box
-from overturemaestro._geoparquet_preparation import sort_geoparquet_file_by_geometry
 from overturemaestro._parquet_multiprocessing import map_parquet_dataset
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
 from overturemaestro.cache import (

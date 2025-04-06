@@ -9,6 +9,9 @@ import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
+from rq_geo_toolkit.geoparquet_compression import compress_parquet_with_duckdb
+from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
+
 from overturemaestro._constants import (
     GEOMETRY_COLUMN,
     INDEX_COLUMN,
@@ -16,10 +19,6 @@ from overturemaestro._constants import (
     PARQUET_ROW_GROUP_SIZE,
 )
 from overturemaestro._exceptions import MissingColumnError
-from overturemaestro._geoparquet_preparation import (
-    compress_parquet_with_duckdb,
-    sort_geoparquet_file_by_geometry,
-)
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 
 if TYPE_CHECKING:  # pragma: no cover
