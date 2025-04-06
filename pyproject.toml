@@ -17,7 +17,8 @@ dependencies = [
     "numpy>=1.26.0",
     "duckdb>=1.1.2",
     "psutil>=5.6.2",
-    "polars>=1.9"
+    "polars>=1.9",
+    "rq_geo_toolkit>=2025.4.1",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
