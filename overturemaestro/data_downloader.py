@@ -16,6 +16,7 @@ from overturemaestro._constants import (
     GEOMETRY_COLUMN,
     INDEX_COLUMN,
     PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
 )
 from overturemaestro._exceptions import MissingColumnError
@@ -44,6 +45,9 @@ def download_data_for_multiple_types(
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]],
     columns_to_download: Optional[list[Optional[list[str]]]],
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -60,6 +64,9 @@ def download_data_for_multiple_types(
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]],
     columns_to_download: Optional[list[Optional[list[str]]]],
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -76,6 +83,9 @@ def download_data_for_multiple_types(
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]],
     columns_to_download: Optional[list[Optional[list[str]]]],
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -92,6 +102,9 @@ def download_data_for_multiple_types(
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     columns_to_download: Optional[list[Optional[list[str]]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -112,6 +125,15 @@ def download_data_for_multiple_types(
         columns_to_download (Optional[list[Optional[list[str]]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -215,14 +237,20 @@ def download_data_for_multiple_types(
                         sort_geoparquet_file_by_geometry(
                             input_file_path=merged_parquet_path,
                             output_file_path=result_file_path,
-                            working_directory=working_directory,
                             sort_extent=geometry_filter.bounds,
+                            compression=compression,
+                            compression_level=compression_level,
+                            row_group_size=row_group_size,
+                            working_directory=working_directory,
                             verbosity_mode=verbosity_mode,
                         )
                     else:
                         compress_parquet_with_duckdb(
                             input_file_path=merged_parquet_path,
                             output_file_path=result_file_path,
+                            compression=compression,
+                            compression_level=compression_level,
+                            row_group_size=row_group_size,
                             working_directory=working_directory,
                         )
 
@@ -237,6 +265,9 @@ def download_data(
     *,
     pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -255,6 +286,9 @@ def download_data(
     *,
     pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -273,6 +307,9 @@ def download_data(
     *,
     pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -291,6 +328,9 @@ def download_data(
     *,
     pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -312,6 +352,15 @@ def download_data(
         columns_to_download (Optional[list[str]], optional): List of columns to download.
             Automatically adds geometry column to the list. If None, will download all columns.
             Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to None.
@@ -400,8 +449,11 @@ def download_data(
                     sort_geoparquet_file_by_geometry(
                         input_file_path=merged_parquet_path,
                         output_file_path=result_file_path,
-                        working_directory=working_directory,
                         sort_extent=geometry_filter.bounds,
+                        compression=compression,
+                        compression_level=compression_level,
+                        row_group_size=row_group_size,
+                        working_directory=working_directory,
                         verbosity_mode=verbosity_mode,
                     )
             else:
@@ -409,6 +461,9 @@ def download_data(
                     compress_parquet_with_duckdb(
                         input_file_path=merged_parquet_path,
                         output_file_path=result_file_path,
+                        compression=compression,
+                        compression_level=compression_level,
+                        row_group_size=row_group_size,
                         working_directory=working_directory,
                     )
 

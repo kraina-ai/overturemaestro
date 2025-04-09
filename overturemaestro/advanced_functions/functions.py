@@ -11,6 +11,11 @@ import geopandas as gpd
 from shapely import box
 from shapely.geometry.base import BaseGeometry
 
+from overturemaestro._constants import (
+    PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
+    PARQUET_ROW_GROUP_SIZE,
+)
 from overturemaestro._rich_progress import VERBOSITY_MODE
 from overturemaestro.advanced_functions.wide_form import (
     convert_geometry_to_wide_form_parquet_for_all_types,
@@ -46,6 +51,9 @@ def convert_geometry_to_wide_form_parquet(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -67,6 +75,9 @@ def convert_geometry_to_wide_form_parquet(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -88,6 +99,9 @@ def convert_geometry_to_wide_form_parquet(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -108,6 +122,9 @@ def convert_geometry_to_wide_form_parquet(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -139,6 +156,15 @@ def convert_geometry_to_wide_form_parquet(
             available columns. Defaults to None.
         pyarrow_filters (Optional[PYARROW_FILTER], optional): A pyarrow expression used to filter
             specific theme type pair. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to None.
@@ -169,6 +195,9 @@ def convert_geometry_to_wide_form_parquet(
         include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
         pyarrow_filters=[pyarrow_filters],
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         result_file_path=result_file_path,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
@@ -189,6 +218,9 @@ def convert_geometry_to_wide_form_geodataframe(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -209,6 +241,9 @@ def convert_geometry_to_wide_form_geodataframe(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -229,6 +264,9 @@ def convert_geometry_to_wide_form_geodataframe(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -248,6 +286,9 @@ def convert_geometry_to_wide_form_geodataframe(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -278,6 +319,15 @@ def convert_geometry_to_wide_form_geodataframe(
             available columns. Defaults to None.
         pyarrow_filters (Optional[PYARROW_FILTER], optional): A pyarrow expression used to filter
             specific theme type pair. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -306,6 +356,9 @@ def convert_geometry_to_wide_form_geodataframe(
         include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
         pyarrow_filters=pyarrow_filters,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
@@ -324,6 +377,9 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -342,6 +398,9 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -360,6 +419,9 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -377,6 +439,9 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -407,6 +472,15 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -433,6 +507,9 @@ def convert_geometry_to_wide_form_geodataframe_for_all_types(
         include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
         pyarrow_filters=pyarrow_filters,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
@@ -452,6 +529,9 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -471,6 +551,9 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -490,6 +573,9 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -508,6 +594,9 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -539,6 +628,15 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -566,6 +664,9 @@ def convert_geometry_to_wide_form_geodataframe_for_multiple_types(
         include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
         pyarrow_filters=pyarrow_filters,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
@@ -586,6 +687,9 @@ def convert_bounding_box_to_wide_form_parquet(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -607,6 +711,9 @@ def convert_bounding_box_to_wide_form_parquet(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -628,6 +735,9 @@ def convert_bounding_box_to_wide_form_parquet(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -648,6 +758,9 @@ def convert_bounding_box_to_wide_form_parquet(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -680,6 +793,15 @@ def convert_bounding_box_to_wide_form_parquet(
             available columns. Defaults to None.
         pyarrow_filters (Optional[PYARROW_FILTER], optional): A pyarrow
             expression used to filter specific theme type pair. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to None.
@@ -711,6 +833,9 @@ def convert_bounding_box_to_wide_form_parquet(
         include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
         pyarrow_filters=pyarrow_filters,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         result_file_path=result_file_path,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
@@ -729,6 +854,9 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -748,6 +876,9 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -767,6 +898,9 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -785,6 +919,9 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -817,6 +954,15 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to None.
@@ -846,6 +992,9 @@ def convert_bounding_box_to_wide_form_parquet_for_all_types(
         include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
         pyarrow_filters=pyarrow_filters,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         result_file_path=result_file_path,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
@@ -865,6 +1014,9 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -885,6 +1037,9 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -905,6 +1060,9 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -924,6 +1082,9 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -957,6 +1118,15 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to None.
@@ -987,6 +1157,9 @@ def convert_bounding_box_to_wide_form_parquet_for_multiple_types(
         include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
         pyarrow_filters=pyarrow_filters,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         result_file_path=result_file_path,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
@@ -1007,6 +1180,9 @@ def convert_bounding_box_to_wide_form_geodataframe(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1027,6 +1203,9 @@ def convert_bounding_box_to_wide_form_geodataframe(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1047,6 +1226,9 @@ def convert_bounding_box_to_wide_form_geodataframe(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1066,6 +1248,9 @@ def convert_bounding_box_to_wide_form_geodataframe(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[int] = None,
     pyarrow_filters: Optional[PYARROW_FILTER] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1097,6 +1282,15 @@ def convert_bounding_box_to_wide_form_geodataframe(
             available columns. Defaults to None.
         pyarrow_filters (Optional[PYARROW_FILTER], optional): A pyarrow expression used to filter
             specific theme type pair. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -1125,6 +1319,9 @@ def convert_bounding_box_to_wide_form_geodataframe(
         include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
         pyarrow_filters=pyarrow_filters,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
@@ -1142,6 +1339,9 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1160,6 +1360,9 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1178,6 +1381,9 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1195,6 +1401,9 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1226,6 +1435,15 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -1252,6 +1470,9 @@ def convert_bounding_box_to_wide_form_geodataframe_for_all_types(
         include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
         pyarrow_filters=pyarrow_filters,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
@@ -1270,6 +1491,9 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1289,6 +1513,9 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1308,6 +1535,9 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1326,6 +1556,9 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
     include_all_possible_columns: bool = True,
     hierarchy_depth: Optional[Union[int, list[Optional[int]]]] = None,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1358,6 +1591,15 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
         pyarrow_filters (Optional[list[Optional[PYARROW_FILTER]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -1385,6 +1627,9 @@ def convert_bounding_box_to_wide_form_geodataframe_for_multiple_types(
         include_all_possible_columns=include_all_possible_columns,
         hierarchy_depth=hierarchy_depth,
         pyarrow_filters=pyarrow_filters,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
