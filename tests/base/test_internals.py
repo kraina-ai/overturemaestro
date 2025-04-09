@@ -56,6 +56,34 @@ def test_download_single_parquet_row_group() -> None:
     )
 
 
+def test_compression(test_release_version: str) -> None:
+    """Test if compression works."""
+    geometry = geocode_to_geometry("City of London")
+
+    pq_zstd_3 = convert_geometry_to_parquet(
+        theme="buildings",
+        type="building",
+        geometry_filter=geometry,
+        compression="zstd",
+        compression_level=3,
+        ignore_cache=True,
+        release=test_release_version,
+        result_file_path="files/zstd_3.parquet"
+    )
+    pq_zstd_22 = convert_geometry_to_parquet(
+        theme="buildings",
+        type="building",
+        geometry_filter=geometry,
+        compression="zstd",
+        compression_level=22,
+        ignore_cache=True,
+        release=test_release_version,
+        result_file_path="files/zstd_22.parquet"
+    )
+
+    assert pq_zstd_3.stat().st_size > pq_zstd_22.stat().st_size
+
+
 def test_sorting(test_release_version: str) -> None:
     """Test if sorted file is smaller and metadata in both files is equal."""
     geometry = geocode_to_geometry("City of London")
