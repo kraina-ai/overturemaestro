@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Optional, Protocol, Union, overload
 
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 from fsspec.implementations.http import HTTPFileSystem
 from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
@@ -884,18 +885,64 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                 with TrackProgressSpinner(
                     "Sorting result file by geometry", verbosity_mode=verbosity_mode
                 ):
+                    columns = pq.read_schema(merged_parquet_path).names
+                    value_columns = [
+                        col for col in columns if col not in (INDEX_COLUMN, GEOMETRY_COLUMN)
+                    ]
+
+                    compressed_parquet_path = tmp_dir_path / "_compressed.parquet"
+                    _compress_value_columns(
+                        input_file=merged_parquet_path,
+                        output_file=compressed_parquet_path,
+                        value_columns=value_columns,
+                        working_directory=tmp_dir_path,
+                    )
+
+                    merged_parquet_path.unlink(missing_ok=True)
+
+                    sorted_parquet_path = tmp_dir_path / "_sorted.parquet"
                     sort_geoparquet_file_by_geometry(
-                        input_file_path=merged_parquet_path,
-                        output_file_path=result_file_path,
+                        input_file_path=compressed_parquet_path,
+                        output_file_path=sorted_parquet_path,
+                        compression="zstd",
+                        compression_level=3,
+                        row_group_size=row_group_size,
                         working_directory=working_directory,
                         sort_extent=geometry_filter.bounds,
                         verbosity_mode=verbosity_mode,
                     )
+
+                    compressed_parquet_path.unlink(missing_ok=True)
+
+                    decompressed_parquet_path = tmp_dir_path / "_decompressed.parquet"
+                    _decompress_value_columns(
+                        input_file=sorted_parquet_path,
+                        output_file=decompressed_parquet_path,
+                        value_columns=value_columns,
+                        working_directory=tmp_dir_path,
+                    )
+
+                    sorted_parquet_path.unlink(missing_ok=True)
+
+                    compress_parquet_with_duckdb(
+                        input_file_path=decompressed_parquet_path,
+                        output_file_path=result_file_path,
+                        compression=compression,
+                        compression_level=compression_level,
+                        row_group_size=row_group_size,
+                        working_directory=working_directory,
+                        parquet_metadata=pq.read_metadata(merged_parquet_path),
+                    )
+
+                    decompressed_parquet_path.unlink(missing_ok=True)
             else:
                 with TrackProgressSpinner("Compressing result file", verbosity_mode=verbosity_mode):
                     compress_parquet_with_duckdb(
                         input_file_path=merged_parquet_path,
                         output_file_path=result_file_path,
+                        compression=compression,
+                        compression_level=compression_level,
+                        row_group_size=row_group_size,
                         working_directory=working_directory,
                     )
 
@@ -1629,3 +1676,52 @@ def _generate_wide_form_all_column_names_release_index(
 
 def _get_wide_form_release_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
+
+
+def _compress_value_columns(
+    input_file: Path, output_file: Path, value_columns: list[str], working_directory: Path
+) -> None:
+    connection = set_up_duckdb_connection(working_directory)
+
+    case_clauses = ", ".join(
+        f'CASE WHEN "{column}" THEN {column_idx} ELSE NULL END'
+        for column_idx, column in enumerate(value_columns)
+    )
+
+    relation = connection.sql(
+        f"""
+        SELECT
+            {INDEX_COLUMN},
+            {GEOMETRY_COLUMN},
+            [
+                idx FOR idx IN [{case_clauses}]
+                IF idx IS NOT NULL
+            ] AS column_indexes
+        FROM read_parquet('{input_file}', hive_partitioning=false)
+        """
+    )
+
+    relation.to_parquet(str(output_file))
+
+
+def _decompress_value_columns(
+    input_file: Path, output_file: Path, value_columns: list[str], working_directory: Path
+) -> None:
+    connection = set_up_duckdb_connection(working_directory)
+
+    select_clauses = ", ".join(
+        f'{column_idx} IN column_indexes AS "{column}"'
+        for column_idx, column in enumerate(value_columns)
+    )
+
+    relation = connection.sql(
+        f"""
+        SELECT
+            {INDEX_COLUMN},
+            {GEOMETRY_COLUMN},
+            {select_clauses}
+        FROM read_parquet('{input_file}', hive_partitioning=false)
+        """
+    )
+
+    relation.to_parquet(str(output_file))
