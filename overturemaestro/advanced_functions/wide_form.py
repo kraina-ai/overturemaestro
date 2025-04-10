@@ -885,6 +885,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                 with TrackProgressSpinner(
                     "Sorting result file by geometry", verbosity_mode=verbosity_mode
                 ):
+                    metadata = pq.read_metadata(merged_parquet_path)
                     columns = pq.read_schema(merged_parquet_path).names
                     value_columns = [
                         col for col in columns if col not in (INDEX_COLUMN, GEOMETRY_COLUMN)
@@ -931,7 +932,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         compression_level=compression_level,
                         row_group_size=row_group_size,
                         working_directory=working_directory,
-                        parquet_metadata=pq.read_metadata(merged_parquet_path),
+                        parquet_metadata=metadata,
                     )
 
                     decompressed_parquet_path.unlink(missing_ok=True)
