@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Removed duplicate geo metadata entry in the sorted geoparquet schema
+- Compressed number of columns in wide format to integers indexes before sorting
 
 ## [0.3.2] - 2025-03-21
 
