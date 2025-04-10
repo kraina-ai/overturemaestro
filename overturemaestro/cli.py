@@ -6,8 +6,13 @@ from typing import TYPE_CHECKING, Annotated, Optional, cast
 
 import click
 import typer
+from rq_geo_toolkit._geopandas_api_version import GEOPANDAS_NEW_API
 
-from overturemaestro._geopandas_api_version import GEOPANDAS_NEW_API
+from overturemaestro._constants import (
+    PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
+    PARQUET_ROW_GROUP_SIZE,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
     from overturemaestro._rich_progress import VERBOSITY_MODE
@@ -472,6 +477,38 @@ def main(
             show_default=False,
         ),
     ] = None,
+    compression: Annotated[
+        str,
+        typer.Option(
+            "--compression",
+            help=(
+                "Compression algorithm to use for the parquet file."
+                " Remember to change compression level together with this parameter"
+                " using --compression-level option."
+            ),
+            show_default=True,
+        ),
+    ] = PARQUET_COMPRESSION,
+    compression_level: Annotated[
+        int,
+        typer.Option(
+            "--compression-level",
+            help=(
+                "Compression level to use for the parquet file."
+                " Remember to change compression algorithm together with this parameter"
+                " using --compression option."
+            ),
+            show_default=True,
+        ),
+    ] = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: Annotated[
+        int,
+        typer.Option(
+            "--row-group-size",
+            help=("Approximate number of rows per row group in the final parquet file."),
+            show_default=True,
+        ),
+    ] = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Annotated[
         Optional[Path],
         typer.Option(
@@ -652,6 +689,9 @@ def main(
         result_file_path=result_file_path,
         verbosity_mode=verbosity_mode,
         pyarrow_filter=pyarrow_filter,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         sort_result=sort_result,
     )
 

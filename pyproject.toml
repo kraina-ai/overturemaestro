@@ -15,7 +15,10 @@ dependencies = [
     "fsspec>=2021.04.0",
     "geopy>=2.0.0",
     "numpy>=1.26.0",
-    "duckdb>=1.1.0",
+    "duckdb>=1.1.2",
+    "psutil>=5.6.2",
+    "polars>=1.9",
+    "rq_geo_toolkit>=2025.4.1",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
@@ -39,7 +42,7 @@ classifiers = [
 
 [project.optional-dependencies]
 cli = ["typer[all]>=0.9.0", "h3>=4.0.0b1", "s2>=0.1.9", "python-geohash>=0.8"]
-index-generation = ["scikit-learn>=1.0", "polars>=0.20.4"]
+index-generation = ["scikit-learn>=1.0"]
 
 [project.scripts]
 overturemaestro = "overturemaestro.__main__:main"
@@ -100,8 +103,6 @@ cli-dev = [
     "pixel-map>=0.2.3",
 ]
 benchmark = [
-    "psutil>=5.6.2",
-    "duckdb>=1.1.0",
     "drawarrow",
     "highlight-text",
     "pypalettes",
@@ -203,8 +204,14 @@ using = "requirements"
 zero = false
 ignore_licenses = ["UNKNOWN"]
 ignore_packages = [
-    'docformatter',   # uses MIT license, has mismatched license in analysis
-    'mkdocs-jupyter', # uses Apache-2.0 license, has mismatched license in analysis
-    'python-geohash', # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
-    'referencing',    # uses MIT license, has mismatched license in analysis
+    'docformatter',         # uses MIT license, has mismatched license in analysis
+    'mkdocs-jupyter',       # uses Apache-2.0 license, has mismatched license in analysis
+    'python-geohash',       # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
+    'referencing',          # uses MIT license, has mismatched license in analysis
+    'griffe',               # uses ISC license, has mismatched license in analysis
+    'mkdocs-autorefs',      # uses ISC license, has mismatched license in analysis
+    'mkdocstrings',         # uses ISC license, has mismatched license in analysis
+    'mkdocstrings-python',  # uses ISC license, has mismatched license in analysis
+    'pipdeptree',           # uses MIT license, has mismatched license in analysis
+    'typing-extensions',    # uses ZERO-CLAUSE BSD LICENSE, has mismatched license in analysis
 ]

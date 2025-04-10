@@ -5,11 +5,7 @@ from queue import Empty, Queue
 from time import sleep, time
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
-from overturemaestro._constants import (
-    PARQUET_COMPRESSION,
-    PARQUET_COMPRESSION_LEVEL,
-    PARQUET_ROW_GROUP_SIZE,
-)
+from overturemaestro._constants import PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -79,7 +75,6 @@ def _job(
                     filepath,
                     schema=result_table.schema,
                     compression=PARQUET_COMPRESSION,
-                    compression_level=PARQUET_COMPRESSION_LEVEL,
                 )
 
             writers[schema_hash].write_table(result_table, row_group_size=PARQUET_ROW_GROUP_SIZE)
@@ -129,7 +124,7 @@ class SingletonContextManager(SyncManager):
     def __new__(cls, ctx: multiprocessing.context.SpawnContext) -> "SingletonContextManager":
         if not hasattr(cls, "instance"):
             cls.instance = ctx.Manager()
-        return cast(SingletonContextManager, cls.instance)
+        return cast("SingletonContextManager", cls.instance)
 
 
 def _read_row_group_number(path: str, filesystem: "fs.FileSystem") -> int:

@@ -9,14 +9,17 @@ import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
+from rq_geo_toolkit.geoparquet_compression import compress_parquet_with_duckdb
+from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
+
 from overturemaestro._constants import (
     GEOMETRY_COLUMN,
+    INDEX_COLUMN,
     PARQUET_COMPRESSION,
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
 )
 from overturemaestro._exceptions import MissingColumnError
-from overturemaestro._geometry_sorting import sort_geoparquet_file_by_geometry
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -42,6 +45,9 @@ def download_data_for_multiple_types(
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]],
     columns_to_download: Optional[list[Optional[list[str]]]],
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -58,6 +64,9 @@ def download_data_for_multiple_types(
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]],
     columns_to_download: Optional[list[Optional[list[str]]]],
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -74,6 +83,9 @@ def download_data_for_multiple_types(
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]],
     columns_to_download: Optional[list[Optional[list[str]]]],
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -90,6 +102,9 @@ def download_data_for_multiple_types(
     *,
     pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]] = None,
     columns_to_download: Optional[list[Optional[list[str]]]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
     verbosity_mode: "VERBOSITY_MODE" = "transient",
@@ -110,6 +125,15 @@ def download_data_for_multiple_types(
         columns_to_download (Optional[list[Optional[list[str]]]], optional): A list of pyarrow
             expressions used to filter specific theme type pair. Must be the same length as the list
             of theme type pairs. Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         working_directory (Union[str, Path], optional): Directory where to save
@@ -200,16 +224,11 @@ def download_data_for_multiple_types(
                     final_dataset = ds.dataset(raw_parquet_files)
                     result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
-                    merged_parquet_path = (
-                        tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
-                        if sort_result
-                        else result_file_path
-                    )
+                    merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
                     with pq.ParquetWriter(
                         merged_parquet_path,
                         schema=final_dataset.schema,
                         compression=PARQUET_COMPRESSION,
-                        compression_level=PARQUET_COMPRESSION_LEVEL,
                     ) as writer:
                         for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):
                             writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
@@ -218,8 +237,21 @@ def download_data_for_multiple_types(
                         sort_geoparquet_file_by_geometry(
                             input_file_path=merged_parquet_path,
                             output_file_path=result_file_path,
-                            working_directory=working_directory,
                             sort_extent=geometry_filter.bounds,
+                            compression=compression,
+                            compression_level=compression_level,
+                            row_group_size=row_group_size,
+                            working_directory=working_directory,
+                            verbosity_mode=verbosity_mode,
+                        )
+                    else:
+                        compress_parquet_with_duckdb(
+                            input_file_path=merged_parquet_path,
+                            output_file_path=result_file_path,
+                            compression=compression,
+                            compression_level=compression_level,
+                            row_group_size=row_group_size,
+                            working_directory=working_directory,
                         )
 
     return all_result_file_paths
@@ -233,6 +265,9 @@ def download_data(
     *,
     pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -251,6 +286,9 @@ def download_data(
     *,
     pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -269,6 +307,9 @@ def download_data(
     *,
     pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -287,6 +328,9 @@ def download_data(
     *,
     pyarrow_filter: Optional[PYARROW_FILTER] = None,
     columns_to_download: Optional[list[str]] = None,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     result_file_path: Optional[Union[str, Path]] = None,
     ignore_cache: bool = False,
     working_directory: Union[str, Path] = "files",
@@ -308,6 +352,15 @@ def download_data(
         columns_to_download (Optional[list[str]], optional): List of columns to download.
             Automatically adds geometry column to the list. If None, will download all columns.
             Defaults to None.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from filters. Defaults to None.
@@ -377,18 +430,13 @@ def download_data(
 
             result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
-            merged_parquet_path = (
-                tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
-                if sort_result
-                else result_file_path
-            )
+            merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
             with (
                 TrackProgressSpinner("Saving final geoparquet file", verbosity_mode=verbosity_mode),
                 pq.ParquetWriter(
                     merged_parquet_path,
                     schema=final_dataset.schema,
                     compression=PARQUET_COMPRESSION,
-                    compression_level=PARQUET_COMPRESSION_LEVEL,
                 ) as writer,
             ):
                 for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):
@@ -401,8 +449,22 @@ def download_data(
                     sort_geoparquet_file_by_geometry(
                         input_file_path=merged_parquet_path,
                         output_file_path=result_file_path,
-                        working_directory=working_directory,
                         sort_extent=geometry_filter.bounds,
+                        compression=compression,
+                        compression_level=compression_level,
+                        row_group_size=row_group_size,
+                        working_directory=working_directory,
+                        verbosity_mode=verbosity_mode,
+                    )
+            else:
+                with TrackProgressSpinner("Compressing result file", verbosity_mode=verbosity_mode):
+                    compress_parquet_with_duckdb(
+                        input_file_path=merged_parquet_path,
+                        output_file_path=result_file_path,
+                        compression=compression,
+                        compression_level=compression_level,
+                        row_group_size=row_group_size,
+                        working_directory=working_directory,
                     )
 
     return result_file_path
@@ -679,6 +741,14 @@ def _generate_empty_file(
 
         geoarrow_full_schema = geoarrow_schema_adapter(schema)
         metadata = geoarrow_full_schema.metadata or {}
+
+        spark_keys_to_drop = [
+            key for key in metadata.keys() if key.decode().startswith("org.apache.spark.")
+        ]
+
+        for key in spark_keys_to_drop:
+            del metadata[key]
+
         metadata["_theme"] = theme
         metadata["_type"] = type
         geoarrow_full_schema = geoarrow_full_schema.with_metadata(metadata)
@@ -779,6 +849,14 @@ def _download_single_parquet_row_group(
     )
     geoarrow_full_schema = geoarrow_schema_adapter(fragment_manual.physical_schema)
     metadata = geoarrow_full_schema.metadata or {}
+
+    spark_keys_to_drop = [
+        key for key in metadata.keys() if key.decode().startswith("org.apache.spark.")
+    ]
+
+    for key in spark_keys_to_drop:
+        del metadata[key]
+
     metadata["_theme"] = theme
     metadata["_type"] = type
     geoarrow_full_schema = geoarrow_full_schema.with_metadata(metadata)
@@ -795,6 +873,9 @@ def _download_single_parquet_row_group(
             raise MissingColumnError(
                 f"Cannot download given columns: {', '.join(sorted(nonexistent_columns))}"
             )
+
+        if INDEX_COLUMN not in columns_to_download:
+            columns_to_download.append(INDEX_COLUMN)
 
         if GEOMETRY_COLUMN not in columns_to_download:
             columns_to_download.append(GEOMETRY_COLUMN)
@@ -954,7 +1035,7 @@ def _get_oriented_geometry_filter(geometry_filter: "BaseGeometry") -> "BaseGeome
     import itertools
 
     from shapely import LinearRing, Polygon
-    from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+    from shapely.geometry.base import BaseMultipartGeometry
 
     geometry = geometry_filter
 
@@ -978,7 +1059,7 @@ def _get_oriented_geometry_filter(geometry_filter: "BaseGeometry") -> "BaseGeome
     if isinstance(geometry, Polygon):
         oriented_exterior = _get_oriented_geometry_filter(geometry.exterior)
         oriented_interiors = [
-            cast(BaseGeometry, _get_oriented_geometry_filter(interior))
+            cast("BaseGeometry", _get_oriented_geometry_filter(interior))
             for interior in geometry.interiors
         ]
         return Polygon(
@@ -987,7 +1068,7 @@ def _get_oriented_geometry_filter(geometry_filter: "BaseGeometry") -> "BaseGeome
         )
     elif isinstance(geometry, BaseMultipartGeometry):
         oriented_geoms = [
-            cast(BaseGeometry, _get_oriented_geometry_filter(geom)) for geom in geometry.geoms
+            cast("BaseGeometry", _get_oriented_geometry_filter(geom)) for geom in geometry.geoms
         ]
         return geometry.__class__(
             sorted(oriented_geoms, key=lambda geom: (geom.centroid.x, geom.centroid.y))

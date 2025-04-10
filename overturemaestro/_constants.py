@@ -1,7 +1,18 @@
 """Constants used across the project."""
 
-GEOMETRY_COLUMN = "geometry"
+from rq_geo_toolkit.constants import (
+    GEOMETRY_COLUMN,
+    PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
+    PARQUET_ROW_GROUP_SIZE,
+)
 
-PARQUET_ROW_GROUP_SIZE = 100_000
-PARQUET_COMPRESSION = "zstd"
-PARQUET_COMPRESSION_LEVEL = 3
+INDEX_COLUMN = "id"
+
+__all__ = [
+    "GEOMETRY_COLUMN",
+    "INDEX_COLUMN",
+    "PARQUET_COMPRESSION",
+    "PARQUET_COMPRESSION_LEVEL",
+    "PARQUET_ROW_GROUP_SIZE",
+]

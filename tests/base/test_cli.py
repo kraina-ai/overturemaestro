@@ -454,6 +454,24 @@ def test_transient_mode(test_release_version: str) -> None:
     f"files/{TEST_RELEASE_VERSION}/"
     "theme=buildings/type=building/cda5d65e_nofilter_sorted.parquet",
 )  # type: ignore
+@P.case(
+    "Compression",
+    [
+        "--release",
+        TEST_RELEASE_VERSION,
+        "--geom-filter-bbox",
+        geometry_bbox_str(),
+        "buildings",
+        "building",
+        "--compression",
+        "zstd",
+        "--compression-level",
+        "22",
+        "--output",
+        "files/monaco_output_zstd_22.parquet",
+    ],
+    "files/monaco_output_zstd_22.parquet",
+)  # type: ignore
 def test_proper_args(args: list[str], expected_result: str) -> None:
     """Test if runs properly with options."""
     result = runner.invoke(cli.app, args)

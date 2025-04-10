@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to specify compression and compression_level for result parquet files
+
+### Changed
+
+- Bumped minimal DuckDB version to 1.1.2
+- Refactored sorting algorithm and added dedicated compression function
+- Refactored components logic and exported it to an external library
+
+### Fixed
+
+- Removed duplicate geo metadata entry in the sorted geoparquet schema
+
 ## [0.3.2] - 2025-03-21
 
 ### Fixed

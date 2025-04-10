@@ -7,7 +7,7 @@ import pyarrow.parquet as pq
 import pytest
 from parametrization import Parametrization as P
 
-from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION
+from overturemaestro._constants import GEOMETRY_COLUMN, INDEX_COLUMN, PARQUET_COMPRESSION
 from overturemaestro._exceptions import MissingColumnError
 from overturemaestro.functions import (
     convert_bounding_box_to_geodataframe,
@@ -60,7 +60,7 @@ def test_pyarrow_filtering(test_release_version: str) -> None:
 @P.parameters("columns_to_download", "expectation")  # type: ignore
 @P.case("No columns", [], does_not_raise())  # type: ignore
 @P.case("No columns", None, does_not_raise())  # type: ignore
-@P.case("Base columns", ["subtype", "class", "id"], does_not_raise())  # type: ignore
+@P.case("Base columns", ["subtype", "class", INDEX_COLUMN], does_not_raise())  # type: ignore
 @P.case("Base columns without id", ["subtype", "class"], does_not_raise())  # type: ignore
 @P.case(
     "Non-existent columns", ["nonexistent_column"], pytest.raises(MissingColumnError)
@@ -83,7 +83,7 @@ def test_columns_download(
         assert all(
             column_name in gdf.columns
             for column_name in (columns_to_download or [])
-            if column_name != "id"  # skip indexed column
+            if column_name != INDEX_COLUMN  # skip indexed column
         )
 
 

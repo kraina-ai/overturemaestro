@@ -21,17 +21,12 @@ from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
 from requests import HTTPError
 from rich import print as rprint
+from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 from shapely import box
 from shapely.geometry.base import BaseGeometry
 
-from overturemaestro._constants import (
-    GEOMETRY_COLUMN,
-    PARQUET_COMPRESSION,
-    PARQUET_COMPRESSION_LEVEL,
-    PARQUET_ROW_GROUP_SIZE,
-)
+from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
 from overturemaestro._geometry_clustering import calculate_row_group_bounding_box
-from overturemaestro._geometry_sorting import sort_geoparquet_file_by_geometry
 from overturemaestro._parquet_multiprocessing import map_parquet_dataset
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
 from overturemaestro.cache import (
@@ -569,7 +564,6 @@ def _generate_release_index(
                     write_covering_bbox=True,
                     row_group_size=PARQUET_ROW_GROUP_SIZE,
                     compression=PARQUET_COMPRESSION,
-                    compression_level=PARQUET_COMPRESSION_LEVEL,
                     index=False,
                 )
                 sort_geoparquet_file_by_geometry(
@@ -577,6 +571,7 @@ def _generate_release_index(
                     output_file_path=cache_file_path,
                     sort_extent=(-180, -90, 180, 90),
                     working_directory=tmp_dir_path,
+                    verbosity_mode=verbosity_mode,
                 )
                 file_hashes.append(file_hash(str(cache_file_path)))
                 rprint(f"Saved index file {cache_file_path}")
@@ -608,7 +603,7 @@ def _load_all_available_release_versions_from_github() -> list[str]:  # pragma: 
     if release_versions_cache_file.exists():
         cache_value = json.loads(release_versions_cache_file.read_text())
         if date.fromisoformat(cache_value["date"]) >= current_date:
-            return cast(list[str], cache_value["release_versions"])
+            return cast("list[str]", cache_value["release_versions"])
 
     release_versions_cache_file.parent.mkdir(parents=True, exist_ok=True)
     gh_fs = GithubFileSystem(org="kraina-ai", repo="overturemaps-releases-indexes", sha="main")
