@@ -17,7 +17,10 @@ from pooch import get_logger as get_pooch_logger
 from requests import HTTPError
 from rich import print as rprint
 from rq_geo_toolkit.duckdb import set_up_duckdb_connection, sql_escape
-from rq_geo_toolkit.geoparquet_compression import compress_parquet_with_duckdb
+from rq_geo_toolkit.geoparquet_compression import (
+    compress_parquet_with_duckdb,
+    compress_query_with_duckdb,
+)
 from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 from shapely.geometry.base import BaseGeometry
 
@@ -915,27 +918,18 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 
                     compressed_parquet_path.unlink(missing_ok=True)
 
-                    decompressed_parquet_path = tmp_dir_path / "_decompressed.parquet"
                     _decompress_value_columns(
                         input_file=sorted_parquet_path,
-                        output_file=decompressed_parquet_path,
+                        output_file=result_file_path,
                         value_columns=value_columns,
                         working_directory=tmp_dir_path,
-                    )
-
-                    sorted_parquet_path.unlink(missing_ok=True)
-
-                    compress_parquet_with_duckdb(
-                        input_file_path=decompressed_parquet_path,
-                        output_file_path=result_file_path,
+                        parquet_metadata=metadata,
                         compression=compression,
                         compression_level=compression_level,
                         row_group_size=row_group_size,
-                        working_directory=working_directory,
-                        parquet_metadata=metadata,
                     )
 
-                    decompressed_parquet_path.unlink(missing_ok=True)
+                    sorted_parquet_path.unlink(missing_ok=True)
             else:
                 with TrackProgressSpinner("Compressing result file", verbosity_mode=verbosity_mode):
                     compress_parquet_with_duckdb(
@@ -1706,23 +1700,34 @@ def _compress_value_columns(
 
 
 def _decompress_value_columns(
-    input_file: Path, output_file: Path, value_columns: list[str], working_directory: Path
+    input_file: Path,
+    output_file: Path,
+    value_columns: list[str],
+    working_directory: Path,
+    parquet_metadata: pq.FileMetaData,
+    compression: str,
+    compression_level: int,
+    row_group_size: int,
 ) -> None:
-    connection = set_up_duckdb_connection(working_directory)
-
     select_clauses = ", ".join(
         f'{column_idx} IN column_indexes AS "{column}"'
         for column_idx, column in enumerate(value_columns)
     )
 
-    relation = connection.sql(
-        f"""
-        SELECT
-            {INDEX_COLUMN},
-            {GEOMETRY_COLUMN},
-            {select_clauses}
-        FROM read_parquet('{input_file}', hive_partitioning=false)
-        """
-    )
+    query = f"""
+    SELECT
+        {INDEX_COLUMN},
+        {GEOMETRY_COLUMN},
+        {select_clauses}
+    FROM read_parquet('{input_file}', hive_partitioning=false)
+    """
 
-    relation.to_parquet(str(output_file))
+    compress_query_with_duckdb(
+        query=query,
+        output_file_path=output_file,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
+        working_directory=working_directory,
+        parquet_metadata=parquet_metadata,
+    )
