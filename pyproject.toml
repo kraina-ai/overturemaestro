@@ -214,4 +214,5 @@ ignore_packages = [
     'mkdocstrings-python',  # uses ISC license, has mismatched license in analysis
     'pipdeptree',           # uses MIT license, has mismatched license in analysis
     'typing-extensions',    # uses ZERO-CLAUSE BSD LICENSE, has mismatched license in analysis
+    'pillow',               # uses MIT-CMU, has mismatched license in analysis
 ]
