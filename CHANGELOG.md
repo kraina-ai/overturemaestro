@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-04-14
+
 ### Added
 
-- Option to specify compression and compression_level for result parquet files
+- Option to specify compression and compression\_level for result parquet files
 
 ### Changed
 
@@ -188,7 +190,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.3.2...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.4.0...HEAD
+
+[0.4.0]: https://github.com/kraina-ai/overturemaestro/compare/0.3.2...0.4.0
 
 [0.3.2]: https://github.com/kraina-ai/overturemaestro/compare/0.3.1...0.3.2
 
