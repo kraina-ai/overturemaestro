@@ -911,7 +911,6 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         col for col in columns if col not in (INDEX_COLUMN, GEOMETRY_COLUMN)
                     ]
 
-                    print("nesting columns together")
                     compressed_parquet_path = tmp_dir_path / "_compressed.parquet"
                     _compress_value_columns(
                         input_file=merged_parquet_path,
@@ -922,7 +921,6 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 
                     merged_parquet_path.unlink(missing_ok=True)
 
-                    print("sorting by geometry")
                     sorted_parquet_path = tmp_dir_path / "_sorted.parquet"
                     sort_geoparquet_file_by_geometry(
                         input_file_path=compressed_parquet_path,
@@ -937,7 +935,6 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 
                     compressed_parquet_path.unlink(missing_ok=True)
 
-                    print("unnesting and compressing result file")
                     _decompress_value_columns(
                         input_file=sorted_parquet_path,
                         output_file=result_file_path,
