@@ -165,3 +165,4 @@ cache/
 release_indexes/
 files/
 overture_bounding_boxes/
+.DS_Store

@@ -5,7 +5,7 @@
 groups = ["default", "benchmark", "cli", "cli-dev", "dev", "docs", "index-generation", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:c4fb5a7f80dfda31d0ffcaf7a0ed6cd124ff31e6141ea640d6c5f6231dd67d7c"
+content_hash = "sha256:745e7c9ee2296e60e03f6a739e83464bde3b8a999b22327e89c52181b96e8c94"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -3176,7 +3176,7 @@ files = [
 [[package]]
 name = "n2"
 version = "0.1.7"
-summary = ""
+summary = "Approximate Nearest Neighbor library"
 groups = ["cli-dev"]
 marker = "sys_platform != \"win32\" and sys_platform != \"darwin\""
 dependencies = [
@@ -4609,7 +4609,7 @@ files = [
 
 [[package]]
 name = "rq-geo-toolkit"
-version = "2025.4.1"
+version = "2025.4.4"
 requires_python = ">=3.9"
 summary = "Collection of geo related functions for reuse in other libraries"
 groups = ["default"]
@@ -4628,8 +4628,8 @@ dependencies = [
     "shapely>=2.0.6",
 ]
 files = [
-    {file = "rq_geo_toolkit-2025.4.1-py3-none-any.whl", hash = "sha256:1d9a533860940e4b24b9e4e904d8062c0dafe42847e079cf8c78f418cbcbadc1"},
-    {file = "rq_geo_toolkit-2025.4.1.tar.gz", hash = "sha256:9a3a86b74c96a2fbc5d94cc8f65349ad97a13f4056a1caaca8963656fd143e91"},
+    {file = "rq_geo_toolkit-2025.4.4-py3-none-any.whl", hash = "sha256:09eba9c11cd8f0ca397d3f2d2a03f350817d1a94e3086139c1393d838255a52c"},
+    {file = "rq_geo_toolkit-2025.4.4.tar.gz", hash = "sha256:4185ae464d59e66f0c56a2ea68d9cf5ebd4b82e685ef719fe7608cab368ef8f7"},
 ]
 
 [[package]]

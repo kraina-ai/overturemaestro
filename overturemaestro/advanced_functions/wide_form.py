@@ -10,13 +10,14 @@ from typing import TYPE_CHECKING, Any, Optional, Protocol, Union, overload
 
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 from fsspec.implementations.http import HTTPFileSystem
 from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
 from requests import HTTPError
 from rich import print as rprint
 from rq_geo_toolkit.duckdb import set_up_duckdb_connection, sql_escape
-from rq_geo_toolkit.geoparquet_compression import compress_parquet_with_duckdb
+from rq_geo_toolkit.geoparquet_compression import compress_query_with_duckdb
 from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 from shapely.geometry.base import BaseGeometry
 
@@ -87,6 +88,9 @@ def _transform_to_wide_form(
     release_version: str,
     parquet_file: Path,
     output_path: Path,
+    compression: str,
+    compression_level: int,
+    row_group_size: int,
     include_all_possible_columns: bool,
     hierarchy_columns: list[str],
     working_directory: Union[str, Path],
@@ -148,9 +152,9 @@ def _transform_to_wide_form(
         )
     ) TO '{output_path}' (
         FORMAT 'parquet',
-        ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
-        COMPRESSION {PARQUET_COMPRESSION},
-        COMPRESSION_LEVEL {PARQUET_COMPRESSION_LEVEL},
+        ROW_GROUP_SIZE {row_group_size},
+        COMPRESSION {compression},
+        COMPRESSION_LEVEL {compression_level},
         PER_THREAD_OUTPUT false
     )
     """
@@ -166,6 +170,9 @@ def _transform_to_wide_form_without_hierarchy(
     type: str,
     parquet_file: Path,
     output_path: Path,
+    compression: str,
+    compression_level: int,
+    row_group_size: int,
     working_directory: Union[str, Path],
     **kwargs: Any,
 ) -> Path:
@@ -183,9 +190,9 @@ def _transform_to_wide_form_without_hierarchy(
         )
     ) TO '{output_path}' (
         FORMAT 'parquet',
-        ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
-        COMPRESSION {PARQUET_COMPRESSION},
-        COMPRESSION_LEVEL {PARQUET_COMPRESSION_LEVEL},
+        ROW_GROUP_SIZE {row_group_size},
+        COMPRESSION {compression},
+        COMPRESSION_LEVEL {compression_level},
         PER_THREAD_OUTPUT false
     )
     """
@@ -225,6 +232,9 @@ def _transform_poi_to_wide_form(
     release_version: str,
     parquet_file: Path,
     output_path: Path,
+    compression: str,
+    compression_level: int,
+    row_group_size: int,
     include_all_possible_columns: bool,
     hierarchy_columns: list[str],
     working_directory: Union[str, Path],
@@ -310,9 +320,9 @@ def _transform_poi_to_wide_form(
         )
     ) TO '{output_path}' (
         FORMAT 'parquet',
-        ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
-        COMPRESSION {PARQUET_COMPRESSION},
-        COMPRESSION_LEVEL {PARQUET_COMPRESSION_LEVEL},
+        ROW_GROUP_SIZE {row_group_size},
+        COMPRESSION {compression},
+        COMPRESSION_LEVEL {compression_level},
         PER_THREAD_OUTPUT false
     )
     """
@@ -518,6 +528,9 @@ class DataTransformationCallable(Protocol):  # noqa: D101
         release_version: str,
         parquet_file: Path,
         output_path: Path,
+        compression: str,
+        compression_level: int,
+        row_group_size: int,
         include_all_possible_columns: bool,
         hierarchy_columns: list[str],
         working_directory: Union[str, Path],
@@ -853,6 +866,9 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                             type=type_value,
                             parquet_file=downloaded_parquet_file,
                             output_path=output_path,
+                            compression=compression,
+                            compression_level=compression_level,
+                            row_group_size=row_group_size,
                             working_directory=tmp_dir_path,
                         )
                     else:
@@ -862,6 +878,9 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                             release_version=release,
                             parquet_file=downloaded_parquet_file,
                             output_path=output_path,
+                            compression=compression,
+                            compression_level=compression_level,
+                            row_group_size=row_group_size,
                             include_all_possible_columns=include_all_possible_columns,
                             hierarchy_columns=hierachy_columns,
                             working_directory=tmp_dir_path,
@@ -877,6 +896,9 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         theme_type_pairs=theme_type_pairs,
                         transformed_wide_form_directory=transformed_wide_form_directory_output,
                         output_path=merged_parquet_path,
+                        compression=compression,
+                        compression_level=compression_level,
+                        row_group_size=row_group_size,
                         working_directory=tmp_dir_path,
                     )
 
@@ -884,20 +906,49 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                 with TrackProgressSpinner(
                     "Sorting result file by geometry", verbosity_mode=verbosity_mode
                 ):
+                    columns = pq.read_schema(merged_parquet_path).names
+                    value_columns = [
+                        col for col in columns if col not in (INDEX_COLUMN, GEOMETRY_COLUMN)
+                    ]
+
+                    compressed_parquet_path = tmp_dir_path / "_compressed.parquet"
+                    _compress_value_columns(
+                        input_file=merged_parquet_path,
+                        output_file=compressed_parquet_path,
+                        value_columns=value_columns,
+                        working_directory=tmp_dir_path,
+                    )
+
+                    merged_parquet_path.unlink(missing_ok=True)
+
+                    sorted_parquet_path = tmp_dir_path / "_sorted.parquet"
                     sort_geoparquet_file_by_geometry(
-                        input_file_path=merged_parquet_path,
-                        output_file_path=result_file_path,
+                        input_file_path=compressed_parquet_path,
+                        output_file_path=sorted_parquet_path,
+                        compression="zstd",
+                        compression_level=3,
+                        row_group_size=row_group_size,
                         working_directory=working_directory,
                         sort_extent=geometry_filter.bounds,
                         verbosity_mode=verbosity_mode,
                     )
-            else:
-                with TrackProgressSpinner("Compressing result file", verbosity_mode=verbosity_mode):
-                    compress_parquet_with_duckdb(
-                        input_file_path=merged_parquet_path,
-                        output_file_path=result_file_path,
-                        working_directory=working_directory,
+
+                    compressed_parquet_path.unlink(missing_ok=True)
+
+                    _decompress_value_columns(
+                        input_file=sorted_parquet_path,
+                        output_file=result_file_path,
+                        value_columns=value_columns,
+                        working_directory=tmp_dir_path,
+                        compression=compression,
+                        compression_level=compression_level,
+                        row_group_size=row_group_size,
+                        verbosity_mode=verbosity_mode,
                     )
+
+                    sorted_parquet_path.unlink(missing_ok=True)
+            else:
+                merged_parquet_path.rename(result_file_path)
 
     return result_file_path
 
@@ -1248,6 +1299,9 @@ def _combine_multiple_wide_form_files(
     theme_type_pairs: list[tuple[str, str]],
     transformed_wide_form_directory: Path,
     output_path: Path,
+    compression: str,
+    compression_level: int,
+    row_group_size: int,
     working_directory: Union[str, Path],
 ) -> None:
     import pyarrow.parquet as pq
@@ -1292,10 +1346,9 @@ def _combine_multiple_wide_form_files(
         )
     ) TO '{output_path}' (
         FORMAT 'parquet',
-        ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
-        COMPRESSION {PARQUET_COMPRESSION},
-        COMPRESSION_LEVEL {PARQUET_COMPRESSION_LEVEL},
-        PER_THREAD_OUTPUT false
+        ROW_GROUP_SIZE {row_group_size},
+        COMPRESSION {compression},
+        COMPRESSION_LEVEL {compression_level}
     )
     """
 
@@ -1629,3 +1682,64 @@ def _generate_wide_form_all_column_names_release_index(
 
 def _get_wide_form_release_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
+
+
+def _compress_value_columns(
+    input_file: Path, output_file: Path, value_columns: list[str], working_directory: Path
+) -> None:
+    connection = set_up_duckdb_connection(working_directory)
+
+    case_clauses = ", ".join(
+        f'CASE WHEN "{column}" THEN {column_idx} ELSE NULL END'
+        for column_idx, column in enumerate(value_columns)
+    )
+
+    relation = connection.sql(
+        f"""
+        SELECT
+            {INDEX_COLUMN},
+            {GEOMETRY_COLUMN},
+            [
+                idx FOR idx IN [{case_clauses}]
+                IF idx IS NOT NULL
+            ] AS column_indexes
+        FROM read_parquet('{input_file}', hive_partitioning=false)
+        """
+    )
+
+    relation.to_parquet(str(output_file))
+
+
+def _decompress_value_columns(
+    input_file: Path,
+    output_file: Path,
+    value_columns: list[str],
+    working_directory: Path,
+    compression: str,
+    compression_level: int,
+    row_group_size: int,
+    verbosity_mode: str,
+) -> None:
+    select_clauses = ", ".join(
+        f'{column_idx} IN column_indexes AS "{column}"'
+        for column_idx, column in enumerate(value_columns)
+    )
+
+    query = f"""
+    SELECT
+        {INDEX_COLUMN},
+        {GEOMETRY_COLUMN},
+        {select_clauses}
+    FROM read_parquet('{input_file}', hive_partitioning=false)
+    """
+
+    compress_query_with_duckdb(
+        query=query,
+        parquet_metadata=pq.read_metadata(input_file),
+        output_file_path=output_file,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
+        working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
+    )
