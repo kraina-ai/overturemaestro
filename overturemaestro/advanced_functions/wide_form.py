@@ -17,6 +17,7 @@ from pooch import get_logger as get_pooch_logger
 from requests import HTTPError
 from rich import print as rprint
 from rq_geo_toolkit.duckdb import set_up_duckdb_connection, sql_escape
+from rq_geo_toolkit.geoparquet_compression import compress_query_with_duckdb
 from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 from shapely.geometry.base import BaseGeometry
 
@@ -945,6 +946,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         compression=compression,
                         compression_level=compression_level,
                         row_group_size=row_group_size,
+                        verbosity_mode=verbosity_mode,
                     )
 
                     sorted_parquet_path.unlink(missing_ok=True)
@@ -1719,11 +1721,8 @@ def _decompress_value_columns(
     compression: str,
     compression_level: int,
     row_group_size: int,
+    verbosity_mode: str,
 ) -> None:
-    connection = set_up_duckdb_connection(
-        tmp_dir_path=working_directory, preserve_insertion_order=True
-    )
-
     select_clauses = ", ".join(
         f'{column_idx} IN column_indexes AS "{column}"'
         for column_idx, column in enumerate(value_columns)
@@ -1737,13 +1736,13 @@ def _decompress_value_columns(
     FROM read_parquet('{input_file}', hive_partitioning=false)
     """
 
-    connection.execute(
-        f"""
-        COPY ({query}) TO '{output_file}' (
-            FORMAT parquet,
-            COMPRESSION {compression},
-            COMPRESSION_LEVEL {compression_level},
-            ROW_GROUP_SIZE {row_group_size}
-        );
-        """
+    compress_query_with_duckdb(
+        query=query,
+        parquet_metadata=pq.read_metadata(input_file),
+        output_file_path=output_file,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
+        working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
     )
