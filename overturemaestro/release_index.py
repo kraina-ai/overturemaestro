@@ -572,6 +572,9 @@ def _generate_release_index(
                     sort_extent=(-180, -90, 180, 90),
                     working_directory=tmp_dir_path,
                     verbosity_mode=verbosity_mode,
+                    compression="zstd",
+                    compression_level=22,
+                    row_group_size=PARQUET_ROW_GROUP_SIZE,
                 )
                 file_hashes.append(file_hash(str(cache_file_path)))
                 rprint(f"Saved index file {cache_file_path}")
