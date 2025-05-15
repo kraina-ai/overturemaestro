@@ -23,7 +23,7 @@ from overturemaestro.release_index import (
 )
 
 __app_name__ = "OvertureMaestro"
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 __all__ = [
     "convert_bounding_box_to_geodataframe",
