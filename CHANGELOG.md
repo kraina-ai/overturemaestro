@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-05-03
+
+### Added
+
+- Typing stubs for mypy
+
 ## [0.4.0] - 2025-04-14
 
 ### Added
@@ -190,7 +196,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.4.1...HEAD
+
+[0.4.1]: https://github.com/kraina-ai/overturemaestro/compare/0.4.0...0.4.1
 
 [0.4.0]: https://github.com/kraina-ai/overturemaestro/compare/0.3.2...0.4.0
 
