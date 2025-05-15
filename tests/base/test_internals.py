@@ -68,7 +68,7 @@ def test_compression(test_release_version: str) -> None:
         compression_level=3,
         ignore_cache=True,
         release=test_release_version,
-        result_file_path="files/zstd_3.parquet"
+        result_file_path="files/zstd_3.parquet",
     )
     pq_zstd_22 = convert_geometry_to_parquet(
         theme="buildings",
@@ -78,7 +78,7 @@ def test_compression(test_release_version: str) -> None:
         compression_level=22,
         ignore_cache=True,
         release=test_release_version,
-        result_file_path="files/zstd_22.parquet"
+        result_file_path="files/zstd_22.parquet",
     )
 
     assert pq_zstd_3.stat().st_size > pq_zstd_22.stat().st_size
@@ -86,7 +86,7 @@ def test_compression(test_release_version: str) -> None:
 
 def test_sorting(test_release_version: str) -> None:
     """Test if sorted file is smaller and metadata in both files is equal."""
-    geometry = geocode_to_geometry("City of London")
+    geometry = geocode_to_geometry("Monaco")
 
     unsorted_pq = convert_geometry_to_parquet(
         theme="buildings",
@@ -105,6 +105,10 @@ def test_sorting(test_release_version: str) -> None:
         release=test_release_version,
     )
 
+    print(unsorted_pq)
+    print(sorted_pq)
+
     assert pq.read_schema(unsorted_pq).equals(pq.read_schema(sorted_pq))
+    assert pq.read_metadata(unsorted_pq).num_rows == pq.read_metadata(sorted_pq).num_rows
 
     assert unsorted_pq.stat().st_size > sorted_pq.stat().st_size
