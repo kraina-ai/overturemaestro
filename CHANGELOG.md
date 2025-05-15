@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped internal `rq_geo_toolkit` library and sped up file sorting
+
 ## [0.4.1] - 2025-05-03
 
 ### Added
