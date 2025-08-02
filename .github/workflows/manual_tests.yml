@@ -33,11 +33,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install pdm
         run: pip install pdm uv
-      - name: Generate requirements.txt
-        run: pdm export -dG test -f requirements -o requirements.test.txt
-      - name: Install overturemaestro
-        run: |
-          uv pip install -e "overturemaestro[cli,index-generation] @ ." -r requirements.test.txt --system
+      - name: Generate lock with oldest dependencies
+        run: pdm lock --lockfile pdm.newest.toml --python '==${{ matrix.python-version }}.*' -G cli -G index-generation -dG test -v
+      - name: Install overturemaestro and tests dependencies
+        run: pdm install --lockfile pdm.newest.lock -G cli -G index-generation -dG test --skip=post_install
       - name: Run tests with pytest
         run: |
           pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure overturemaestro
