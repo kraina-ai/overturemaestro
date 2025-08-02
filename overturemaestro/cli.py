@@ -57,7 +57,7 @@ def _display_theme_type_pairs_callback(ctx: typer.Context, value: bool) -> None:
         param_values = {p.name: p.default for p in ctx.command.params}
         param_values.update(ctx.params)
         release_version = cast(
-            str, param_values.get("release_version") or get_newest_release_version()
+            "str", param_values.get("release_version") or get_newest_release_version()
         )
         theme_type_pairs = get_available_theme_type_pairs(release=release_version)
 

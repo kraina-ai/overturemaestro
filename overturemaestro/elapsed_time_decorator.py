@@ -28,7 +28,7 @@ def show_total_elapsed_time_decorator(func: F) -> F:
 
     func.__is_timed__ = True  # type: ignore[attr-defined]
 
-    return cast(F, timeit_wrapper)
+    return cast("F", timeit_wrapper)
 
 
 def is_decorated(func: F) -> bool:
