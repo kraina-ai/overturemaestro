@@ -2,7 +2,7 @@
 
 import uuid
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import pytest
 from parametrization import Parametrization as P
@@ -52,7 +52,7 @@ def test_version() -> None:
     "Theme type only",
     ["base", "water"],
 )  # type: ignore
-def test_theme_type_and_geometry_filter_is_required(args) -> None:
+def test_theme_type_and_geometry_filter_is_required(args: Any) -> None:
     """Test if cannot run without pbf file and without geometry filter."""
     result = runner.invoke(cli.app, args)
 

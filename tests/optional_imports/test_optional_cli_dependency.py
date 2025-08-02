@@ -1,6 +1,8 @@
 """Optional dependencies tests."""
 
 import sys
+from collections.abc import Generator
+from typing import Any
 
 import pytest
 
@@ -20,7 +22,7 @@ def optional_packages() -> list[str]:
 
 
 @pytest.fixture(autouse=True)  # type: ignore
-def cleanup_imports():
+def cleanup_imports() -> Generator[Any, Any, Any]:
     """Clean imports."""
     yield
     sys.modules.pop("overturemaestro", None)
@@ -40,7 +42,9 @@ class PackageDiscarder:
 
 
 @pytest.fixture  # type: ignore
-def no_optional_dependencies(monkeypatch, optional_packages):
+def no_optional_dependencies(
+    monkeypatch: Any, optional_packages: list[str]
+) -> Generator[Any, Any, Any]:
     """Mock environment without optional dependencies."""
     d = PackageDiscarder()
 
