@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped `geoarrow-rust-core` minimal version to `0.4.0`
+
 ## [0.4.2] - 2025-05-15
 
 ### Changed

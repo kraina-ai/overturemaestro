@@ -1084,12 +1084,12 @@ def _filter_data_properly(
     geometry_filter: "BaseGeometry",
 ) -> Any:
     import geopandas as gpd
-    from geoarrow.rust.core import GeometryArray
+    from geoarrow.rust.core import GeoArray
     from shapely import STRtree
 
     matching_indexes = STRtree(
         gpd.GeoSeries.from_arrow(
-            GeometryArray.from_arrow(pyarrow_table[GEOMETRY_COLUMN].combine_chunks())
+            GeoArray.from_arrow(pyarrow_table[GEOMETRY_COLUMN].combine_chunks())
         )
     ).query(geometry_filter, predicate="intersects")
     return pyarrow_table.take(matching_indexes)
