@@ -61,7 +61,7 @@ repos:
     rev: "2025.1.0"
     hooks:
       - id: licensecheck
-        args: ["-u", "requirements:requirements.txt"]
+        args: ["--requirements-paths", "requirements.txt"]
         stages: [manual]
 
 ci:
