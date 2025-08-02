@@ -34,7 +34,7 @@ jobs:
       - name: Install pdm
         run: pip install pdm uv
       - name: Generate lock with newest dependencies
-        run: pdm lock --lockfile pdm.newest.toml --python '==${{ matrix.python-version }}.*' -G cli -G index-generation -dG test -v
+        run: pdm lock --lockfile pdm.newest.lock --python '==${{ matrix.python-version }}.*' -G cli -G index-generation -dG test -v
       - name: Install overturemaestro and tests dependencies
         run: pdm install --lockfile pdm.newest.lock -G cli -G index-generation -dG test --skip=post_install
       - name: Run tests with pytest
