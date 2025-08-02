@@ -1046,7 +1046,7 @@ def _get_oriented_geometry_filter(geometry_filter: "BaseGeometry") -> "BaseGeome
             perimeter = list(geometry.coords)
         else:
             perimeter = list(geometry.coords)[::-1]
-        smallest_point = sorted(perimeter)[0]
+        smallest_point = min(perimeter)
         double_iteration = itertools.chain(perimeter[:-1], perimeter)
         for point in double_iteration:
             if point == smallest_point:
