@@ -57,7 +57,7 @@ def test_theme_type_and_geometry_filter_is_required(args: Any) -> None:
     result = runner.invoke(cli.app, args)
 
     assert result.exit_code == 2
-    assert "OvertureMaestro requires theme, type and a geometry filter" in result.stdout
+    assert "OvertureMaestro requires theme, type and a geometry filter" in (result.stdout or result.stderr)
 
 
 def test_basic_run(test_release_version: str) -> None:
