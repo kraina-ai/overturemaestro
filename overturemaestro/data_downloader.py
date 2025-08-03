@@ -20,6 +20,7 @@ from overturemaestro._constants import (
     PARQUET_ROW_GROUP_SIZE,
 )
 from overturemaestro._exceptions import MissingColumnError
+from overturemaestro._rich_progress import TrackProgressBar
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -252,6 +253,7 @@ def download_data_for_multiple_types(
                             compression_level=compression_level,
                             row_group_size=row_group_size,
                             working_directory=working_directory,
+                            verbosity_mode=verbosity_mode,
                         )
 
     return all_result_file_paths
@@ -443,9 +445,15 @@ def download_data(
                     writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
 
             if sort_result:
-                with TrackProgressSpinner(
-                    "Sorting result file by geometry", verbosity_mode=verbosity_mode
-                ):
+                with TrackProgressBar(verbosity_mode=verbosity_mode) as progress_bar:
+                    total_rows = pq.read_metadata(merged_parquet_path).num_rows
+                    task = progress_bar.add_task(
+                        description="Sorting result file by geometry", total=total_rows
+                    )
+
+                    def progress_callback(processed: int) -> None:
+                        progress_bar.update(task, completed=processed, refresh=True)
+
                     sort_geoparquet_file_by_geometry(
                         input_file_path=merged_parquet_path,
                         output_file_path=result_file_path,
@@ -455,7 +463,9 @@ def download_data(
                         row_group_size=row_group_size,
                         working_directory=working_directory,
                         verbosity_mode=verbosity_mode,
+                        progress_callback=progress_callback,
                     )
+                    progress_callback(total_rows)
             else:
                 with TrackProgressSpinner("Compressing result file", verbosity_mode=verbosity_mode):
                     compress_parquet_with_duckdb(
@@ -1046,7 +1056,7 @@ def _get_oriented_geometry_filter(geometry_filter: "BaseGeometry") -> "BaseGeome
             perimeter = list(geometry.coords)
         else:
             perimeter = list(geometry.coords)[::-1]
-        smallest_point = sorted(perimeter)[0]
+        smallest_point = min(perimeter)
         double_iteration = itertools.chain(perimeter[:-1], perimeter)
         for point in double_iteration:
             if point == smallest_point:
@@ -1084,12 +1094,12 @@ def _filter_data_properly(
     geometry_filter: "BaseGeometry",
 ) -> Any:
     import geopandas as gpd
-    from geoarrow.rust.core import GeometryArray
+    from geoarrow.rust.core import GeoArray
     from shapely import STRtree
 
     matching_indexes = STRtree(
         gpd.GeoSeries.from_arrow(
-            GeometryArray.from_arrow(pyarrow_table[GEOMETRY_COLUMN].combine_chunks())
+            GeoArray.from_arrow(pyarrow_table[GEOMETRY_COLUMN].combine_chunks())
         )
     ).query(geometry_filter, predicate="intersects")
     return pyarrow_table.take(matching_indexes)

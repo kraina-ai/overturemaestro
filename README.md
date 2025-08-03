@@ -78,7 +78,7 @@ Required:
 
 - `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and filtering data with STRIndex
 
-- `geoarrow-rust-core (>=0.3.0)`: For transforming Arrow data to Shapely objects
+- `geoarrow-rust-core (>=0.4.0)`: For transforming Arrow data to Shapely objects
 
 - `duckdb (>=1.1.2)`: For transforming downloaded data to the wide format and sorting files by geometry
 

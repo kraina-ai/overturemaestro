@@ -68,7 +68,7 @@ def get_newest_release_version() -> str:
         str: Release version.
     """
     release_versions = _load_all_available_release_versions_from_github()
-    return sorted(release_versions)[-1]
+    return max(release_versions)
 
 
 def get_available_release_versions() -> list[str]:

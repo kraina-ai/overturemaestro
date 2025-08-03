@@ -1,7 +1,7 @@
 """Tests related to using pregenerated release indexes."""
 
 from contextlib import nullcontext as does_not_raise
-from typing import Optional
+from typing import Any, Optional
 
 import pytest
 from parametrization import Parametrization as P
@@ -27,7 +27,7 @@ from tests.conftest import TEST_RELEASE_VERSION
         (does_not_raise(), TEST_RELEASE_VERSION),
     ],
 )  # type: ignore
-def test_supported_release_version(expectation, release_version: str) -> None:
+def test_supported_release_version(expectation: Any, release_version: str) -> None:
     """Test if raises errors for unsupported release versions."""
     with expectation:
         _check_release_version(release_version)
@@ -53,7 +53,7 @@ def test_get_available_theme_type_pairs(test_release_version: str) -> None:
     4,
 )  # type: ignore
 def test_load_release_index(
-    test_release_version,
+    test_release_version: str,
     theme_type_pair: tuple[str, str],
     geometry_filter: Optional[BaseGeometry],
     expected_number_of_rows: int,
