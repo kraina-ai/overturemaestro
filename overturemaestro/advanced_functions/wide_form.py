@@ -939,7 +939,6 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         verbosity_mode=verbosity_mode,
                         progress_callback=progress_callback,
                     )
-                    progress_callback(total_rows)
 
                     compressed_parquet_path.unlink(missing_ok=True)
 
@@ -953,6 +952,8 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         row_group_size=row_group_size,
                         verbosity_mode=verbosity_mode,
                     )
+
+                    progress_callback(total_rows)
 
                     sorted_parquet_path.unlink(missing_ok=True)
             else:
