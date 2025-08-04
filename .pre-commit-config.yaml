@@ -8,26 +8,26 @@ repos:
       - id: conventional-pre-commit
         stages: [commit-msg]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 'v0.12.2'
+    rev: 'v0.12.7'
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix, --show-fixes, --exclude, dev]
   # TODO: Switch back to upstream docformatter
   # after https://github.com/PyCQA/docformatter/issues/289 is fixed
   - repo: https://github.com/PyCQA/docformatter
-    rev: v1.7.7
+    rev: v1.7.8-rc1
     # rev: v1.7.5
     hooks:
       - id: docformatter
         additional_dependencies: [tomli]
         args: [--in-place, --config, ./pyproject.toml]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.16.1
+    rev: v1.17.1
     hooks:
       - id: mypy
         additional_dependencies: ['types-requests', 'types-six']
   - repo: https://github.com/pdm-project/pdm
-    rev: 2.25.4
+    rev: 2.25.5
     hooks:
       - id: pdm-lock-check
       - id: pdm-export
