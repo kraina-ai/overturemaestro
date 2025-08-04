@@ -1,5 +1,6 @@
 """Tests for public API advanced wide form functions."""
 
+
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from typing import Any, Optional

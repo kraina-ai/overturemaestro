@@ -1,14 +1,16 @@
 # ruff: noqa
 # type: ignore
 """
-Build a GeoParquet file from a GeoParquet dataset. Code by Jacob Wasserman.
+Build a GeoParquet file from a GeoParquet dataset.
 
+Code by Jacob Wasserman.
 The schema is:
 path: string
 row_group_idx: int
 bbox: struct(minx: double, miny: double, maxx: double, maxy: double)
 geometry: WKB geometry
 """
+
 
 # from dataclasses import dataclass
 # import json

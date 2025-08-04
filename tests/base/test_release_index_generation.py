@@ -1,5 +1,6 @@
 """Tests related to generating release indexes."""
 
+
 import shutil
 from pathlib import Path
 

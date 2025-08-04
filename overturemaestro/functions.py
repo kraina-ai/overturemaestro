@@ -4,6 +4,7 @@ Functions.
 This module contains helper functions to simplify the usage.
 """
 
+
 from pathlib import Path
 from typing import Optional, Union, overload
 

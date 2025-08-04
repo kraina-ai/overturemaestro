@@ -1,5 +1,6 @@
 """Tests related to using pregenerated release indexes."""
 
+
 from contextlib import nullcontext as does_not_raise
 from typing import Any, Optional
 

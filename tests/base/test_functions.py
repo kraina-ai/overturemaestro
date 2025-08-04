@@ -1,5 +1,6 @@
 """Tests for public API functions."""
 
+
 from contextlib import nullcontext as does_not_raise
 from typing import Any, Optional
 
