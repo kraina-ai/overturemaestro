@@ -1,5 +1,6 @@
 """Tests internals code for proper coverage in multiprocessing."""
 
+
 from pathlib import Path
 
 import pyarrow.compute as pc

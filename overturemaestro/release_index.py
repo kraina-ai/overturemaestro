@@ -5,6 +5,7 @@ Functions used to load cached release index, download it from a dedicated reposi
 it on demand.
 """
 
+
 import json
 import tempfile
 from datetime import date

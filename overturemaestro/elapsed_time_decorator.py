@@ -1,5 +1,6 @@
 """Decorator for showing total elapsed time at the end of operation."""
 
+
 from typing import Any, Callable, TypeVar, cast
 
 F = TypeVar("F", bound=Callable[..., Any])

@@ -4,6 +4,7 @@ Advanced Functions.
 This module contains helper functions to simplify the API.
 """
 
+
 from pathlib import Path
 from typing import Optional, Union, overload
 
