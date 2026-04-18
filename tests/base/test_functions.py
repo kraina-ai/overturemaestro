@@ -58,8 +58,8 @@ def test_pyarrow_filtering(test_release_version: str) -> None:
 
 
 @P.parameters("columns_to_download", "expectation")  # type: ignore
-@P.case("No columns", [], does_not_raise())  # type: ignore
-@P.case("No columns", None, does_not_raise())  # type: ignore
+@P.case("No columns - empty list", [], does_not_raise())  # type: ignore
+@P.case("No columns - None", None, does_not_raise())  # type: ignore
 @P.case("Base columns", ["subtype", "class", INDEX_COLUMN], does_not_raise())  # type: ignore
 @P.case("Base columns without id", ["subtype", "class"], does_not_raise())  # type: ignore
 @P.case(
