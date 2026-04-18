@@ -124,7 +124,7 @@ class SingletonContextManager(SyncManager):
     def __new__(cls, ctx: multiprocessing.context.SpawnContext) -> "SingletonContextManager":
         if not hasattr(cls, "instance"):
             cls.instance = ctx.Manager()
-        return cast("SingletonContextManager", cls.instance)
+        return cast("SingletonContextManager", cls.instance) # type: ignore[misc]
 
 
 def _read_row_group_number(path: str, filesystem: "fs.FileSystem") -> int:

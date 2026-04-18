@@ -171,18 +171,17 @@ def convert_geometry_to_parquet(
         >>> from shapely import box
         >>> london_bbox = box(-0.120077, 51.498164, -0.090809, 51.508849)
         >>> gpq_path = om.convert_geometry_to_parquet(
-        ...     release="2024-08-20.0",
         ...     theme="buildings",
         ...     type="building",
         ...     geometry_filter=london_bbox,
         ... ) # doctest: +IGNORE_RESULT
-        >>> gpq_path.as_posix()
+        >>> gpq_path.as_posix() # doctest: +IGNORE_RESULT
         'files/2024-08-20.0/theme=buildings/type=building/7ed11f0d_nofilter_sorted.parquet'
 
         Inspect the content
         >>> import geopandas as gpd
         >>> gdf = gpd.read_parquet(gpq_path)
-        >>> len(gdf)
+        >>> len(gdf) # doctest: +IGNORE_RESULT
         1863
         >>> list(gdf.columns) # doctest: +IGNORE_RESULT
         ['id', 'geometry', 'bbox', 'version', 'sources', 'subtype', 'class', 'names', 'level',
@@ -193,7 +192,7 @@ def convert_geometry_to_parquet(
         Download museums in the same area from places dataset with a filter.
 
         >>> gpq_path = om.convert_geometry_to_parquet(
-        ...     release="2024-08-20.0",
+        ...     # release="2024-08-20.0", # you can pass release version explicitly
         ...     theme="places",
         ...     type="place",
         ...     geometry_filter=london_bbox,
@@ -202,8 +201,8 @@ def convert_geometry_to_parquet(
         ...         ("confidence", ">", 0.95),
         ...     ]],
         ... ) # doctest: +IGNORE_RESULT
-        >>> gdf = gpd.read_parquet(gpq_path)
-        >>> len(gdf)
+        >>> gdf = gpd.read_parquet(gpq_path) # doctest: +IGNORE_RESULT
+        >>> len(gdf) # doctest: +IGNORE_RESULT
         5
         >>> gdf[["id", "names", "confidence"]] # doctest: +IGNORE_RESULT
                                          id                               names  confidence
@@ -490,12 +489,11 @@ def convert_geometry_to_geodataframe(
         >>> from shapely import box
         >>> london_bbox = box(-0.120077, 51.498164, -0.090809, 51.508849)
         >>> gdf = om.convert_geometry_to_geodataframe(
-        ...     release="2024-08-20.0",
         ...     theme="buildings",
         ...     type="building",
         ...     geometry_filter=london_bbox,
         ... ) # doctest: +IGNORE_RESULT
-        >>> gdf[['names', 'subtype']].sort_index()
+        >>> gdf[['names', 'subtype']].sort_index() # doctest: +IGNORE_RESULT
                                                                        names       subtype
         id
         08b194ad14804fff0200fea269f9879c  {'primary': 'Park Plaza London ...          None
@@ -515,7 +513,7 @@ def convert_geometry_to_geodataframe(
         Download museums in the same area from places dataset with a filter.
 
         >>> gdf = om.convert_geometry_to_geodataframe(
-        ...     release="2024-08-20.0",
+        ...     # release="2024-08-20.0", # you can pass release version explicitly
         ...     theme="places",
         ...     type="place",
         ...     geometry_filter=london_bbox,
@@ -524,7 +522,9 @@ def convert_geometry_to_geodataframe(
         ...         ("confidence", ">", 0.95),
         ...     ]],
         ... ) # doctest: +IGNORE_RESULT
-        >>> gdf[["names", "confidence"]].sort_values(by='confidence', ascending=False)
+        >>> gdf[["names", "confidence"]].sort_values(
+        ...     by='confidence', ascending=False
+        ... ) # doctest: +IGNORE_RESULT
                                                                        names  confidence
         id
         08f194ad32a0d494030fdddc1b405fb1  {'primary': 'Shakespeare's Glob...    0.991993
@@ -821,18 +821,17 @@ def convert_bounding_box_to_parquet(
         >>> import overturemaestro as om
         >>> london_bbox = (-0.120077, 51.498164, -0.090809, 51.508849)
         >>> gpq_path = om.convert_bounding_box_to_parquet(
-        ...     release="2024-08-20.0",
         ...     theme="buildings",
         ...     type="building",
         ...     bbox=london_bbox,
         ... ) # doctest: +IGNORE_RESULT
-        >>> gpq_path.as_posix()
+        >>> gpq_path.as_posix() # doctest: +IGNORE_RESULT
         'files/2024-08-20.0/theme=buildings/type=building/7ed11f0d_nofilter_sorted.parquet'
 
         Inspect the content
         >>> import geopandas as gpd
         >>> gdf = gpd.read_parquet(gpq_path)
-        >>> len(gdf)
+        >>> len(gdf) # doctest: +IGNORE_RESULT
         1863
         >>> list(gdf.columns) # doctest: +IGNORE_RESULT
         ['id', 'geometry', 'bbox', 'version', 'sources', 'subtype', 'class', 'names', 'level',
@@ -843,7 +842,7 @@ def convert_bounding_box_to_parquet(
         Download museums in the same area from places dataset with a filter.
 
         >>> gpq_path = om.convert_bounding_box_to_parquet(
-        ...     release="2024-08-20.0",
+        ...     # release="2024-08-20.0", # you can pass release version explicitly
         ...     theme="places",
         ...     type="place",
         ...     bbox=london_bbox,
@@ -853,7 +852,7 @@ def convert_bounding_box_to_parquet(
         ...     ]],
         ... ) # doctest: +IGNORE_RESULT
         >>> gdf = gpd.read_parquet(gpq_path)
-        >>> len(gdf)
+        >>> len(gdf) # doctest: +IGNORE_RESULT
         5
         >>> gdf[["id", "names", "confidence"]] # doctest: +IGNORE_RESULT
                                          id                               names  confidence
@@ -1141,12 +1140,11 @@ def convert_bounding_box_to_geodataframe(
         >>> import overturemaestro as om
         >>> london_bbox = (-0.120077, 51.498164, -0.090809, 51.508849)
         >>> gdf = om.convert_bounding_box_to_geodataframe(
-        ...     release="2024-08-20.0",
         ...     theme="buildings",
         ...     type="building",
         ...     bbox=london_bbox,
         ... ) # doctest: +IGNORE_RESULT
-        >>> gdf[['names', 'subtype']].sort_index()
+        >>> gdf[['names', 'subtype']].sort_index() # doctest: +IGNORE_RESULT
                                                                        names       subtype
         id
         08b194ad14804fff0200fea269f9879c  {'primary': 'Park Plaza London ...          None
@@ -1166,7 +1164,7 @@ def convert_bounding_box_to_geodataframe(
         Download museums in the same area from places dataset with a filter.
 
         >>> gdf = om.convert_bounding_box_to_geodataframe(
-        ...     release="2024-08-20.0",
+        ...     # release="2024-08-20.0", # you can pass release version explicitly
         ...     theme="places",
         ...     type="place",
         ...     bbox=london_bbox,
@@ -1175,7 +1173,9 @@ def convert_bounding_box_to_geodataframe(
         ...         ("confidence", ">", 0.95),
         ...     ]],
         ... ) # doctest: +IGNORE_RESULT
-        >>> gdf[["names", "confidence"]].sort_values(by='confidence', ascending=False)
+        >>> gdf[["names", "confidence"]].sort_values(
+        ...     by='confidence', ascending=False
+        ... ) # doctest: +IGNORE_RESULT
                                                                        names  confidence
         id
         08f194ad32a0d494030fdddc1b405fb1  {'primary': 'Shakespeare's Glob...    0.991993
