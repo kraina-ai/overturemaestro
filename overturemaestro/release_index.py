@@ -15,7 +15,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pyarrow.fs as fs
-from fsspec.implementations.github import GithubFileSystem
+import requests
 from fsspec.implementations.http import HTTPFileSystem
 from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
@@ -65,7 +65,7 @@ def get_newest_release_version() -> str:
     Returns:
         str: Release version.
     """
-    release_versions = _load_all_available_release_versions_from_github()
+    release_versions = _load_all_available_release_versions_from_stac()
     return max(release_versions)
 
 
@@ -79,7 +79,7 @@ def get_available_release_versions() -> list[str]:
     Returns:
         list[str]: Release versions.
     """
-    return sorted(_load_all_available_release_versions_from_github())[::-1]
+    return sorted(_load_all_available_release_versions_from_stac())[::-1]
 
 
 @overload
@@ -590,7 +590,7 @@ def _get_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
 
 
-def _load_all_available_release_versions_from_github() -> list[str]:  # pragma: no cover
+def _load_all_available_release_versions_from_stac() -> list[str]:  # pragma: no cover
     release_versions_cache_file = (
         get_global_release_cache_directory() / "_available_release_versions.json"
     )
@@ -602,8 +602,19 @@ def _load_all_available_release_versions_from_github() -> list[str]:  # pragma: 
             return cast("list[str]", cache_value["release_versions"])
 
     release_versions_cache_file.parent.mkdir(parents=True, exist_ok=True)
-    gh_fs = GithubFileSystem(org="kraina-ai", repo="overturemaps-releases-indexes", sha="main")
-    release_versions = [file_path.split("/")[1] for file_path in gh_fs.ls("release_indexes")]
+    logger = get_pooch_logger()
+    logger.setLevel("WARNING")
+
+    stac_catalog_response = requests.get(
+        "https://stac.overturemaps.org/catalog.json",
+        allow_redirects=True,
+    ).json()
+    release_versions = [
+        link["href"].split("/")[1]
+        for link in stac_catalog_response["links"]
+        if link["rel"] == "child"
+    ]
+
     release_versions_cache_file.write_text(
         json.dumps(dict(date=current_date.isoformat(), release_versions=release_versions))
     )

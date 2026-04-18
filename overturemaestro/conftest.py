@@ -45,6 +45,6 @@ def pandas_terminal_width() -> None:
 def patch_get_available_versions(mocker: MockerFixture) -> None:
     """Mock getting available release versions without GitHub."""
     mocker.patch(
-        "overturemaestro.release_index._load_all_available_release_versions_from_github",
+        "overturemaestro.release_index._load_all_available_release_versions_from_stac",
         return_value=TEST_RELEASE_VERSIONS_LIST,
     )
