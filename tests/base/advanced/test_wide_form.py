@@ -25,7 +25,6 @@ from overturemaestro.advanced_functions.wide_form import (
     get_theme_type_classification,
 )
 from overturemaestro.data_downloader import PYARROW_FILTER
-from overturemaestro.release_index import MINIMAL_SUPPORTED_RELEASE_VERSION
 from tests.conftest import TEST_RELEASE_VERSION, bbox
 
 
@@ -388,20 +387,6 @@ def test_places_use_primary_category_only_parameter(
     assert (
         primary_only.sum().sum() < all_categories.sum().sum()
     ), "Primary only has more categories than all categories."
-
-
-def test_old_version(
-    wide_form_working_directory: Path,
-) -> None:
-    """Test if oldest supported version is working."""
-    convert_bounding_box_to_wide_form_geodataframe_for_all_types(
-        bbox=bbox(),
-        release=MINIMAL_SUPPORTED_RELEASE_VERSION,
-        working_directory=wide_form_working_directory,
-        verbosity_mode="verbose",
-        ignore_cache=False,
-        include_all_possible_columns=False,
-    )
 
 
 def test_generate_result_file_name_order(

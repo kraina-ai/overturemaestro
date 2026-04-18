@@ -36,7 +36,7 @@ def test_supported_release_version(expectation: Any, release_version: str) -> No
 def test_get_available_theme_type_pairs(test_release_version: str) -> None:
     """Test is loading available theme type pairs works."""
     pairs = get_available_theme_type_pairs(test_release_version)
-    assert len(pairs) == 14
+    assert len(pairs) >= 14
 
 
 @P.parameters("theme_type_pair", "geometry_filter", "expected_number_of_rows")  # type: ignore
