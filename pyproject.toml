@@ -18,9 +18,9 @@ dependencies = [
     "duckdb>=1.1.2",
     "psutil>=5.6.2",
     "polars>=1.9",
-    "rq_geo_toolkit>=2025.8.0",
+    "rq-geo-toolkit>=2026.2.1",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 classifiers = [
@@ -31,10 +31,11 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: Unix",
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",

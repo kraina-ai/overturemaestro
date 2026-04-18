@@ -64,7 +64,7 @@ pip install overturemaestro[cli]
 
 ### Required Python version?
 
-OvertureMaestro supports **Python >= 3.9**
+OvertureMaestro supports **Python >= 3.10**
 
 ### Dependencies
 
