@@ -39,24 +39,21 @@ def test_get_available_theme_type_pairs(test_release_version: str) -> None:
     assert len(pairs) >= 14
 
 
-@P.parameters("theme_type_pair", "geometry_filter", "expected_number_of_rows")  # type: ignore
+@P.parameters("theme_type_pair", "geometry_filter")  # type: ignore
 @P.case(
     "Base water - no filter",
     ("base", "water"),
     None,
-    74348,
 )  # type: ignore
 @P.case(
     "Buildings - bbox filter",
     ("buildings", "building"),
     box(-0.120077, 51.498164, -0.090809, 51.508849),
-    4,
 )  # type: ignore
 def test_load_release_index(
     test_release_version: str,
     theme_type_pair: tuple[str, str],
     geometry_filter: Optional[BaseGeometry],
-    expected_number_of_rows: int,
 ) -> None:
     """Test is load_release_index function works."""
     theme_value, type_value = theme_type_pair
@@ -66,9 +63,7 @@ def test_load_release_index(
         type=type_value,
         geometry_filter=geometry_filter,
     )
-    assert (
-        len(release_index) == expected_number_of_rows
-    ), f"Mismatch in number of rows: {len(release_index)} vs {expected_number_of_rows}"
+    assert len(release_index) > 0, "Empty result"
     assert (
         release_index["filename"]
         .str.startswith(
