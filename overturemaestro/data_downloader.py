@@ -558,7 +558,9 @@ def _prepare_row_groups_for_download(
             verbosity_mode=verbosity_mode,
         )
 
-        row_groups_to_download = dataset_index[["filename", "row_group"]].to_dict(orient="records")
+        row_groups_to_download = (
+            dataset_index[["filename", "row_group"]].drop_duplicates().to_dict(orient="records")
+        )
 
         _pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
         _columns_to_download = columns_to_download[idx] if columns_to_download else None
@@ -895,11 +897,11 @@ def _download_single_parquet_row_group(
         writer.write_table(
             fragment_manual.scanner(
                 schema=geoarrow_full_schema, columns=columns_to_download, filter=pyarrow_filter
-            )
-            .to_table()
+            ).to_table()
         )
 
     return file_path
+
 
 def _generate_row_group_file_name(
     filename: str,
