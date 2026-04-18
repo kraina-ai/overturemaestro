@@ -209,7 +209,7 @@ def map_parquet_dataset(
         fn = partial(_read_row_group_number, filesystem=dataset.filesystem)
         row_group_numbers = list(
             progress.track(
-                ex.map(fn, dataset.files, chunksize=1),
+                ex.map(fn, dataset.files),
                 description="Reading all parquet files row groups",
                 total=total_files,
             )

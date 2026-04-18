@@ -5,7 +5,6 @@ Functions used to download Overture Maps data before local filtering.
 """
 
 import multiprocessing
-import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
@@ -24,7 +23,6 @@ from overturemaestro._rich_progress import TrackProgressBar
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 
 if TYPE_CHECKING:  # pragma: no cover
-    from pyarrow import Schema
     from pyarrow.compute import Expression
     from shapely.geometry.base import BaseGeometry
 
@@ -560,16 +558,7 @@ def _prepare_row_groups_for_download(
             verbosity_mode=verbosity_mode,
         )
 
-        dataset_index = (
-            dataset_index.explode("row_indexes_ranges")
-            .groupby(["filename", "row_group"])["row_indexes_ranges"]
-            .apply(lambda x: [pair.tolist() for pair in x.values])
-            .reset_index()
-        )
-
-        row_groups_to_download = dataset_index[
-            ["filename", "row_group", "row_indexes_ranges"]
-        ].to_dict(orient="records")
+        row_groups_to_download = dataset_index[["filename", "row_group"]].to_dict(orient="records")
 
         _pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
         _columns_to_download = columns_to_download[idx] if columns_to_download else None
@@ -826,7 +815,6 @@ def _download_single_parquet_row_group(
     type: str,
     filename: str,
     row_group: int,
-    row_indexes_ranges: list[list[int]],
     bbox: tuple[float, float, float, float],
     user_defined_pyarrow_filter: Optional["Expression"],
     columns_to_download: Optional[list[str]],
@@ -838,9 +826,6 @@ def _download_single_parquet_row_group(
     from overturemaps.cli import get_writer
     from overturemaps.core import geoarrow_schema_adapter
 
-    from overturemaestro._geometry_clustering import decompress_ranges
-
-    row_indexes = decompress_ranges(row_indexes_ranges)
     xmin, ymin, xmax, ymax = bbox
     pyarrow_filter = (
         (pc.field("bbox", "xmin") < xmax)
@@ -872,10 +857,6 @@ def _download_single_parquet_row_group(
     geoarrow_full_schema = geoarrow_full_schema.with_metadata(metadata)
     geoarrow_schema_filtered = geoarrow_full_schema
 
-    filtering_columns = None
-
-    columns_to_remove = set()
-
     if columns_to_download:
         nonexistent_columns = set(columns_to_download).difference(geoarrow_full_schema.names)
 
@@ -889,21 +870,6 @@ def _download_single_parquet_row_group(
 
         if GEOMETRY_COLUMN not in columns_to_download:
             columns_to_download.append(GEOMETRY_COLUMN)
-
-        # Create list of columns used to filter data by bbox
-        columns_required_for_filtering = {"bbox"}
-        if user_defined_pyarrow_filter is not None:
-            columns_required_for_filtering = columns_required_for_filtering.union(
-                _get_filtering_columns_from_pyarrow_filter(
-                    schema=geoarrow_full_schema, pyarrow_filter=user_defined_pyarrow_filter
-                )
-            )
-
-        filtering_columns = [
-            column_name
-            for column_name in geoarrow_full_schema.names
-            if column_name in columns_to_download or column_name in columns_required_for_filtering
-        ]
 
         # Reorder list of columns to download to match pyarrow schema
         columns_to_download = [
@@ -920,61 +886,27 @@ def _download_single_parquet_row_group(
                 geoarrow_schema_filtered.get_field_index(column_name)
             )
 
-        columns_to_remove = set(filtering_columns).difference(columns_to_download)
-
-    file_path = working_directory / _generate_row_group_file_name(
-        filename, row_group, row_indexes_ranges, bbox
-    )
+    file_path = working_directory / _generate_row_group_file_name(filename, row_group, bbox)
     file_path.parent.mkdir(parents=True, exist_ok=True)
 
     with get_writer(
         output_format="geoparquet", path=file_path, schema=geoarrow_schema_filtered
     ) as writer:
         writer.write_table(
-            fragment_manual.scanner(schema=geoarrow_full_schema, columns=filtering_columns)
-            .take(row_indexes)
-            .filter(pyarrow_filter)
-            .drop_columns(list(columns_to_remove))
+            fragment_manual.scanner(
+                schema=geoarrow_full_schema, columns=columns_to_download, filter=pyarrow_filter
+            )
+            .to_table()
         )
 
     return file_path
 
-
-def _get_filtering_columns_from_pyarrow_filter(
-    schema: "Schema", pyarrow_filter: "Expression"
-) -> set[str]:
-    import re
-
-    import pyarrow.substrait as pas
-
-    parsed_expression = pas.deserialize_expressions(
-        pyarrow_filter.to_substrait(schema=schema)
-    ).expressions["expression"]
-
-    pattern = r"FieldPath\((\d+(?: \d+)*)\)"
-    field_paths = re.findall(pattern, str(parsed_expression))
-
-    column_names = set(schema.field(int(field_path.split()[0])).name for field_path in field_paths)
-    return column_names
-
-
 def _generate_row_group_file_name(
     filename: str,
     row_group: int,
-    row_indexes_ranges: list[list[int]],
     bbox: tuple[float, float, float, float],
 ) -> Path:
     import hashlib
-
-    row_indexes_ranges_str = str(
-        [
-            (int(range_pair[0]), int(range_pair[1]))  # noqa: FURB123
-            for range_pair in sorted(row_indexes_ranges, key=operator.itemgetter(0))
-        ]
-    )
-    h = hashlib.new("sha256")
-    h.update(row_indexes_ranges_str.encode())
-    row_indexes_ranges_hash_part = h.hexdigest()
 
     h = hashlib.new("sha256")
     h.update(",".join(str(round(value, 7)) for value in bbox).encode())
@@ -982,7 +914,7 @@ def _generate_row_group_file_name(
 
     stripped_filename_part = Path(filename.split("/", 2)[-1])
     stem = stripped_filename_part.stem.split(".")[0]
-    stem = f"{stem}_{row_group}_{row_indexes_ranges_hash_part[:8]}_{bbox_hash_part[:8]}"
+    stem = f"{stem}_{row_group}_{bbox_hash_part[:8]}"
     return stripped_filename_part.with_stem(stem)
 
 

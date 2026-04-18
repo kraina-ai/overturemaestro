@@ -26,8 +26,6 @@ from shapely import box
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
-from overturemaestro._geometry_clustering import calculate_row_group_bounding_box
-from overturemaestro._parquet_multiprocessing import map_parquet_dataset
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
 from overturemaestro.cache import (
     _get_global_release_cache_directory,
@@ -496,18 +494,15 @@ def _generate_release_index(
 
     with tempfile.TemporaryDirectory(dir=Path.cwd()) as tmp_dir_name:
         tmp_dir_path = Path(tmp_dir_name)
-        bounding_boxes_path = tmp_dir_path / "overture_bounding_boxes"
 
         dataset_path = f"{dataset_path}/{release}"
         if theme is not None and type is not None:
             dataset_path += f"/theme={theme}/type={type}"
 
-        map_parquet_dataset(
+        from overturemaestro._generate_bbox_index import get_rects_parallel
+
+        df = get_rects_parallel(
             dataset_path=dataset_path,
-            destination_path=bounding_boxes_path,
-            function=calculate_row_group_bounding_box,
-            progress_description="Generating Overture Maps release cache index",
-            columns=["bbox"],
             filesystem=(
                 fs.S3FileSystem(
                     anonymous=True, region="us-west-2", request_timeout=30, connect_timeout=10
@@ -518,7 +513,6 @@ def _generate_release_index(
             verbosity_mode=verbosity_mode,
         )
 
-        df = pd.read_parquet(bounding_boxes_path)
         df["split_filename"] = df["filename"].str.split("/")
         df["theme"] = df["split_filename"].apply(
             lambda path_parts: next(filter(lambda x: "theme=" in x, path_parts)).split("=")[1]
@@ -555,7 +549,6 @@ def _generate_release_index(
                     [
                         "filename",
                         "row_group",
-                        "row_indexes_ranges",
                         GEOMETRY_COLUMN,
                     ]
                 ].to_parquet(
