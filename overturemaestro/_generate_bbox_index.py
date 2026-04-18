@@ -46,8 +46,6 @@ def get_rects_parallel(
         min_no_workers = 32 if no_cpus >= 8 else 16
         no_scan_workers = min(max(min_no_workers, no_cpus + 4), 64)
 
-        print(no_scan_workers, min(no_scan_workers, total_files))
-
     with (
         TrackProgressBar(verbosity_mode=verbosity_mode) as progress,
         ProcessPoolExecutor(max_workers=min(no_scan_workers, total_files)) as ex,
