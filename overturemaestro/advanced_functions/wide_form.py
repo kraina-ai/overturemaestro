@@ -131,7 +131,9 @@ def _transform_to_wide_form(
         column_name = wide_column_definition["column_name"] or f"{theme}|{type}"
         conditions = []
         for condition_column in hierarchy_columns:
-            if wide_column_definition[condition_column] is None:
+            if wide_column_definition[condition_column] is None or pd.isna(
+                wide_column_definition[condition_column]
+            ):
                 conditions.append(f"{condition_column} IS NULL")
             else:
                 escaped_value = sql_escape(wide_column_definition[condition_column])

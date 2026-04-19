@@ -1,6 +1,6 @@
 [project]
 name = "OvertureMaestro"
-version = "0.5.0"
+version = "0.6.0"
 description = "An open-source tool for downloading Overture Maps data with quality of life features"
 authors = [{ name = "Kamil Raczycki", email = "kraczycki@kraina.ai" }]
 dependencies = [
@@ -17,7 +17,6 @@ dependencies = [
     "numpy>=1.26.0",
     "duckdb>=1.1.2",
     "psutil>=5.6.2",
-    "polars>=1.9",
     "rq-geo-toolkit>=2026.4.0",
 ]
 requires-python = ">=3.10"
@@ -42,7 +41,6 @@ classifiers = [
 
 [project.optional-dependencies]
 cli = ["typer[all]>=0.9.0", "h3>=4.0.0b1", "s2>=0.1.9", "python-geohash>=0.8"]
-index-generation = ["scikit-learn>=1.0"]
 
 [project.scripts]
 overturemaestro = "overturemaestro.__main__:main"
@@ -175,7 +173,7 @@ close-quotes-on-newline = true
 wrap-one-line = true
 
 [tool.bumpver]
-current_version = "0.5.0"
+current_version = "0.6.0"
 version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 commit_message = "chore(CI/CD): bump version {old_version} -> {new_version}"
 commit = true
