@@ -100,10 +100,6 @@ Optional:
 
 - `python-geohash (>=0.8)`: For transforming GeoHash indexes into geometries. Required in CLI
 
-- `scikit-learn (>=1.0)`: For clustering geometries when generating release index. Required for generating release index
-
-- `polars (>=0.20.4)`: For calculating total bounding box from many bounding boxes. Required for generating release index
-
 ## Usage
 
 TODO

@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "benchmark", "cli", "cli-dev", "dev", "docs", "index-generation", "license", "lint", "test"]
+groups = ["default", "benchmark", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:5d6a91b3b5fae450f2a103c32ba6473a2dff92a370297a1867c962a319677bc6"
+content_hash = "sha256:a78bd17d13b9125e78481f29202a4a5317924a844480dd1f31940f5f673273f9"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -2230,7 +2230,7 @@ name = "joblib"
 version = "1.5.3"
 requires_python = ">=3.9"
 summary = "Lightweight pipelining with Python functions"
-groups = ["cli-dev", "docs", "index-generation"]
+groups = ["cli-dev", "docs"]
 files = [
     {file = "joblib-1.5.3-py3-none-any.whl", hash = "sha256:5fc3c5039fc5ca8c0276333a188bbd59d6b7ab37fe6632daa76bc7f9ec18e713"},
     {file = "joblib-1.5.3.tar.gz", hash = "sha256:8561a3269e6801106863fd0d6d84bb737be9e7631e33aaed3fb9ce5953688da3"},
@@ -3800,7 +3800,7 @@ name = "numpy"
 version = "1.26.4"
 requires_python = ">=3.9"
 summary = "Fundamental package for array computing in Python"
-groups = ["default", "benchmark", "cli", "cli-dev", "docs", "index-generation"]
+groups = ["default", "benchmark", "cli", "cli-dev", "docs"]
 files = [
     {file = "numpy-1.26.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:9ff0f4f29c51e2803569d7a51c2304de5554655a60c5d776e35b4a41413830d0"},
     {file = "numpy-1.26.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:2e4ee3380d6de9c9ec04745830fd9e2eccb3e6cf790d39d7b98ffd19b0dd754a"},
@@ -4246,38 +4246,6 @@ groups = ["test"]
 files = [
     {file = "pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"},
     {file = "pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3"},
-]
-
-[[package]]
-name = "polars"
-version = "1.40.0"
-requires_python = ">=3.10"
-summary = "Blazingly fast DataFrame library"
-groups = ["default"]
-dependencies = [
-    "polars-runtime-32==1.40.0",
-]
-files = [
-    {file = "polars-1.40.0-py3-none-any.whl", hash = "sha256:60b1d677ca363e2fc6fdea8c3d16c0653fd52cc37f0249e0f29d9536d5aa45ef"},
-    {file = "polars-1.40.0.tar.gz", hash = "sha256:711dd50dcbc35ba42a2625fcadc2a1349e2e9abf48e35631bdabafb90d89874b"},
-]
-
-[[package]]
-name = "polars-runtime-32"
-version = "1.40.0"
-requires_python = ">=3.10"
-summary = "Blazingly fast DataFrame library"
-groups = ["default"]
-files = [
-    {file = "polars_runtime_32-1.40.0-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:cab3ac7ff5bc9e0f4b3b146015569e9417cf0eaff8d3fb71004d73d67b6f09c7"},
-    {file = "polars_runtime_32-1.40.0-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:d29624c75c4049253300786d00882fce620b3677ce495ebc4199292de8c2ba02"},
-    {file = "polars_runtime_32-1.40.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a034dc0d8481fc1ca0456ab33e98e53a4c6d6cc6a2edb36246cc81c936b925dc"},
-    {file = "polars_runtime_32-1.40.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:70e78c2f13a54a9d92ae30d2625bda759173cc4867ad6a39f85f140058d899c6"},
-    {file = "polars_runtime_32-1.40.0-cp310-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:1843272c0ef49f4a07435888f0059eca08ec16ab9880219c457195a081df0281"},
-    {file = "polars_runtime_32-1.40.0-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:081237dba07f15d61fc151825f203165480e9503ebe72a474a8c99aa78021962"},
-    {file = "polars_runtime_32-1.40.0-cp310-abi3-win_amd64.whl", hash = "sha256:a916040e0b7f461ce987e4551fed9eea5914b4fbb5af907b1d9e80db71fadeb5"},
-    {file = "polars_runtime_32-1.40.0-cp310-abi3-win_arm64.whl", hash = "sha256:719c64eecde24a95aa3599eb9c8efc98c1499bab7ef9c01cbbe8939cd583e654"},
-    {file = "polars_runtime_32-1.40.0.tar.gz", hash = "sha256:e31bff8bd37492c714e155e2e1429ac2d9ddf2dd6ec6474cc1cc70ac0b2bd6af"},
 ]
 
 [[package]]
@@ -5628,7 +5596,7 @@ name = "scikit-learn"
 version = "1.7.2"
 requires_python = ">=3.10"
 summary = "A set of python modules for machine learning and data mining"
-groups = ["cli-dev", "index-generation"]
+groups = ["cli-dev"]
 dependencies = [
     "joblib>=1.2.0",
     "numpy>=1.22.0",
@@ -5674,7 +5642,7 @@ name = "scipy"
 version = "1.15.3"
 requires_python = ">=3.10"
 summary = "Fundamental algorithms for scientific computing in Python"
-groups = ["cli-dev", "docs", "index-generation"]
+groups = ["cli-dev", "docs"]
 dependencies = [
     "numpy<2.5,>=1.23.5",
 ]
@@ -5903,7 +5871,7 @@ name = "threadpoolctl"
 version = "3.6.0"
 requires_python = ">=3.9"
 summary = "threadpoolctl"
-groups = ["cli-dev", "index-generation"]
+groups = ["cli-dev"]
 files = [
     {file = "threadpoolctl-3.6.0-py3-none-any.whl", hash = "sha256:43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb"},
     {file = "threadpoolctl-3.6.0.tar.gz", hash = "sha256:8ab8b4aa3491d812b623328249fab5302a68d2d71745c8a4c719a2fcaba9f44e"},
