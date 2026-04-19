@@ -9,7 +9,6 @@ from parametrization import Parametrization as P
 from typer.testing import CliRunner
 
 from overturemaestro import __app_name__, __version__, cli
-from overturemaestro.conftest import TEST_RELEASE_VERSIONS_LIST
 from overturemaestro.data_downloader import _generate_geometry_hash
 from overturemaestro.release_index import get_available_theme_type_pairs, get_newest_release_version
 from tests.conftest import (
@@ -57,7 +56,9 @@ def test_theme_type_and_geometry_filter_is_required(args: Any) -> None:
     result = runner.invoke(cli.app, args)
 
     assert result.exit_code == 2
-    assert "OvertureMaestro requires theme, type and a geometry filter" in (result.stdout or result.stderr)
+    assert "OvertureMaestro requires theme, type and a geometry filter" in (
+        result.stdout or result.stderr
+    )
 
 
 def test_basic_run(test_release_version: str) -> None:
@@ -191,7 +192,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSIONS_LIST[-1]}/"
+    f"files/{TEST_RELEASE_VERSION}/"
     f"theme=buildings/type=building/{_generate_geometry_hash(geometry_box())}_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
@@ -203,7 +204,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSIONS_LIST[-1]}/"
+    f"files/{TEST_RELEASE_VERSION}/"
     f"theme=buildings/type=building/{_generate_geometry_hash(geometry_box())}_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
@@ -215,7 +216,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSIONS_LIST[-1]}/"
+    f"files/{TEST_RELEASE_VERSION}/"
     f"theme=buildings/type=building/{_generate_geometry_hash(geometry_box())}_nofilter.parquet",
 )  # type: ignore
 @P.case(
@@ -334,8 +335,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/09c3fc04_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/09c3fc04_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry GeoJSON filter",
@@ -347,8 +347,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/82c0fdfa_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/82c0fdfa_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry file filter",
@@ -360,8 +359,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/6a869bcf_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/6a869bcf_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry geocode filter",
@@ -373,8 +371,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/e7f0b78a_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/e7f0b78a_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter",
@@ -386,8 +383,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/c08889e8_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/c08889e8_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter multiple",
@@ -399,8 +395,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/1bd33e0a_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/1bd33e0a_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter",
@@ -412,8 +407,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/a2f8d511_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/a2f8d511_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter multiple",
@@ -425,8 +419,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/e50e6489_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/e50e6489_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter",
@@ -438,8 +431,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/5c3d61eb_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/5c3d61eb_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter multiple",
@@ -451,8 +443,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/"
-    "theme=buildings/type=building/cda5d65e_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/cda5d65e_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Compression",

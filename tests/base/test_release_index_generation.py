@@ -5,10 +5,10 @@ from pathlib import Path
 
 import geopandas as gpd
 import pyarrow.parquet as pq
+from shapely import box
 
 from overturemaestro import convert_bounding_box_to_parquet_for_multiple_types
 from overturemaestro._constants import PARQUET_COMPRESSION
-from overturemaestro._geometry_clustering import decompress_ranges
 from overturemaestro.release_index import (
     _generate_release_index,
     download_existing_release_index,
@@ -63,31 +63,25 @@ def test_generate_release_indexes(test_release_version: str) -> None:
             pq.ParquetFile(index_file_path).metadata.row_group(0).column(0).compression.lower()
             == PARQUET_COMPRESSION.lower()
         )
-        index_gdf = gpd.read_parquet(index_file_path)
-        unique_files = index_gdf["filename"].unique()
+        dataset_index = gpd.read_parquet(index_file_path)
+        unique_files = dataset_index["filename"].unique()
 
         for unique_file in unique_files:
             assert Path(unique_file).exists()
 
-        dataset_index = (
-            index_gdf.explode("row_indexes_ranges")
-            .groupby(["filename", "row_group"])["row_indexes_ranges"]
-            .apply(list)
-            .reset_index()
-        )
-
-        row_groups_to_check = dataset_index[
-            ["filename", "row_group", "row_indexes_ranges"]
-        ].to_dict(orient="records")
+        row_groups_to_check = dataset_index.to_dict(orient="records")
 
         for row_group_to_check in row_groups_to_check:
             local_row_group = pq.ParquetFile(row_group_to_check["filename"]).read_row_group(
                 row_group_to_check["row_group"]
             )
-            data_index = local_row_group["id"].to_pandas().index
-            decompressed_range = decompress_ranges(row_group_to_check["row_indexes_ranges"])
+            calculated_bounds = row_group_to_check["geometry"]
 
-            assert data_index.difference(decompressed_range).empty
+            total_original_row_group_bounds = box(
+                *gpd.GeoSeries.from_wkb(local_row_group["geometry"]).total_bounds
+            )
+
+            assert total_original_row_group_bounds.equals_exact(calculated_bounds, tolerance=1e-4)
 
         for bounding_box in SELECTED_CITIES_BOUNDING_BOXES:
             gpd.read_parquet(index_file_path, bbox=bounding_box)

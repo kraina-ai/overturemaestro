@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support for Python 3.13
+
+### Changed
+
+- Replaced release versions checking from GitHub to the official STAC catalog file
+- Simplified release index generation by removing row group splitting utilizing new sorted by geometry release structure
+
+### Removed
+
+- Support for Python 3.9
+
 ## [0.5.0] - 2025-08-03
 
 ### Added

@@ -15,7 +15,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pyarrow.fs as fs
-from fsspec.implementations.github import GithubFileSystem
+import requests
 from fsspec.implementations.http import HTTPFileSystem
 from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
@@ -26,8 +26,6 @@ from shapely import box
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
-from overturemaestro._geometry_clustering import calculate_row_group_bounding_box
-from overturemaestro._parquet_multiprocessing import map_parquet_dataset
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
 from overturemaestro.cache import (
     _get_global_release_cache_directory,
@@ -67,7 +65,7 @@ def get_newest_release_version() -> str:
     Returns:
         str: Release version.
     """
-    release_versions = _load_all_available_release_versions_from_github()
+    release_versions = _load_all_available_release_versions_from_stac()
     return max(release_versions)
 
 
@@ -81,7 +79,7 @@ def get_available_release_versions() -> list[str]:
     Returns:
         list[str]: Release versions.
     """
-    return sorted(_load_all_available_release_versions_from_github())[::-1]
+    return sorted(_load_all_available_release_versions_from_stac())[::-1]
 
 
 @overload
@@ -496,18 +494,15 @@ def _generate_release_index(
 
     with tempfile.TemporaryDirectory(dir=Path.cwd()) as tmp_dir_name:
         tmp_dir_path = Path(tmp_dir_name)
-        bounding_boxes_path = tmp_dir_path / "overture_bounding_boxes"
 
         dataset_path = f"{dataset_path}/{release}"
         if theme is not None and type is not None:
             dataset_path += f"/theme={theme}/type={type}"
 
-        map_parquet_dataset(
+        from overturemaestro._generate_bbox_index import get_rects_parallel
+
+        df = get_rects_parallel(
             dataset_path=dataset_path,
-            destination_path=bounding_boxes_path,
-            function=calculate_row_group_bounding_box,
-            progress_description="Generating Overture Maps release cache index",
-            columns=["bbox"],
             filesystem=(
                 fs.S3FileSystem(
                     anonymous=True, region="us-west-2", request_timeout=30, connect_timeout=10
@@ -518,7 +513,6 @@ def _generate_release_index(
             verbosity_mode=verbosity_mode,
         )
 
-        df = pd.read_parquet(bounding_boxes_path)
         df["split_filename"] = df["filename"].str.split("/")
         df["theme"] = df["split_filename"].apply(
             lambda path_parts: next(filter(lambda x: "theme=" in x, path_parts)).split("=")[1]
@@ -555,7 +549,6 @@ def _generate_release_index(
                     [
                         "filename",
                         "row_group",
-                        "row_indexes_ranges",
                         GEOMETRY_COLUMN,
                     ]
                 ].to_parquet(
@@ -597,7 +590,7 @@ def _get_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
 
 
-def _load_all_available_release_versions_from_github() -> list[str]:  # pragma: no cover
+def _load_all_available_release_versions_from_stac() -> list[str]:  # pragma: no cover
     release_versions_cache_file = (
         get_global_release_cache_directory() / "_available_release_versions.json"
     )
@@ -609,8 +602,19 @@ def _load_all_available_release_versions_from_github() -> list[str]:  # pragma: 
             return cast("list[str]", cache_value["release_versions"])
 
     release_versions_cache_file.parent.mkdir(parents=True, exist_ok=True)
-    gh_fs = GithubFileSystem(org="kraina-ai", repo="overturemaps-releases-indexes", sha="main")
-    release_versions = [file_path.split("/")[1] for file_path in gh_fs.ls("release_indexes")]
+    logger = get_pooch_logger()
+    logger.setLevel("WARNING")
+
+    stac_catalog_response = requests.get(
+        "https://stac.overturemaps.org/catalog.json",
+        allow_redirects=True,
+    ).json()
+    release_versions = [
+        link["href"].split("/")[1]
+        for link in stac_catalog_response["links"]
+        if link["rel"] == "child"
+    ]
+
     release_versions_cache_file.write_text(
         json.dumps(dict(date=current_date.isoformat(), release_versions=release_versions))
     )
