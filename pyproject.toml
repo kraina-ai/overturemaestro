@@ -40,7 +40,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-cli = ["typer[all]>=0.9.0", "h3>=4.0.0b1", "s2>=0.1.9", "python-geohash>=0.8"]
+cli = ["typer[all]>=0.9.0", "s2sphere>=0.2.5"]
 
 [project.scripts]
 overturemaestro = "overturemaestro.__main__:main"
@@ -100,11 +100,7 @@ cli-dev = [
     "lonboard",
     "pixel-map>=0.2.3",
 ]
-benchmark = [
-    "drawarrow",
-    "highlight-text",
-    "pypalettes",
-]
+benchmark = ["drawarrow", "highlight-text", "pypalettes"]
 
 [tool.pdm.scripts]
 post_install = "pre-commit install"
@@ -202,15 +198,15 @@ using = "requirements"
 zero = false
 ignore_licenses = ["UNKNOWN"]
 ignore_packages = [
-    'docformatter',         # uses MIT license, has mismatched license in analysis
-    'mkdocs-jupyter',       # uses Apache-2.0 license, has mismatched license in analysis
-    'python-geohash',       # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
-    'referencing',          # uses MIT license, has mismatched license in analysis
-    'griffe',               # uses ISC license, has mismatched license in analysis
-    'mkdocs-autorefs',      # uses ISC license, has mismatched license in analysis
-    'mkdocstrings',         # uses ISC license, has mismatched license in analysis
-    'mkdocstrings-python',  # uses ISC license, has mismatched license in analysis
-    'pipdeptree',           # uses MIT license, has mismatched license in analysis
-    'typing-extensions',    # uses ZERO-CLAUSE BSD LICENSE, has mismatched license in analysis
-    'pillow',               # uses MIT-CMU, has mismatched license in analysis
+    'docformatter',        # uses MIT license, has mismatched license in analysis
+    'mkdocs-jupyter',      # uses Apache-2.0 license, has mismatched license in analysis
+    'python-geohash',      # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
+    'referencing',         # uses MIT license, has mismatched license in analysis
+    'griffe',              # uses ISC license, has mismatched license in analysis
+    'mkdocs-autorefs',     # uses ISC license, has mismatched license in analysis
+    'mkdocstrings',        # uses ISC license, has mismatched license in analysis
+    'mkdocstrings-python', # uses ISC license, has mismatched license in analysis
+    'pipdeptree',          # uses MIT license, has mismatched license in analysis
+    'typing-extensions',   # uses ZERO-CLAUSE BSD LICENSE, has mismatched license in analysis
+    'pillow',              # uses MIT-CMU, has mismatched license in analysis
 ]
