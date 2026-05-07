@@ -191,22 +191,20 @@ class GeohashGeometryParser(click.ParamType):  # type: ignore
 
         try:
             import geopandas as gpd
-            from geohash import bbox as geohash_bbox
             from shapely.geometry import box
+
+            from overturemaestro._geohash_parser import geohash_bounds
 
             geometries = []
             for geohash in value.split(","):
-                bounds = geohash_bbox(geohash.strip())
-                geometries.append(
-                    box(minx=bounds["w"], miny=bounds["s"], maxx=bounds["e"], maxy=bounds["n"])
-                )
+                bounds = geohash_bounds(geohash.strip())
+                geometries.append(box(*bounds))
             if GEOPANDAS_NEW_API:
                 return gpd.GeoSeries(geometries).union_all()
             else:
                 return gpd.GeoSeries(geometries).unary_union
         except Exception:
             raise
-            # raise typer.BadParameter(f"Cannot parse provided Geohash value: {geohash}") from None
 
 
 class H3GeometryParser(click.ParamType):  # type: ignore
@@ -219,22 +217,31 @@ class H3GeometryParser(click.ParamType):  # type: ignore
         if not value:
             return None
 
-        try:
-            import geopandas as gpd
-            import h3
-            from shapely.geometry import Polygon
+        import duckdb
+        import geopandas as gpd
+        from shapely import from_wkt
 
-            geometries = []  # noqa: FURB138
-            for h3_cell in value.split(","):
-                geometries.append(
-                    Polygon([coords[::-1] for coords in h3.cell_to_boundary(h3_cell.strip())])
-                )
-            if GEOPANDAS_NEW_API:
-                return gpd.GeoSeries(geometries).union_all()
-            else:
-                return gpd.GeoSeries(geometries).unary_union
-        except Exception as ex:
-            raise typer.BadParameter(f"Cannot parse provided H3 values: {value}") from ex
+        duckdb.install_extension("h3", repository="community")
+        duckdb.load_extension("h3")
+
+        geometries = []  # noqa: FURB138
+        for h3_index in value.split(","):
+            stripped_h3_index = h3_index.strip()
+            if not duckdb.sql(f"SELECT h3_is_valid_cell('{stripped_h3_index}')").fetchone()[0]:
+                raise typer.BadParameter(
+                    f"Cannot parse provided H3 value: {stripped_h3_index}"
+                ) from None
+
+            parsed_geometry = from_wkt(
+                duckdb.sql(f"SELECT h3_cell_to_boundary_wkt('{stripped_h3_index}')").fetchone()[0]
+            )
+
+            geometries.append(parsed_geometry)
+
+        if not GEOPANDAS_NEW_API:
+            return gpd.GeoSeries(geometries).unary_union
+
+        return gpd.GeoSeries(geometries).union_all()
 
 
 class S2GeometryParser(click.ParamType):  # type: ignore
@@ -247,22 +254,30 @@ class S2GeometryParser(click.ParamType):  # type: ignore
         if not value:
             return None
 
-        try:
-            import geopandas as gpd
-            from s2 import s2
-            from shapely.geometry import Polygon
+        import geopandas as gpd
+        import s2sphere
+        from shapely import Polygon
 
-            geometries = []  # noqa: FURB138
-            for s2_index in value.split(","):
+        geometries = []  # noqa: FURB138
+        for s2_index in value.split(","):
+            stripped_s2_index = s2_index.strip()
+            try:
+                s2_cell = s2sphere.Cell(s2sphere.CellId.from_token(stripped_s2_index))
+                points = [
+                    s2sphere.LatLng.from_point(s2_cell.get_vertex(i)) for i in (0, 1, 2, 3, 0)
+                ]
                 geometries.append(
-                    Polygon(s2.s2_to_geo_boundary(s2_index.strip(), geo_json_conformant=True))
+                    Polygon([[point.lng().degrees, point.lat().degrees] for point in points])
                 )
-            if GEOPANDAS_NEW_API:
-                return gpd.GeoSeries(geometries).union_all()
-            else:
-                return gpd.GeoSeries(geometries).unary_union
-        except Exception:
-            raise typer.BadParameter(f"Cannot parse provided S2 value: {s2_index}") from None
+            except Exception:
+                raise typer.BadParameter(
+                    f"Cannot parse provided S2 value: {stripped_s2_index}"
+                ) from None
+
+        if not GEOPANDAS_NEW_API:
+            return gpd.GeoSeries(geometries).unary_union
+
+        return gpd.GeoSeries(geometries).union_all()
 
 
 class PyArrowExpressionParser(click.ParamType):  # type: ignore

@@ -407,7 +407,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/a2f8d511_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/01d82ad1_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter multiple",
@@ -419,7 +419,7 @@ def test_transient_mode(test_release_version: str) -> None:
         "buildings",
         "building",
     ],
-    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/e50e6489_nofilter_sorted.parquet",
+    f"files/{TEST_RELEASE_VERSION}/theme=buildings/type=building/c3252c58_nofilter_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter",
