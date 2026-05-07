@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Removed `h3`, `s2` and `python-geohash` dependencies from the `cli` group and replaced them with `h3` DuckDB extension and `s2sphere` Python library
+
 ## [0.6.0] - 2026-04-19
 
 ### Added

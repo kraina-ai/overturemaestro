@@ -897,7 +897,7 @@ def _download_single_parquet_row_group(
         writer.write_table(
             fragment_manual.scanner(
                 schema=geoarrow_full_schema,
-                columns=columns_to_download if columns_to_download else None,
+                columns=columns_to_download or None,
                 filter=pyarrow_filter,
             ).to_table()
         )
