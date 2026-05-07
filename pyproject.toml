@@ -209,4 +209,7 @@ ignore_packages = [
     'pipdeptree',          # uses MIT license, has mismatched license in analysis
     'typing-extensions',   # uses ZERO-CLAUSE BSD LICENSE, has mismatched license in analysis
     'pillow',              # uses MIT-CMU, has mismatched license in analysis
+    'geoarrow-rust-core',  # uses MIT license, has mismatched license in analysis
+    'matplotlib-inline',   # uses BSD-3 license, has mismatched license in analysis
+    'mypy-extensions',     # uses MIT license, has mismatched license in analysis
 ]
