@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-05-07
+
 ### Changed
 
 - Removed `h3`, `s2` and `python-geohash` dependencies from the `cli` group and replaced them with `h3` DuckDB extension and `s2sphere` Python library
@@ -233,7 +235,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.6.1...HEAD
+
+[0.6.1]: https://github.com/kraina-ai/overturemaestro/compare/0.6.0...0.6.1
 
 [0.6.0]: https://github.com/kraina-ai/overturemaestro/compare/0.5.0...0.6.0
 
