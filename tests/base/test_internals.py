@@ -19,7 +19,7 @@ def test_download_single_parquet_row_group(test_release_version: str) -> None:
     collection_url = (
         f"https://stac.overturemaps.org/{test_release_version}/places/place/collection.json"
     )
-    stac_catalog_response = requests.get(collection_url, allow_redirects=True).json()
+    stac_catalog_response = requests.get(collection_url, allow_redirects=True, timeout=30).json()
 
     # Item links can be relative or absolute depending on the release
     first_file_catalog_url = next(
@@ -28,7 +28,9 @@ def test_download_single_parquet_row_group(test_release_version: str) -> None:
         if link["rel"] == "item"
     )
 
-    file_details_response = requests.get(first_file_catalog_url, allow_redirects=True).json()
+    file_details_response = requests.get(
+        first_file_catalog_url, allow_redirects=True, timeout=30
+    ).json()
 
     s3_url = file_details_response["assets"]["aws"]["alternate"]["s3"]["href"][5:]
     print(s3_url)

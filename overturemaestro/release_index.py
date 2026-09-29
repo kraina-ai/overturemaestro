@@ -611,8 +611,12 @@ def _load_all_available_release_versions_from_stac() -> list[str]:  # pragma: no
     if release_versions_cache_file.exists():
         cache_value = json.loads(release_versions_cache_file.read_text())
         cached_release_versions = cast("list[str]", cache_value["release_versions"])
-        # Skip caches written by older versions that parsed empty release names
-        if date.fromisoformat(cache_value["date"]) >= current_date and all(cached_release_versions):
+        # Skip empty caches and ones written by older versions that parsed empty release names
+        if (
+            date.fromisoformat(cache_value["date"]) >= current_date
+            and cached_release_versions
+            and all(cached_release_versions)
+        ):
             return cached_release_versions
 
     release_versions_cache_file.parent.mkdir(parents=True, exist_ok=True)
