@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Places filter examples in docstrings now use the `taxonomy` field, since Overture removed `categories` from the places schema
+
 ## [0.6.1] - 2026-05-07
 
 ### Changed
