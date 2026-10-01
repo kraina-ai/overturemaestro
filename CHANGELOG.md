@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deprecated old `categories` field in the `places` schema in favour of the new `taxonomy` field.
 - Parsing release versions from the STAC catalog with absolute `href` links (implemented by [@tunglinn](https://github.com/tunglinn))
 - Added automatic local indexes generation inside the `get_available_theme_type_pairs` function
+- Check if cache directory exists before deleting it inside `clear_release_indexes_cache` function
 
 ## [0.6.1] - 2026-05-07
 
