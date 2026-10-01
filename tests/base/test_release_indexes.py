@@ -12,6 +12,7 @@ from overturemaestro.release_index import (
     MINIMAL_SUPPORTED_RELEASE_VERSION,
     ReleaseVersionNotSupportedError,
     _check_release_version,
+    _parse_release_versions_from_stac_catalog,
     get_available_theme_type_pairs,
     load_release_index,
     load_release_indexes,
@@ -91,3 +92,23 @@ def test_load_release_indexes(test_release_version: str) -> None:
         for theme_type_pair in theme_type_pairs
     )
     assert len(combined_release_index) == total_expected_length
+
+
+@pytest.mark.parametrize(
+    "href,expected_release_version",
+    [
+        ("./2026-07-22.0/catalog.json", "2026-07-22.0"),
+        ("https://stac.overturemaps.org/2026-08-19.0/catalog.json", "2026-08-19.0"),
+        ("https://stac.overturemaps.org/2026-09-23.1/catalog.json", "2026-09-23.1"),
+    ],
+)  # type: ignore
+def test_parse_release_versions_from_stac_catalog(href: str, expected_release_version: str) -> None:
+    """Test if release versions are parsed from both relative and absolute STAC hrefs."""
+    stac_catalog = {
+        "links": [
+            {"rel": "root", "href": "https://stac.overturemaps.org/catalog.json"},
+            {"rel": "child", "href": href},
+            {"rel": "self", "href": "https://stac.overturemaps.org/catalog.json"},
+        ]
+    }
+    assert _parse_release_versions_from_stac_catalog(stac_catalog) == [expected_release_version]
