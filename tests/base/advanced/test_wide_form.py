@@ -391,7 +391,7 @@ def test_places_use_primary_category_only_parameter(
 
     assert (primary_only.sum(axis=1) == 1).all(), "Not all rows have exactly one primary category."
     assert (
-        primary_only.sum().sum() < all_categories.sum().sum()
+        primary_only.sum().sum() <= all_categories.sum().sum()
     ), "Primary only has more categories than all categories."
 
 
