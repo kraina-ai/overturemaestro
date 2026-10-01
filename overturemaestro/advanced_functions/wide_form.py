@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Protocol, Union, overload
-from urllib.error import HTTPError as urllib_HTTPError
 
 import numpy as np
 import pandas as pd
@@ -366,6 +365,8 @@ def _get_all_possible_column_names_for_poi(
 ) -> "DataFrame":
     import duckdb
 
+    from overturemaestro.advanced_functions.poi import _download_taxonomy_for_release
+
     connection = duckdb.connect()
 
     for extension in ("spatial", "httpfs"):
@@ -400,21 +401,7 @@ def _get_all_possible_column_names_for_poi(
         .reset_index(drop=True)
     )
 
-    try:
-        hierarchy_data = pd.read_csv(
-            f"https://docs.overturemaps.org/taxonomy/{release_version}/taxonomy.csv",
-        )
-    except urllib_HTTPError:
-        warnings.warn(
-            (
-                "Couldn't download taxonomy from docs website."
-                "Downloading older version from GitHub (schema v2.0)."
-            ),
-            stacklevel=0,
-        )
-        hierarchy_data = pd.read_csv(
-            "https://docs.overturemaps.org/taxonomy/2026-09-23.0/taxonomy.csv",
-        )
+    hierarchy_data = _download_taxonomy_for_release(release_version)
 
     hierarchy_split = hierarchy_data["taxonomy"].str.split(" > ", expand=True)
     hierarchy_split.columns = [str(i + 1) for i in range(hierarchy_split.shape[1])]
