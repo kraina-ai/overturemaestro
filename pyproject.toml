@@ -98,7 +98,7 @@ cli-dev = [
     "matplotlib>=3.2.0",
     "mapclassify",
     "lonboard",
-    "pixel-map>=0.2.3",
+    "pixel-map>=0.3.0",
 ]
 benchmark = ["drawarrow", "highlight-text", "pypalettes"]
 
