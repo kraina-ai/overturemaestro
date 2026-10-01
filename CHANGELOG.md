@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Deprecated old `categories` field in the `places` schema in favour of the new `taxonomy` field.
 - Parsing release versions from the STAC catalog with absolute `href` links (implemented by [@tunglinn](https://github.com/tunglinn))
+
 ## [0.6.1] - 2026-05-07
 
 ### Changed
