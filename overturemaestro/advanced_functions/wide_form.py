@@ -424,13 +424,21 @@ def _get_wide_column_definitions(
     release_version: str,
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
+    *,
+    remote_index: bool = False,
+    skip_index_download: bool = False,
     **kwargs: Any,
 ) -> "DataFrame":
     if not hierarchy_columns:
         return pd.DataFrame(dict(column_name=[f"{theme}|{type}"]))
 
     all_columns_names = load_wide_form_all_column_names_release_index(
-        theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
+        theme=theme,
+        type=type,
+        release=release_version,
+        remote_index=remote_index,
+        skip_index_download=skip_index_download,
+        verbosity_mode=verbosity_mode,
     )
     columns_not_in_hierarchy = [c for c in all_columns_names.columns if c not in hierarchy_columns]
     if columns_not_in_hierarchy:
@@ -460,13 +468,21 @@ def _get_wide_column_definitions_for_poi(
     release_version: str,
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
+    *,
+    remote_index: bool = False,
+    skip_index_download: bool = False,
     **kwargs: Any,
 ) -> "DataFrame":
     if not hierarchy_columns:
         return pd.DataFrame(dict(column_name=[f"{theme}|{type}"]))
 
     all_columns_names = load_wide_form_all_column_names_release_index(
-        theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
+        theme=theme,
+        type=type,
+        release=release_version,
+        remote_index=remote_index,
+        skip_index_download=skip_index_download,
+        verbosity_mode=verbosity_mode,
     )
     columns_not_in_hierarchy = [
         c for c in all_columns_names.columns if c != "category" and c not in hierarchy_columns
@@ -1114,6 +1130,8 @@ def get_all_possible_column_names(
     theme: Optional[str] = None,
     type: Optional[str] = None,
     hierarchy_depth: Optional[int] = None,
+    remote_index: bool = False,
+    skip_index_download: bool = False,
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[str]:
     """
@@ -1129,6 +1147,10 @@ def get_all_possible_column_names(
         hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
             be used to generate the wide form of the data. If None, will use all available columns.
             Defaults to None.
+        remote_index (bool, optional): Avoid downloading the index and stream it from remote source.
+            Defaults to False.
+        skip_index_download (bool, optional): Avoid downloading the index if doesn't exist locally
+            and generate it instead. Defaults to False.
         verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
@@ -1165,6 +1187,8 @@ def get_all_possible_column_names(
             type=type_value,
             release_version=release,
             hierarchy_columns=hierachy_columns,
+            remote_index=remote_index,
+            skip_index_download=skip_index_download,
             verbosity_mode=verbosity_mode,
         )
         columns.extend(df["column_name"].unique())

@@ -89,6 +89,7 @@ def load_release_indexes(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    skip_index_download: bool = False,
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
@@ -100,6 +101,7 @@ def load_release_indexes(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    skip_index_download: bool = False,
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
@@ -111,6 +113,7 @@ def load_release_indexes(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    skip_index_download: bool = False,
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame: ...
 
@@ -121,6 +124,7 @@ def load_release_indexes(
     *,
     geometry_filter: Optional[BaseGeometry] = None,
     remote_index: bool = False,
+    skip_index_download: bool = False,
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> gpd.GeoDataFrame:
     """
@@ -134,6 +138,8 @@ def load_release_indexes(
             Defaults to None.
         remote_index (bool, optional): Avoid downloading the index and stream it from remote source.
             Defaults to False.
+        skip_index_download (bool, optional): Avoid downloading the index if doesn't exist locally
+            and generate it instead. Defaults to False.
         verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
@@ -149,6 +155,7 @@ def load_release_indexes(
             release=release,
             geometry_filter=geometry_filter,
             remote_index=remote_index,
+            skip_index_download=skip_index_download,
             verbosity_mode=verbosity_mode,
         )
         for theme_value, type_value in theme_type_pairs
@@ -271,20 +278,43 @@ def load_release_index(
 
 
 @overload
-def get_available_theme_type_pairs() -> list[tuple[str, str]]: ...
+def get_available_theme_type_pairs(
+    *,
+    skip_index_download: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[tuple[str, str]]: ...
 
 
 @overload
-def get_available_theme_type_pairs(release: str) -> list[tuple[str, str]]: ...
+def get_available_theme_type_pairs(
+    release: str,
+    *,
+    skip_index_download: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[tuple[str, str]]: ...
 
 
-def get_available_theme_type_pairs(release: Optional[str] = None) -> list[tuple[str, str]]:
+def get_available_theme_type_pairs(
+    release: Optional[str] = None,
+    *,
+    skip_index_download: bool = False,
+    verbosity_mode: VERBOSITY_MODE = "transient",
+) -> list[tuple[str, str]]:
     """
     Get a list of available theme and type objects for a given release.
+
+    If the release index content is not present in the local cache, it is either downloaded from
+    the dedicated repository or, if it is not available there, generated on demand.
 
     Args:
         release (Optional[str], optional): Release version. If not provided, will automatically load
             newest available release version. Defaults to None.
+        skip_index_download (bool, optional): Avoid downloading the index content if doesn't exist
+            locally and generate it instead. Defaults to False.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         list[tuple[str, str]]: List of theme and type pairs.
@@ -297,15 +327,30 @@ def get_available_theme_type_pairs(release: Optional[str] = None) -> list[tuple[
     cache_directory = _get_global_release_cache_directory(release)
     release_index_path = cache_directory / "release_index_content.json"
 
-    if release_index_path.exists():
-        index_content = pd.read_json(release_index_path)
-    else:
-        local_cache_directory = _get_local_release_cache_directory(release)
-        index_content_file_name = "release_index_content.json"
-        index_content_file_url = (
-            LFS_DIRECTORY_URL + (local_cache_directory / index_content_file_name).as_posix()
-        )
-        index_content = pd.read_json(index_content_file_url)
+    if not release_index_path.exists():
+        if not skip_index_download:
+            # Try to download the index content or generate it if it cannot be downloaded
+            _ = download_existing_release_index(
+                release,
+                verbosity_mode=verbosity_mode,
+            ) or generate_release_index(
+                release,
+                verbosity_mode=verbosity_mode,
+            )
+        else:
+            # Generate the index and skip download
+            generate_release_index(
+                release,
+                verbosity_mode=verbosity_mode,
+            )
+
+        if not release_index_path.exists():
+            raise FileNotFoundError(
+                f"Release index content for release {release} is not available and could not be"
+                " downloaded or generated."
+            )
+
+    index_content = pd.read_json(release_index_path)
 
     return sorted(index_content[["theme", "type"]].itertuples(index=False, name=None))
 
