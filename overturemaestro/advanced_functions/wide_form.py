@@ -404,35 +404,23 @@ def _get_all_possible_column_names_for_poi(
         hierarchy_data = pd.read_csv(
             f"https://docs.overturemaps.org/taxonomy/{release_version}/taxonomy.csv",
         )
-        hierarchy_split = hierarchy_data["taxonomy"].str.split(" > ", expand=True)
-        hierarchy_split.columns = [str(i + 1) for i in range(hierarchy_split.shape[1])]
-
-        primary_df = hierarchy_data[["primary"]].rename(columns={"primary": "category"})
-        data_split = pd.concat([primary_df, hierarchy_split], axis=1)
     except urllib_HTTPError:
         warnings.warn(
             (
                 "Couldn't download taxonomy from docs website."
-                "Downloading older version from GitHub (schema v1.18.0)."
+                "Downloading older version from GitHub (schema v2.0)."
             ),
             stacklevel=0,
         )
         hierarchy_data = pd.read_csv(
-            # List of all possible places values on CC-BY-SA 4.0 license
-            # provided by Overture Maps Foundation
-            "https://raw.githubusercontent.com/OvertureMaps/schema/refs/tags/v1.18.0/docs/schema/concepts/by-theme/places/overture_categories.csv",
-            sep=";",
-            names=["category", "hierarchy"],
-            skiprows=1,
-        )
-        hierarchy_split = (
-            hierarchy_data["hierarchy"].str.strip().str[1:-1].str.split(",").apply(pd.Series)
+            "https://docs.overturemaps.org/taxonomy/2026-09-23.0/taxonomy.csv",
         )
 
-        hierarchy_split.columns = [str(i + 1) for i in range(hierarchy_split.shape[1])]
+    hierarchy_split = hierarchy_data["taxonomy"].str.split(" > ", expand=True)
+    hierarchy_split.columns = [str(i + 1) for i in range(hierarchy_split.shape[1])]
 
-        # Concatenate the original dataframe with the new hierarchy columns
-        data_split = pd.concat([hierarchy_data[["category"]], hierarchy_split], axis=1)
+    primary_df = hierarchy_data[["primary"]].rename(columns={"primary": "category"})
+    data_split = pd.concat([primary_df, hierarchy_split], axis=1)
 
     rows = data_split.to_dict(orient="records")
 
