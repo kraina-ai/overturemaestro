@@ -1130,6 +1130,7 @@ def get_all_possible_column_names(
     theme: Optional[str] = None,
     type: Optional[str] = None,
     hierarchy_depth: Optional[int] = None,
+    *,
     remote_index: bool = False,
     skip_index_download: bool = False,
     verbosity_mode: VERBOSITY_MODE = "transient",
