@@ -9,8 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Parsing release versions from the STAC catalog with absolute `href` links
-
+- Parsing release versions from the STAC catalog with absolute `href` links (implemented by [@tunglinn](https://github.com/tunglinn))
 ## [0.6.1] - 2026-05-07
 
 ### Changed
