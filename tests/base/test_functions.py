@@ -46,7 +46,7 @@ def test_pyarrow_filtering(test_release_version: str) -> None:
         bbox=(-0.120077, 51.498164, -0.090809, 51.508849),
         pyarrow_filter=[
             [
-                (("categories", "primary"), "=", "museum"),
+                (("taxonomy", "primary"), "=", "museum"),
                 ("confidence", ">", 0.95),
             ]
         ],
@@ -54,7 +54,7 @@ def test_pyarrow_filtering(test_release_version: str) -> None:
         ignore_cache=True,
     )
     assert (gdf["confidence"] > 0.95).all()
-    assert (gdf["categories"].apply(lambda x: x["primary"] == "museum")).all()
+    assert (gdf["taxonomy"].apply(lambda x: x["primary"] == "museum")).all()
 
 
 @P.parameters("columns_to_download", "expectation")  # type: ignore
@@ -102,7 +102,8 @@ def test_empty_region(test_release_version: str) -> None:
             "version",
             "sources",
             "names",
-            "categories",
+            "taxonomy",
+            "basic_category",
             "confidence",
             "websites",
             "socials",

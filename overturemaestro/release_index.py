@@ -250,7 +250,7 @@ def load_release_index(
             )
         else:
             # Try to download the index or generate it if cannot be downloaded
-            download_existing_release_index(
+            _ = download_existing_release_index(
                 release,
                 verbosity_mode=verbosity_mode,
             ) or generate_release_index(

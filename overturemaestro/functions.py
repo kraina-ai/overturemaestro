@@ -197,7 +197,7 @@ def convert_geometry_to_parquet(
         ...     type="place",
         ...     geometry_filter=london_bbox,
         ...     pyarrow_filter=[[
-        ...         (("categories", "primary"), "=", "museum"),
+        ...         (("taxonomy", "primary"), "=", "museum"),
         ...         ("confidence", ">", 0.95),
         ...     ]],
         ... ) # doctest: +IGNORE_RESULT
@@ -518,7 +518,7 @@ def convert_geometry_to_geodataframe(
         ...     type="place",
         ...     geometry_filter=london_bbox,
         ...     pyarrow_filter=[[
-        ...         (("categories", "primary"), "=", "museum"),
+        ...         (("taxonomy", "primary"), "=", "museum"),
         ...         ("confidence", ">", 0.95),
         ...     ]],
         ... ) # doctest: +IGNORE_RESULT
@@ -847,7 +847,7 @@ def convert_bounding_box_to_parquet(
         ...     type="place",
         ...     bbox=london_bbox,
         ...     pyarrow_filter=[[
-        ...         (("categories", "primary"), "=", "museum"),
+        ...         (("taxonomy", "primary"), "=", "museum"),
         ...         ("confidence", ">", 0.95),
         ...     ]],
         ... ) # doctest: +IGNORE_RESULT
@@ -1169,7 +1169,7 @@ def convert_bounding_box_to_geodataframe(
         ...     type="place",
         ...     bbox=london_bbox,
         ...     pyarrow_filter=[[
-        ...         (("categories", "primary"), "=", "museum"),
+        ...         (("taxonomy", "primary"), "=", "museum"),
         ...         ("confidence", ">", 0.95),
         ...     ]],
         ... ) # doctest: +IGNORE_RESULT

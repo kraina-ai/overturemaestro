@@ -42,7 +42,7 @@ def test_download_single_parquet_row_group(test_release_version: str) -> None:
             "theme": "places",
             "type": "place",
             "user_defined_pyarrow_filter": pc.field("confidence") > 0.95,
-            "columns_to_download": [INDEX_COLUMN, GEOMETRY_COLUMN, "categories"],
+            "columns_to_download": [INDEX_COLUMN, GEOMETRY_COLUMN, "taxonomy"],
         },
         bbox=(-180, -90, 180, 90),
         working_directory=Path("files"),
