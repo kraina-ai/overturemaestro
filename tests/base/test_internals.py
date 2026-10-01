@@ -1,6 +1,7 @@
 """Tests internals code for proper coverage in multiprocessing."""
 
 from pathlib import Path
+from urllib.parse import urljoin
 
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
@@ -15,20 +16,20 @@ from overturemaestro.geocode import geocode_to_geometry
 def test_download_single_parquet_row_group(test_release_version: str) -> None:
     """Test if downloading single parquet row group is working."""
     # load random file from stac catalog
-    stac_catalog_response = requests.get(
-        f"https://stac.overturemaps.org/{test_release_version}/places/place/collection.json",
-        allow_redirects=True,
-    ).json()
+    collection_url = (
+        f"https://stac.overturemaps.org/{test_release_version}/places/place/collection.json"
+    )
+    stac_catalog_response = requests.get(collection_url, allow_redirects=True, timeout=30).json()
 
-    first_file_catalog = next(
-        link["href"].split("/", 1)[1]
+    # Item links can be relative or absolute depending on the release
+    first_file_catalog_url = next(
+        urljoin(collection_url, link["href"])
         for link in stac_catalog_response["links"]
         if link["rel"] == "item"
     )
 
     file_details_response = requests.get(
-        f"https://stac.overturemaps.org/{test_release_version}/places/place/{first_file_catalog}",
-        allow_redirects=True,
+        first_file_catalog_url, allow_redirects=True, timeout=30
     ).json()
 
     s3_url = file_details_response["assets"]["aws"]["alternate"]["s3"]["href"][5:]

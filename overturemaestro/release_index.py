@@ -8,8 +8,9 @@ it on demand.
 import json
 import tempfile
 from datetime import date
-from pathlib import Path
-from typing import Literal, Optional, Union, cast, overload
+from pathlib import Path, PurePosixPath
+from typing import Any, Literal, Optional, Union, cast, overload
+from urllib.parse import urlparse
 
 import geopandas as gpd
 import numpy as np
@@ -590,6 +591,17 @@ def _get_index_file_name(theme_value: str, type_value: str) -> str:
     return f"{theme_value}_{type_value}.parquet"
 
 
+def _parse_release_versions_from_stac_catalog(stac_catalog: dict[str, Any]) -> list[str]:
+    # Child links can be relative ("./2026-07-22.0/catalog.json") or absolute
+    # ("https://stac.overturemaps.org/2026-08-19.0/catalog.json"), in both cases
+    # the release version is the name of the directory containing catalog.json.
+    return [
+        PurePosixPath(urlparse(link["href"]).path).parent.name
+        for link in stac_catalog["links"]
+        if link["rel"] == "child"
+    ]
+
+
 def _load_all_available_release_versions_from_stac() -> list[str]:  # pragma: no cover
     release_versions_cache_file = (
         get_global_release_cache_directory() / "_available_release_versions.json"
@@ -598,8 +610,14 @@ def _load_all_available_release_versions_from_stac() -> list[str]:  # pragma: no
     current_date = date.today()
     if release_versions_cache_file.exists():
         cache_value = json.loads(release_versions_cache_file.read_text())
-        if date.fromisoformat(cache_value["date"]) >= current_date:
-            return cast("list[str]", cache_value["release_versions"])
+        cached_release_versions = cast("list[str]", cache_value["release_versions"])
+        # Skip empty caches and ones written by older versions that parsed empty release names
+        if (
+            date.fromisoformat(cache_value["date"]) >= current_date
+            and cached_release_versions
+            and all(cached_release_versions)
+        ):
+            return cached_release_versions
 
     release_versions_cache_file.parent.mkdir(parents=True, exist_ok=True)
     logger = get_pooch_logger()
@@ -608,12 +626,14 @@ def _load_all_available_release_versions_from_stac() -> list[str]:  # pragma: no
     stac_catalog_response = requests.get(
         "https://stac.overturemaps.org/catalog.json",
         allow_redirects=True,
-    ).json()
-    release_versions = [
-        link["href"].split("/")[1]
-        for link in stac_catalog_response["links"]
-        if link["rel"] == "child"
-    ]
+    )
+    stac_catalog_response.raise_for_status()
+    release_versions = _parse_release_versions_from_stac_catalog(stac_catalog_response.json())
+    if not release_versions or not all(release_versions):
+        raise ValueError(
+            "Cannot parse release versions from the STAC catalog."
+            f" Parsed values: {release_versions}."
+        )
 
     release_versions_cache_file.write_text(
         json.dumps(dict(date=current_date.isoformat(), release_versions=release_versions))
