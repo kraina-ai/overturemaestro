@@ -5,7 +5,7 @@
 groups = ["default", "benchmark", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:e745306eae7465dc468cf58f2e6c1c9a5352e267512b42de39b75bf3718f6deb"
+content_hash = "sha256:9d78e40f6bad3a1774ec3bb6a623384bf28682718bcdde17a8a73ae2183716d9"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -5822,7 +5822,7 @@ version = "0.24.1"
 extras = ["all"]
 requires_python = ">=3.10"
 summary = "Typer, build great CLIs. Easy to code. Based on Python type hints."
-groups = ["cli", "cli-dev"]
+groups = ["cli-dev"]
 dependencies = [
     "typer==0.24.1",
 ]

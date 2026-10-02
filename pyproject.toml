@@ -40,7 +40,11 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-cli = ["typer[all]>=0.9.0", "s2sphere>=0.2.5"]
+cli = [
+    "typer>=0.9.0",
+    "click>=8.2.1",
+    "s2sphere>=0.2.5",
+]
 
 [project.scripts]
 overturemaestro = "overturemaestro.__main__:main"
