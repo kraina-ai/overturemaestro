@@ -130,10 +130,12 @@ def _calculate_bbox_from_row_group(
     """Calculate a bounding box of a row group directly from its data."""
     import pyarrow.compute as pc
 
-    table = pq.ParquetFile(path, filesystem=filesystem).read_row_group(
-        row_group_idx, columns=["bbox"]
+    bbox = (
+        pq.ParquetFile(path, filesystem=filesystem)
+        .read_row_group(row_group_idx, columns=["bbox"])
+        .column("bbox")
+        .combine_chunks()
     )
-    bbox = table.column("bbox").combine_chunks()
 
     return (
         pc.min(bbox.field("xmin")).as_py(),
