@@ -17,6 +17,8 @@ import pyarrow.parquet as pq
 
 from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
 
+INDEX_COLUMNS = ("filename", "row_group", "xmin", "ymin", "xmax", "ymax")
+
 
 def get_rects_parallel(
     dataset_path: Union[str, Path, list[str], list[Path]],
@@ -59,7 +61,11 @@ def get_rects_parallel(
             )
         )
 
-    df = pd.DataFrame(pd.concat(gdfs))
+    nonempty_gdfs = [gdf for gdf in gdfs if not gdf.empty]
+    if not nonempty_gdfs:
+        return pd.DataFrame(columns=list(INDEX_COLUMNS))
+
+    df = pd.DataFrame(pd.concat(nonempty_gdfs, ignore_index=True))
     return df
 
 
@@ -67,12 +73,14 @@ def _parquet_path_to_dataframe(
     path: str, filesystem: Optional[fs.FileSystem] = None
 ) -> pd.DataFrame:
     metadata = pq.read_metadata(path, filesystem=filesystem)
-    df = _metadata_to_dataframe(metadata, path)
+    df = _metadata_to_dataframe(metadata, path, filesystem=filesystem)
 
     return df
 
 
-def _metadata_to_dataframe(metadata: pq.FileMetaData, path: str) -> pd.DataFrame:
+def _metadata_to_dataframe(
+    metadata: pq.FileMetaData, path: str, filesystem: Optional[fs.FileSystem] = None
+) -> pd.DataFrame:
     rows = []
 
     def row(
@@ -87,22 +95,52 @@ def _metadata_to_dataframe(metadata: pq.FileMetaData, path: str) -> pd.DataFrame
             "ymax": bbox[3],
         }
 
-    bbox_indices = _get_bbox_column_indices(metadata.row_group(0))
-
     for i in range(metadata.num_row_groups):
         row_group = metadata.row_group(i)
-        bbox_indices = _get_bbox_column_indices(row_group)
 
-        xmin = row_group.column(bbox_indices[0]).statistics.min
-        ymin = row_group.column(bbox_indices[1]).statistics.min
-        xmax = row_group.column(bbox_indices[2]).statistics.max
-        ymax = row_group.column(bbox_indices[3]).statistics.max
+        if row_group.num_rows == 0:
+            continue
+
+        bbox_indices = _get_bbox_column_indices(row_group)
+        statistics = [row_group.column(bbox_index).statistics for bbox_index in bbox_indices]
+
+        if any(
+            column_statistics is None
+            or column_statistics.min is None
+            or column_statistics.max is None
+            for column_statistics in statistics
+        ):
+            xmin, ymin, xmax, ymax = _calculate_bbox_from_row_group(path, i, filesystem)
+        else:
+            xmin = statistics[0].min
+            ymin = statistics[1].min
+            xmax = statistics[2].max
+            ymax = statistics[3].max
 
         rows.append(row(path, i, (xmin, ymin, xmax, ymax)))
 
-    df = pd.DataFrame(rows)
+    df = pd.DataFrame(rows, columns=list(INDEX_COLUMNS))
 
     return df
+
+
+def _calculate_bbox_from_row_group(
+    path: str, row_group_idx: int, filesystem: Optional[fs.FileSystem] = None
+) -> tuple[float, float, float, float]:
+    """Calculate a bounding box of a row group directly from its data."""
+    import pyarrow.compute as pc
+
+    table = pq.ParquetFile(path, filesystem=filesystem).read_row_group(
+        row_group_idx, columns=["bbox"]
+    )
+    bbox = table.column("bbox").combine_chunks()
+
+    return (
+        pc.min(bbox.field("xmin")).as_py(),
+        pc.min(bbox.field("ymin")).as_py(),
+        pc.max(bbox.field("xmax")).as_py(),
+        pc.max(bbox.field("ymax")).as_py(),
+    )
 
 
 def _get_bbox_column_indices(row_group: pq.RowGroupMetaData) -> tuple[int, int, int, int]:

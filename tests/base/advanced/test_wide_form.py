@@ -390,9 +390,10 @@ def test_places_use_primary_category_only_parameter(
     ).drop(columns=GEOMETRY_COLUMN)
 
     assert (primary_only.sum(axis=1) == 1).all(), "Not all rows have exactly one primary category."
-    assert (
-        primary_only.sum().sum() <= all_categories.sum().sum()
-    ), "Primary only has more categories than all categories."
+
+    assert primary_only.sum().sum() <= all_categories.sum().sum(), (
+        "Primary only has more categories than all categories."
+    )
 
 
 def test_generate_result_file_name_order(
