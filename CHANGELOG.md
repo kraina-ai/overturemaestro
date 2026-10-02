@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-02
+
 ### Fixed
 
 - Deprecated old `categories` field in the `places` schema in favour of the new `taxonomy` field.
@@ -242,7 +244,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.6.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.7.0...HEAD
+
+[0.7.0]: https://github.com/kraina-ai/overturemaestro/compare/0.6.1...0.7.0
 
 [0.6.1]: https://github.com/kraina-ai/overturemaestro/compare/0.6.0...0.6.1
 
