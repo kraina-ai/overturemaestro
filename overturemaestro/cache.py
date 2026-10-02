@@ -12,7 +12,8 @@ def clear_release_indexes_cache() -> None:
         get_global_release_cache_directory(),
         get_global_wide_form_release_cache_directory(),
     ):
-        shutil.rmtree(directory)
+        if directory.exists():
+            shutil.rmtree(directory)
 
 
 def get_global_release_cache_directory() -> Path:

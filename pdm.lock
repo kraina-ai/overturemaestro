@@ -5,7 +5,7 @@
 groups = ["default", "benchmark", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:16243dff169e663bbc23894e0303c74e4944ebb41769c09c017b24bc33afaadb"
+content_hash = "sha256:8e4ef58e763719ee95fc1c5cbf8d20d2d2ea1267e00e2cd21fe7a73026441250"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -1296,47 +1296,6 @@ files = [
 ]
 
 [[package]]
-name = "cython"
-version = "3.2.4"
-requires_python = ">=3.8"
-summary = "The Cython compiler for writing C extensions in the Python language."
-groups = ["cli-dev"]
-marker = "sys_platform != \"win32\" and sys_platform != \"darwin\""
-files = [
-    {file = "cython-3.2.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:02cb0cc0f23b9874ad262d7d2b9560aed9c7e2df07b49b920bda6f2cc9cb505e"},
-    {file = "cython-3.2.4-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f136f379a4a54246facd0eb6f1ee15c3837cb314ce87b677582ec014db4c6845"},
-    {file = "cython-3.2.4-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:35ab0632186057406ec729374c737c37051d2eacad9d515d94e5a3b3e58a9b02"},
-    {file = "cython-3.2.4-cp310-cp310-win_amd64.whl", hash = "sha256:ca2399dc75796b785f74fb85c938254fa10c80272004d573c455f9123eceed86"},
-    {file = "cython-3.2.4-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:ff9af2134c05e3734064808db95b4dd7341a39af06e8945d05ea358e1741aaed"},
-    {file = "cython-3.2.4-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:67922c9de058a0bfb72d2e75222c52d09395614108c68a76d9800f150296ddb3"},
-    {file = "cython-3.2.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:b362819d155fff1482575e804e43e3a8825332d32baa15245f4642022664a3f4"},
-    {file = "cython-3.2.4-cp311-cp311-win_amd64.whl", hash = "sha256:1a64a112a34ec719b47c01395647e54fb4cf088a511613f9a3a5196694e8e382"},
-    {file = "cython-3.2.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:64d7f71be3dd6d6d4a4c575bb3a4674ea06d1e1e5e4cd1b9882a2bc40ed3c4c9"},
-    {file = "cython-3.2.4-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:869487ea41d004f8b92171f42271fbfadb1ec03bede3158705d16cd570d6b891"},
-    {file = "cython-3.2.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:55b6c44cd30821f0b25220ceba6fe636ede48981d2a41b9bbfe3c7902ce44ea7"},
-    {file = "cython-3.2.4-cp312-cp312-win_amd64.whl", hash = "sha256:767b143704bdd08a563153448955935844e53b852e54afdc552b43902ed1e235"},
-    {file = "cython-3.2.4-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:28e8075087a59756f2d059273184b8b639fe0f16cf17470bd91c39921bc154e0"},
-    {file = "cython-3.2.4-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:03893c88299a2c868bb741ba6513357acd104e7c42265809fd58dce1456a36fc"},
-    {file = "cython-3.2.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:f81eda419b5ada7b197bbc3c5f4494090e3884521ffd75a3876c93fbf66c9ca8"},
-    {file = "cython-3.2.4-cp313-cp313-win_amd64.whl", hash = "sha256:83266c356c13c68ffe658b4905279c993d8a5337bb0160fa90c8a3e297ea9a2e"},
-    {file = "cython-3.2.4-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:d4b4fd5332ab093131fa6172e8362f16adef3eac3179fd24bbdc392531cb82fa"},
-    {file = "cython-3.2.4-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:e3b5ac54e95f034bc7fb07313996d27cbf71abc17b229b186c1540942d2dc28e"},
-    {file = "cython-3.2.4-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:90f43be4eaa6afd58ce20d970bb1657a3627c44e1760630b82aa256ba74b4acb"},
-    {file = "cython-3.2.4-cp314-cp314-win_amd64.whl", hash = "sha256:983f9d2bb8a896e16fa68f2b37866ded35fa980195eefe62f764ddc5f9f5ef8e"},
-    {file = "cython-3.2.4-cp39-abi3-macosx_10_9_x86_64.whl", hash = "sha256:36bf3f5eb56d5281aafabecbaa6ed288bc11db87547bba4e1e52943ae6961ccf"},
-    {file = "cython-3.2.4-cp39-abi3-manylinux1_i686.manylinux_2_28_i686.manylinux_2_5_i686.whl", hash = "sha256:6d5267f22b6451eb1e2e1b88f6f78a2c9c8733a6ddefd4520d3968d26b824581"},
-    {file = "cython-3.2.4-cp39-abi3-manylinux2014_armv7l.manylinux_2_17_armv7l.manylinux_2_31_armv7l.whl", hash = "sha256:3b6e58f73a69230218d5381817850ce6d0da5bb7e87eb7d528c7027cbba40b06"},
-    {file = "cython-3.2.4-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:e71efb20048358a6b8ec604a0532961c50c067b5e63e345e2e359fff72feaee8"},
-    {file = "cython-3.2.4-cp39-abi3-musllinux_1_2_armv7l.whl", hash = "sha256:28b1e363b024c4b8dcf52ff68125e635cb9cb4b0ba997d628f25e32543a71103"},
-    {file = "cython-3.2.4-cp39-abi3-musllinux_1_2_i686.whl", hash = "sha256:31a90b4a2c47bb6d56baeb926948348ec968e932c1ae2c53239164e3e8880ccf"},
-    {file = "cython-3.2.4-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:e65e4773021f8dc8532010b4fbebe782c77f9a0817e93886e518c93bd6a44e9d"},
-    {file = "cython-3.2.4-cp39-abi3-win32.whl", hash = "sha256:2b1f12c0e4798293d2754e73cd6f35fa5bbdf072bdc14bc6fc442c059ef2d290"},
-    {file = "cython-3.2.4-cp39-abi3-win_arm64.whl", hash = "sha256:3b8e62049afef9da931d55de82d8f46c9a147313b69d5ff6af6e9121d545ce7a"},
-    {file = "cython-3.2.4-py3-none-any.whl", hash = "sha256:732fc93bc33ae4b14f6afaca663b916c2fdd5dcbfad7114e17fb2434eeaea45c"},
-    {file = "cython-3.2.4.tar.gz", hash = "sha256:84226ecd313b233da27dc2eb3601b4f222b8209c3a7216d8733b031da1dc64e6"},
-]
-
-[[package]]
 name = "debugpy"
 version = "1.8.20"
 requires_python = ">=3.8"
@@ -2000,58 +1959,6 @@ files = [
 ]
 
 [[package]]
-name = "imageio"
-version = "2.37.3"
-requires_python = ">=3.10"
-summary = "Read and write images and video across all major formats. Supports scientific and volumetric data."
-groups = ["cli-dev"]
-dependencies = [
-    "numpy",
-    "pillow>=8.3.2",
-]
-files = [
-    {file = "imageio-2.37.3-py3-none-any.whl", hash = "sha256:46f5bb8522cd421c0f5ae104d8268f569d856b29eb1a13b92829d1970f32c9f0"},
-    {file = "imageio-2.37.3.tar.gz", hash = "sha256:bbb37efbfc4c400fcd534b367b91fcd66d5da639aaa138034431a1c5e0a41451"},
-]
-
-[[package]]
-name = "img2unicode"
-version = "0.1a11"
-requires_python = ">=3.7"
-summary = "Convert images to unicode based on font templates. Especially usable in terminal."
-groups = ["cli-dev"]
-dependencies = [
-    "click",
-    "numpy<2,>=1.19",
-    "pandas",
-    "pillow",
-    "scikit-image<1.0,>=0.19",
-    "scikit-learn",
-]
-files = [
-    {file = "img2unicode-0.1a11-py3-none-any.whl", hash = "sha256:92eed3a9b761ff4b6d6d83d3c5870a59cf53607f20b8d488f2f61fd584fef9ac"},
-    {file = "img2unicode-0.1a11.tar.gz", hash = "sha256:2c8d5d9a20501c6e61568fe85e75f4cebacb39a43fdfc16b8e317dbce1a74892"},
-]
-
-[[package]]
-name = "img2unicode"
-version = "0.1a11"
-extras = ["n2"]
-requires_python = ">=3.7"
-summary = "Convert images to unicode based on font templates. Especially usable in terminal."
-groups = ["cli-dev"]
-marker = "sys_platform != \"win32\" and sys_platform != \"darwin\""
-dependencies = [
-    "cython",
-    "img2unicode==0.1a11",
-    "n2",
-]
-files = [
-    {file = "img2unicode-0.1a11-py3-none-any.whl", hash = "sha256:92eed3a9b761ff4b6d6d83d3c5870a59cf53607f20b8d488f2f61fd584fef9ac"},
-    {file = "img2unicode-0.1a11.tar.gz", hash = "sha256:2c8d5d9a20501c6e61568fe85e75f4cebacb39a43fdfc16b8e317dbce1a74892"},
-]
-
-[[package]]
 name = "iniconfig"
 version = "2.3.0"
 requires_python = ">=3.10"
@@ -2661,20 +2568,6 @@ groups = ["docs"]
 files = [
     {file = "lark-1.3.1-py3-none-any.whl", hash = "sha256:c629b661023a014c37da873b4ff58a817398d12635d3bbb2c5a03be7fe5d1e12"},
     {file = "lark-1.3.1.tar.gz", hash = "sha256:b426a7a6d6d53189d318f2b6236ab5d6429eaf09259f1ca33eb716eed10d2905"},
-]
-
-[[package]]
-name = "lazy-loader"
-version = "0.5"
-requires_python = ">=3.9"
-summary = "Makes it easy to load subpackages and functions on demand."
-groups = ["cli-dev"]
-dependencies = [
-    "packaging",
-]
-files = [
-    {file = "lazy_loader-0.5-py3-none-any.whl", hash = "sha256:ab0ea149e9c554d4ffeeb21105ac60bed7f3b4fd69b1d2360a4add51b170b005"},
-    {file = "lazy_loader-0.5.tar.gz", hash = "sha256:717f9179a0dbed357012ddad50a5ad3d5e4d9a0b8712680d4e687f5e6e6ed9b3"},
 ]
 
 [[package]]
@@ -3603,19 +3496,6 @@ files = [
 ]
 
 [[package]]
-name = "n2"
-version = "0.1.7"
-summary = "Approximate Nearest Neighbor library"
-groups = ["cli-dev"]
-marker = "sys_platform != \"win32\" and sys_platform != \"darwin\""
-dependencies = [
-    "cython",
-]
-files = [
-    {file = "n2-0.1.7.tar.gz", hash = "sha256:6a044d89aa20fc13063788447103aa285889ef8d581335f8a7afe8a6170a9e51"},
-]
-
-[[package]]
 name = "natsort"
 version = "8.4.0"
 requires_python = ">=3.7"
@@ -4164,24 +4044,23 @@ files = [
 
 [[package]]
 name = "pixel-map"
-version = "0.2.4"
-requires_python = ">=3.9"
+version = "0.3.0"
+requires_python = ">=3.10"
 summary = "A Python CLI tool for plotting geo files in the terminal"
 groups = ["cli-dev"]
 dependencies = [
     "contextily>=1",
     "geopandas>=0.8",
-    "img2unicode>=0.1a11; sys_platform == \"win32\" or sys_platform == \"darwin\"",
-    "img2unicode[n2]>=0.1a11; sys_platform != \"win32\" and sys_platform != \"darwin\"",
     "matplotlib>=3.2.0",
     "numpy>=1.26.0",
+    "pillow>=10.1.0",
     "pyarrow>=16.0.0",
     "rich>=12.0.0",
     "typer[all]>=0.9.0",
 ]
 files = [
-    {file = "pixel_map-0.2.4-py3-none-any.whl", hash = "sha256:a20d7b32d104b0b01c9cfb9fb3683a1413d04ed6eb71d7c1b3bade97b8d133af"},
-    {file = "pixel_map-0.2.4.tar.gz", hash = "sha256:996a1e3a576e76690267289c1977113e7ef26a162f6450834264c34c78fe0b0c"},
+    {file = "pixel_map-0.3.0-py3-none-any.whl", hash = "sha256:5e4f10b311affb560059b36cee389c05c404f2284de2893d0b3519f952645e08"},
+    {file = "pixel_map-0.3.0.tar.gz", hash = "sha256:696feca25336200a87b64dc64546ca2b85ca107d9b455eac1ae7be5b805fafe0"},
 ]
 
 [[package]]
@@ -5411,7 +5290,7 @@ files = [
 
 [[package]]
 name = "rq-geo-toolkit"
-version = "2026.4.0"
+version = "2026.9.0"
 requires_python = ">=3.10"
 summary = "Collection of geo related functions for reuse in other libraries"
 groups = ["default"]
@@ -5426,8 +5305,8 @@ dependencies = [
     "shapely>=2.0.6",
 ]
 files = [
-    {file = "rq_geo_toolkit-2026.4.0-py3-none-any.whl", hash = "sha256:d86f683aaa60572e4df8293c9e7cc1be3fb2405fa777d49c263ee43451cf15ad"},
-    {file = "rq_geo_toolkit-2026.4.0.tar.gz", hash = "sha256:c14b1ee2e6f2a8d6f8deb145ef3f85232e2de62a9ae8ffbe4fe0118b7a54e71e"},
+    {file = "rq_geo_toolkit-2026.9.0-py3-none-any.whl", hash = "sha256:8a208b4f13ac316db2da59f79ec3ce9ca837bb8f00aeed590ed431146a43f1b2"},
+    {file = "rq_geo_toolkit-2026.9.0.tar.gz", hash = "sha256:fc944061e979eba1b2619a1e9a8ad0a28dd67c1335cfade73ecff787355d4329"},
 ]
 
 [[package]]
@@ -5482,47 +5361,6 @@ dependencies = [
 files = [
     {file = "s3transfer-0.16.0-py3-none-any.whl", hash = "sha256:18e25d66fed509e3868dc1572b3f427ff947dd2c56f844a5bf09481ad3f3b2fe"},
     {file = "s3transfer-0.16.0.tar.gz", hash = "sha256:8e990f13268025792229cd52fa10cb7163744bf56e719e0b9cb925ab79abf920"},
-]
-
-[[package]]
-name = "scikit-image"
-version = "0.25.2"
-requires_python = ">=3.10"
-summary = "Image processing in Python"
-groups = ["cli-dev"]
-dependencies = [
-    "imageio!=2.35.0,>=2.33",
-    "lazy-loader>=0.4",
-    "networkx>=3.0",
-    "numpy>=1.24",
-    "packaging>=21",
-    "pillow>=10.1",
-    "scipy>=1.11.4",
-    "tifffile>=2022.8.12",
-]
-files = [
-    {file = "scikit_image-0.25.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:d3278f586793176599df6a4cf48cb6beadae35c31e58dc01a98023af3dc31c78"},
-    {file = "scikit_image-0.25.2-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:5c311069899ce757d7dbf1d03e32acb38bb06153236ae77fcd820fd62044c063"},
-    {file = "scikit_image-0.25.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:be455aa7039a6afa54e84f9e38293733a2622b8c2fb3362b822d459cc5605e99"},
-    {file = "scikit_image-0.25.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a4c464b90e978d137330be433df4e76d92ad3c5f46a22f159520ce0fdbea8a09"},
-    {file = "scikit_image-0.25.2-cp310-cp310-win_amd64.whl", hash = "sha256:60516257c5a2d2f74387c502aa2f15a0ef3498fbeaa749f730ab18f0a40fd054"},
-    {file = "scikit_image-0.25.2-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:f4bac9196fb80d37567316581c6060763b0f4893d3aca34a9ede3825bc035b17"},
-    {file = "scikit_image-0.25.2-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:d989d64ff92e0c6c0f2018c7495a5b20e2451839299a018e0e5108b2680f71e0"},
-    {file = "scikit_image-0.25.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b2cfc96b27afe9a05bc92f8c6235321d3a66499995675b27415e0d0c76625173"},
-    {file = "scikit_image-0.25.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:24cc986e1f4187a12aa319f777b36008764e856e5013666a4a83f8df083c2641"},
-    {file = "scikit_image-0.25.2-cp311-cp311-win_amd64.whl", hash = "sha256:b4f6b61fc2db6340696afe3db6b26e0356911529f5f6aee8c322aa5157490c9b"},
-    {file = "scikit_image-0.25.2-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:8db8dd03663112783221bf01ccfc9512d1cc50ac9b5b0fe8f4023967564719fb"},
-    {file = "scikit_image-0.25.2-cp312-cp312-macosx_12_0_arm64.whl", hash = "sha256:483bd8cc10c3d8a7a37fae36dfa5b21e239bd4ee121d91cad1f81bba10cfb0ed"},
-    {file = "scikit_image-0.25.2-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9d1e80107bcf2bf1291acfc0bf0425dceb8890abe9f38d8e94e23497cbf7ee0d"},
-    {file = "scikit_image-0.25.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a17e17eb8562660cc0d31bb55643a4da996a81944b82c54805c91b3fe66f4824"},
-    {file = "scikit_image-0.25.2-cp312-cp312-win_amd64.whl", hash = "sha256:bdd2b8c1de0849964dbc54037f36b4e9420157e67e45a8709a80d727f52c7da2"},
-    {file = "scikit_image-0.25.2-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:7efa888130f6c548ec0439b1a7ed7295bc10105458a421e9bf739b457730b6da"},
-    {file = "scikit_image-0.25.2-cp313-cp313-macosx_12_0_arm64.whl", hash = "sha256:dd8011efe69c3641920614d550f5505f83658fe33581e49bed86feab43a180fc"},
-    {file = "scikit_image-0.25.2-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:28182a9d3e2ce3c2e251383bdda68f8d88d9fff1a3ebe1eb61206595c9773341"},
-    {file = "scikit_image-0.25.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b8abd3c805ce6944b941cfed0406d88faeb19bab3ed3d4b50187af55cf24d147"},
-    {file = "scikit_image-0.25.2-cp313-cp313-win_amd64.whl", hash = "sha256:64785a8acefee460ec49a354706db0b09d1f325674107d7fa3eadb663fb56d6f"},
-    {file = "scikit_image-0.25.2-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:330d061bd107d12f8d68f1d611ae27b3b813b8cdb0300a71d07b1379178dd4cd"},
-    {file = "scikit_image-0.25.2.tar.gz", hash = "sha256:e5a37e6cd4d0c018a7a55b9d601357e3382826d3888c10d0213fc63bff977dde"},
 ]
 
 [[package]]
@@ -5809,20 +5647,6 @@ groups = ["cli-dev"]
 files = [
     {file = "threadpoolctl-3.6.0-py3-none-any.whl", hash = "sha256:43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb"},
     {file = "threadpoolctl-3.6.0.tar.gz", hash = "sha256:8ab8b4aa3491d812b623328249fab5302a68d2d71745c8a4c719a2fcaba9f44e"},
-]
-
-[[package]]
-name = "tifffile"
-version = "2025.5.10"
-requires_python = ">=3.10"
-summary = "Read and write TIFF files"
-groups = ["cli-dev"]
-dependencies = [
-    "numpy",
-]
-files = [
-    {file = "tifffile-2025.5.10-py3-none-any.whl", hash = "sha256:e37147123c0542d67bc37ba5cdd67e12ea6fbe6e86c52bee037a9eb6a064e5ad"},
-    {file = "tifffile-2025.5.10.tar.gz", hash = "sha256:018335d34283aa3fd8c263bae5c3c2b661ebc45548fde31504016fcae7bf1103"},
 ]
 
 [[package]]

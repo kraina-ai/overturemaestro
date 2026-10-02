@@ -19,6 +19,12 @@ from overturemaestro.advanced_functions import (
     convert_bounding_box_to_wide_form_geodataframe_for_multiple_types,
     convert_bounding_box_to_wide_form_parquet,
 )
+from overturemaestro.advanced_functions.poi import (
+    TAXONOMY_MIN_RELEASE_VERSION,
+    _download_taxonomy_for_release,
+    _get_closest_taxonomy_release_version,
+    _get_taxonomy_release_versions_from_github,
+)
 from overturemaestro.advanced_functions.wide_form import (
     _generate_result_file_path,
     get_all_possible_column_names,
@@ -384,9 +390,10 @@ def test_places_use_primary_category_only_parameter(
     ).drop(columns=GEOMETRY_COLUMN)
 
     assert (primary_only.sum(axis=1) == 1).all(), "Not all rows have exactly one primary category."
-    assert (
-        primary_only.sum().sum() < all_categories.sum().sum()
-    ), "Primary only has more categories than all categories."
+
+    assert primary_only.sum().sum() <= all_categories.sum().sum(), (
+        "Primary only has more categories than all categories."
+    )
 
 
 def test_generate_result_file_name_order(
@@ -422,3 +429,66 @@ def test_generate_result_file_name_order(
     )
 
     assert result == reverse_order_result
+
+
+def test_taxonomy_release_versions_from_github() -> None:
+    """Test if available taxonomy release versions are detected correctly."""
+    taxonomy_release_versions = _get_taxonomy_release_versions_from_github()
+
+    assert taxonomy_release_versions
+    assert taxonomy_release_versions == sorted(taxonomy_release_versions)
+    assert min(taxonomy_release_versions) >= TAXONOMY_MIN_RELEASE_VERSION
+
+
+@pytest.mark.parametrize(
+    "release_version",
+    [
+        TAXONOMY_MIN_RELEASE_VERSION,
+        "2026-10-01.0",
+        "2030-01-01.0",
+        "2026-01-01.0",
+    ],
+)  # type: ignore
+def test_get_closest_taxonomy_release_version(release_version: str) -> None:
+    """Test if the closest available taxonomy release version is selected."""
+    taxonomy_release_versions = _get_taxonomy_release_versions_from_github()
+    expected_taxonomy_release_version = max(
+        (version for version in taxonomy_release_versions if version <= release_version),
+        default=TAXONOMY_MIN_RELEASE_VERSION,
+    )
+
+    assert _get_closest_taxonomy_release_version(release_version) == (
+        expected_taxonomy_release_version
+    )
+    assert _get_closest_taxonomy_release_version(release_version) >= (
+        TAXONOMY_MIN_RELEASE_VERSION
+    )
+
+
+@pytest.mark.slow  # type: ignore
+def test_download_taxonomy_for_release_fallback() -> None:
+    """Test if taxonomy is downloaded from GitHub when docs website returns 404."""
+    newest_taxonomy_release_version = _get_taxonomy_release_versions_from_github()[-1]
+    fallback_release_version = (
+        f"{int(newest_taxonomy_release_version[:4]) + 1}-{newest_taxonomy_release_version[5:]}"
+    )
+
+    with pytest.warns(match="from GitHub"):
+        taxonomy_data = _download_taxonomy_for_release(fallback_release_version)
+
+    assert "taxonomy" in taxonomy_data.columns
+    assert "primary" in taxonomy_data.columns
+    assert not taxonomy_data.empty
+
+
+@pytest.mark.slow  # type: ignore
+def test_download_taxonomy_for_release_below_minimal_version() -> None:
+    """Test if the minimal supported taxonomy is used for older releases."""
+    below_minimal_release_version = (
+        f"{int(TAXONOMY_MIN_RELEASE_VERSION[:4]) - 1}-{TAXONOMY_MIN_RELEASE_VERSION[5:]}"
+    )
+
+    with pytest.warns(match="from GitHub"):
+        taxonomy_data = _download_taxonomy_for_release(below_minimal_release_version)
+
+    assert not taxonomy_data.empty

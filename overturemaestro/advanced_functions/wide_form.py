@@ -216,16 +216,16 @@ def _prepare_download_parameters_for_poi(
     # TODO: swap to dedicated function?
     import pyarrow.compute as pc
 
-    category_not_null_filter = pc.invert(pc.field("categories").is_null())
+    taxonomy_not_null_filter = pc.invert(pc.field("taxonomy").is_null())
     minimal_confidence_filter = pc.field("confidence") >= pc.scalar(
         kwargs.get("places_minimal_confidence", 0.75)
     )
     if pyarrow_filter is not None:
-        pyarrow_filter = pyarrow_filter & category_not_null_filter & minimal_confidence_filter
+        pyarrow_filter = pyarrow_filter & taxonomy_not_null_filter & minimal_confidence_filter
     else:
-        pyarrow_filter = category_not_null_filter & minimal_confidence_filter
+        pyarrow_filter = taxonomy_not_null_filter & minimal_confidence_filter
 
-    return (["categories"] if hierachy_columns else [], pyarrow_filter)
+    return (["taxonomy"] if hierachy_columns else [], pyarrow_filter)
 
 
 def _transform_poi_to_wide_form(
@@ -247,11 +247,6 @@ def _transform_poi_to_wide_form(
 
     primary_category_only = kwargs.get("places_use_primary_category_only", False)
 
-    primary_category_name = "primary"
-    alternate_category_name = "alternate"
-    if release_version < "2024-07-22.0":
-        primary_category_name = "main"
-
     wide_column_definitions = _get_wide_column_definitions_for_poi(
         theme=theme,
         type=type,
@@ -264,7 +259,7 @@ def _transform_poi_to_wide_form(
         if primary_category_only:
             available_colums_sql_query = f"""
             SELECT DISTINCT
-                categories.{primary_category_name} as category
+                taxonomy.primary as category
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
@@ -273,14 +268,14 @@ def _transform_poi_to_wide_form(
         else:
             available_colums_sql_query = f"""
             SELECT DISTINCT
-                categories.{primary_category_name} as category
+                taxonomy.primary as category
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
             )
             UNION
             SELECT DISTINCT
-                UNNEST(categories.{alternate_category_name}) as category
+                UNNEST(taxonomy.alternates) as category
             FROM read_parquet(
                 '{parquet_file}',
                 hive_partitioning=false
@@ -302,10 +297,10 @@ def _transform_poi_to_wide_form(
         conditions = []
         for category_name in categories_list:
             escaped_value = sql_escape(category_name)
-            conditions.append(f"categories.{primary_category_name} = '{escaped_value}'")
+            conditions.append(f"taxonomy.primary = '{escaped_value}'")
 
             if not primary_category_only:
-                conditions.append(f"'{escaped_value}' IN categories.{alternate_category_name}")
+                conditions.append(f"'{escaped_value}' IN taxonomy.alternates")
 
         joined_conditions = " OR ".join(conditions)
         case_clauses.append(f'COALESCE(({joined_conditions}), False) AS "{column_name}"')
@@ -370,6 +365,8 @@ def _get_all_possible_column_names_for_poi(
 ) -> "DataFrame":
     import duckdb
 
+    from overturemaestro.advanced_functions.poi import _download_taxonomy_for_release
+
     connection = duckdb.connect()
 
     for extension in ("spatial", "httpfs"):
@@ -380,23 +377,18 @@ def _get_all_possible_column_names_for_poi(
         f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
     )
 
-    primary_category_name = "primary"
-    alternate_category_name = "alternate"
-    if release_version < "2024-07-22.0":
-        primary_category_name = "main"
-
     df = (
         duckdb.sql(
             f"""
         SELECT DISTINCT
-            categories.{primary_category_name} as column_name
+            taxonomy.primary as column_name
         FROM read_parquet(
             '{dataset_path}',
             hive_partitioning=false
         )
         UNION
         SELECT DISTINCT
-            UNNEST(categories.{alternate_category_name}) as column_name
+            UNNEST(taxonomy.alternates) as column_name
         FROM read_parquet(
             '{dataset_path}',
             hive_partitioning=false
@@ -409,22 +401,13 @@ def _get_all_possible_column_names_for_poi(
         .reset_index(drop=True)
     )
 
-    hierarchy_data = pd.read_csv(
-        # List of all possible places values on CC-BY-SA 4.0 license
-        # provided by Overture Maps Foundation
-        "https://raw.githubusercontent.com/OvertureMaps/schema/refs/heads/main/docs/schema/concepts/by-theme/places/overture_categories.csv",
-        sep=";",
-        names=["category", "hierarchy"],
-        skiprows=1,
-    )
-    hierarchy_split = (
-        hierarchy_data["hierarchy"].str.strip().str[1:-1].str.split(",").apply(pd.Series)
-    )
+    hierarchy_data = _download_taxonomy_for_release(release_version)
 
+    hierarchy_split = hierarchy_data["taxonomy"].str.split(" > ", expand=True)
     hierarchy_split.columns = [str(i + 1) for i in range(hierarchy_split.shape[1])]
 
-    # Concatenate the original dataframe with the new hierarchy columns
-    data_split = pd.concat([hierarchy_data[["category"]], hierarchy_split], axis=1)
+    primary_df = hierarchy_data[["primary"]].rename(columns={"primary": "category"})
+    data_split = pd.concat([primary_df, hierarchy_split], axis=1)
 
     rows = data_split.to_dict(orient="records")
 
@@ -441,13 +424,21 @@ def _get_wide_column_definitions(
     release_version: str,
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
+    *,
+    remote_index: bool = False,
+    skip_index_download: bool = False,
     **kwargs: Any,
 ) -> "DataFrame":
     if not hierarchy_columns:
         return pd.DataFrame(dict(column_name=[f"{theme}|{type}"]))
 
     all_columns_names = load_wide_form_all_column_names_release_index(
-        theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
+        theme=theme,
+        type=type,
+        release=release_version,
+        remote_index=remote_index,
+        skip_index_download=skip_index_download,
+        verbosity_mode=verbosity_mode,
     )
     columns_not_in_hierarchy = [c for c in all_columns_names.columns if c not in hierarchy_columns]
     if columns_not_in_hierarchy:
@@ -477,13 +468,21 @@ def _get_wide_column_definitions_for_poi(
     release_version: str,
     hierarchy_columns: list[str],
     verbosity_mode: VERBOSITY_MODE = "transient",
+    *,
+    remote_index: bool = False,
+    skip_index_download: bool = False,
     **kwargs: Any,
 ) -> "DataFrame":
     if not hierarchy_columns:
         return pd.DataFrame(dict(column_name=[f"{theme}|{type}"]))
 
     all_columns_names = load_wide_form_all_column_names_release_index(
-        theme=theme, type=type, release=release_version, verbosity_mode=verbosity_mode
+        theme=theme,
+        type=type,
+        release=release_version,
+        remote_index=remote_index,
+        skip_index_download=skip_index_download,
+        verbosity_mode=verbosity_mode,
     )
     columns_not_in_hierarchy = [
         c for c in all_columns_names.columns if c != "category" and c not in hierarchy_columns
@@ -1131,6 +1130,9 @@ def get_all_possible_column_names(
     theme: Optional[str] = None,
     type: Optional[str] = None,
     hierarchy_depth: Optional[int] = None,
+    *,
+    remote_index: bool = False,
+    skip_index_download: bool = False,
     verbosity_mode: VERBOSITY_MODE = "transient",
 ) -> list[str]:
     """
@@ -1146,6 +1148,10 @@ def get_all_possible_column_names(
         hierarchy_depth (Optional[int]): Depth used to calculate how many hierarchy columns should
             be used to generate the wide form of the data. If None, will use all available columns.
             Defaults to None.
+        remote_index (bool, optional): Avoid downloading the index and stream it from remote source.
+            Defaults to False.
+        skip_index_download (bool, optional): Avoid downloading the index if doesn't exist locally
+            and generate it instead. Defaults to False.
         verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
@@ -1182,6 +1188,8 @@ def get_all_possible_column_names(
             type=type_value,
             release_version=release,
             hierarchy_columns=hierachy_columns,
+            remote_index=remote_index,
+            skip_index_download=skip_index_download,
             verbosity_mode=verbosity_mode,
         )
         columns.extend(df["column_name"].unique())
@@ -1460,7 +1468,7 @@ def load_wide_form_all_column_names_release_index(
             )
         else:
             # Try to download the index or generate it if cannot be downloaded
-            download_existing_wide_form_all_column_names_release_index(
+            _ = download_existing_wide_form_all_column_names_release_index(
                 release,
                 verbosity_mode=verbosity_mode,
             ) or generate_wide_form_all_column_names_release_index(
