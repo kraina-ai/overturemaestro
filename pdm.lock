@@ -5,7 +5,7 @@
 groups = ["default", "benchmark", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:8e4ef58e763719ee95fc1c5cbf8d20d2d2ea1267e00e2cd21fe7a73026441250"
+content_hash = "sha256:e745306eae7465dc468cf58f2e6c1c9a5352e267512b42de39b75bf3718f6deb"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -5499,7 +5499,7 @@ name = "setuptools"
 version = "82.0.1"
 requires_python = ">=3.9"
 summary = "Most extensible Python build backend with support for C/C++ extension modules"
-groups = ["dev", "docs"]
+groups = ["dev", "docs", "test"]
 files = [
     {file = "setuptools-82.0.1-py3-none-any.whl", hash = "sha256:a59e362652f08dcd477c78bb6e7bd9d80a7995bc73ce773050228a348ce2e5bb"},
     {file = "setuptools-82.0.1.tar.gz", hash = "sha256:7d872682c5d01cfde07da7bccc7b65469d3dca203318515ada1de5eda35efbf9"},
