@@ -6,26 +6,15 @@
 <p align="center">
     <img alt="GitHub" src="https://img.shields.io/github/license/kraina-ai/overturemaestro?logo=apache&logoColor=%23fff">
     <img src="https://img.shields.io/github/checks-status/kraina-ai/overturemaestro/main?logo=GitHubActions&logoColor=%23fff" alt="Checks">
-    <a href="https://github.com/kraina-ai/overturemaestro/actions/workflows/ci-dev.yml" target="_blank">
-        <img alt="GitHub Workflow Status - DEV" src="https://img.shields.io/github/actions/workflow/status/kraina-ai/overturemaestro/ci-dev.yml?label=build-dev&logo=GitHubActions&logoColor=%23fff">
-    </a>
-    <a href="https://github.com/kraina-ai/overturemaestro/actions/workflows/ci-prod.yml" target="_blank">
-        <img alt="GitHub Workflow Status - PROD" src="https://img.shields.io/github/actions/workflow/status/kraina-ai/overturemaestro/ci-prod.yml?label=build-prod&logo=GitHubActions&logoColor=%23fff">
-    </a>
-    <a href="https://results.pre-commit.ci/latest/github/kraina-ai/overturemaestro/main" target="_blank">
-        <img src="https://results.pre-commit.ci/badge/github/kraina-ai/overturemaestro/main.svg" alt="pre-commit.ci status">
-    </a>
+    <a href="https://github.com/kraina-ai/overturemaestro/actions/workflows/ci-dev.yml" target="_blank"><img alt="GitHub Workflow Status - DEV" src="https://img.shields.io/github/actions/workflow/status/kraina-ai/overturemaestro/ci-dev.yml?label=build-dev&logo=GitHubActions&logoColor=%23fff"></a>
+    <a href="https://github.com/kraina-ai/overturemaestro/actions/workflows/ci-prod.yml" target="_blank"><img alt="GitHub Workflow Status - PROD" src="https://img.shields.io/github/actions/workflow/status/kraina-ai/overturemaestro/ci-prod.yml?label=build-prod&logo=GitHubActions&logoColor=%23fff"></a>
+    <a href="https://results.pre-commit.ci/latest/github/kraina-ai/overturemaestro/main" target="_blank"><img src="https://results.pre-commit.ci/badge/github/kraina-ai/overturemaestro/main.svg" alt="pre-commit.ci status"></a>
     <a href="https://www.codefactor.io/repository/github/kraina-ai/overturemaestro"><img alt="CodeFactor Grade" src="https://img.shields.io/codefactor/grade/github/kraina-ai/overturemaestro?logo=codefactor&logoColor=%23fff"></a>
     <a href="https://app.codecov.io/gh/kraina-ai/overturemaestro/tree/main"><img alt="Codecov" src="https://img.shields.io/codecov/c/github/kraina-ai/overturemaestro?logo=codecov&token=PRS4E02ZX0&logoColor=%23fff"></a>
-    <a href="https://pypi.org/project/overturemaestro" target="_blank">
-        <img src="https://img.shields.io/pypi/v/overturemaestro?color=%2334D058&label=pypi%20package&logo=pypi&logoColor=%23fff" alt="Package version">
-    </a>
-    <a href="https://pypi.org/project/overturemaestro" target="_blank">
-        <img src="https://img.shields.io/pypi/pyversions/overturemaestro.svg?color=%2334D058&logo=python&logoColor=%23fff" alt="Supported Python versions">
-    </a>
-    <a href="https://pypi.org/project/overturemaestro" target="_blank">
-        <img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/overturemaestro">
-    </a>
+    <a href="https://pypi.org/project/overturemaestro" target="_blank"><img src="https://img.shields.io/pypi/v/overturemaestro?color=%2334D058&label=pypi%20package&logo=pypi&logoColor=%23fff" alt="Package version"></a>
+    <a href="https://anaconda.org/conda-forge/overturemaestro" target="_blank"><img src="https://img.shields.io/conda/vn/conda-forge/overturemaestro?&logo=anaconda&logoColor=%23fff" alt="Package version"></a>
+    <a href="https://pypi.org/project/overturemaestro" target="_blank"><img src="https://img.shields.io/pypi/pyversions/overturemaestro.svg?color=%2334D058&logo=python&logoColor=%23fff" alt="Supported Python versions"></a>
+    <a href="https://pypi.org/project/overturemaestro" target="_blank"><img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/overturemaestro"></a>
 </p>
 
 # OvertureMaestro
