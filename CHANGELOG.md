@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-10-27
+
 ### Fixed
 
 - Changed Python API calls to DuckDB relations after [v2.0 release](https://duckdb.org/docs/2.0/clients/python/migration)
@@ -248,7 +250,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.7.1...HEAD
+
+[0.7.1]: https://github.com/kraina-ai/overturemaestro/compare/0.7.0...0.7.1
 
 [0.7.0]: https://github.com/kraina-ai/overturemaestro/compare/0.6.1...0.7.0
 
