@@ -5,7 +5,7 @@
 groups = ["default", "benchmark", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:9d78e40f6bad3a1774ec3bb6a623384bf28682718bcdde17a8a73ae2183716d9"
+content_hash = "sha256:8f718ff10e4aa61f84d0e739ff6d39b9c9a58a62ff730ea7e8c6d83dcb0a5c04"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -5290,7 +5290,7 @@ files = [
 
 [[package]]
 name = "rq-geo-toolkit"
-version = "2026.9.0"
+version = "2026.10.1"
 requires_python = ">=3.10"
 summary = "Collection of geo related functions for reuse in other libraries"
 groups = ["default"]
@@ -5305,8 +5305,8 @@ dependencies = [
     "shapely>=2.0.6",
 ]
 files = [
-    {file = "rq_geo_toolkit-2026.9.0-py3-none-any.whl", hash = "sha256:8a208b4f13ac316db2da59f79ec3ce9ca837bb8f00aeed590ed431146a43f1b2"},
-    {file = "rq_geo_toolkit-2026.9.0.tar.gz", hash = "sha256:fc944061e979eba1b2619a1e9a8ad0a28dd67c1335cfade73ecff787355d4329"},
+    {file = "rq_geo_toolkit-2026.10.1-py3-none-any.whl", hash = "sha256:57bdf0d260e40ec76be9d2d491b884b4af2bc4d3247fe243a478f2098163b6e9"},
+    {file = "rq_geo_toolkit-2026.10.1.tar.gz", hash = "sha256:781a8a2ffac31dbaa4f32745edc0c8b33ba8244f1d8d46f5d4c2543749c9c2c0"},
 ]
 
 [[package]]
