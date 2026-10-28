@@ -77,7 +77,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
       - name: Prepare DuckDB dependency
         run: |
-          wget https://github.com/duckdb/duckdb/releases/download/v1.1.0/duckdb_cli-linux-amd64.zip
+          wget https://github.com/duckdb/duckdb/releases/download/v1.5.6/duckdb_cli-linux-amd64.zip
           unzip duckdb_cli-linux-amd64.zip
           chmod a+x ./duckdb
       - name: Test required commands
