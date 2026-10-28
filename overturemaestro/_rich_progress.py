@@ -1,4 +1,5 @@
 from datetime import timedelta
+from threading import Lock
 from typing import Any
 
 from rich import print as rprint
@@ -25,12 +26,53 @@ __all__ = [
     "TrackProgressBar",
 ]
 
+
 def show_total_elapsed_time(elapsed_seconds: float) -> None:
     elapsed_time_formatted = str(timedelta(seconds=int(elapsed_seconds)))
     rprint(f"Finished operation in [progress.elapsed]{elapsed_time_formatted}")
 
 
-class TrackProgressSpinner(Progress):  # type: ignore[misc]
+_DISPLAY_LOCK = Lock()
+
+
+class _ConcurrentProgress(Progress):  # type: ignore[misc]
+    """Let overlapping operations proceed without competing for a live display."""
+
+    def __init__(self, *columns: Any, **kwargs: Any) -> None:
+        super().__init__(*columns, **kwargs)
+        self._owns_display = False
+        self._suppressed_display = False
+
+    def start(self) -> None:
+        """Display one operation; keep concurrent operations running silently."""
+        if self.disable or self._owns_display:
+            return
+        if not _DISPLAY_LOCK.acquire(blocking=False):
+            self.disable = True
+            self._suppressed_display = True
+            return
+        self._owns_display = True
+        try:
+            super().start()
+        except BaseException:
+            self._owns_display = False
+            _DISPLAY_LOCK.release()
+            raise
+
+    def stop(self) -> None:
+        """Release only the display owned by this operation."""
+        if self._owns_display:
+            try:
+                super().stop()
+            finally:
+                self._owns_display = False
+                _DISPLAY_LOCK.release()
+        if self._suppressed_display:
+            self.disable = False
+            self._suppressed_display = False
+
+
+class TrackProgressSpinner(_ConcurrentProgress):
     def __init__(
         self,
         task_name: str,
@@ -68,10 +110,10 @@ class SpeedColumn(ProgressColumn):  # type: ignore[misc]
         elif task.speed >= 1:
             return Text(f"{task.speed:.2f} it/s")
         else:
-            return Text(f"{1/task.speed:.2f} s/it")  # noqa: FURB126
+            return Text(f"{1 / task.speed:.2f} s/it")  # noqa: FURB126
 
 
-class TrackProgressBar(Progress):  # type: ignore[misc]
+class TrackProgressBar(_ConcurrentProgress):
     def __init__(
         self,
         verbosity_mode: VERBOSITY_MODE = "verbose",
