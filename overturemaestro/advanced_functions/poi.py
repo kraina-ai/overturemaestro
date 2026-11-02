@@ -9,7 +9,13 @@ from urllib.error import HTTPError as urllib_HTTPError
 import pandas as pd
 from fsspec.implementations.github import GithubFileSystem
 from requests import HTTPError
-from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exception,
+    wait_exponential,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
     from pandas import DataFrame
@@ -28,13 +34,22 @@ TAXONOMY_GITHUB_RAW_URL = (
 
 
 def _is_github_rate_limit_error(exception: BaseException) -> bool:
-    return isinstance(exception, HTTPError) and exception.response.status_code in (403, 429)
+    return isinstance(exception, HTTPError) and getattr(
+        exception.response, "status_code", None
+    ) in (403, 429)
+
+
+def _github_retry_after_seconds(exception: BaseException) -> float:
+    # ponytail: ignores x-ratelimit-reset, primary limit can last up to an hour
+    response = getattr(exception, "response", None)
+    retry_after = response.headers.get("Retry-After", "0") if response is not None else "0"
+    return min(float(retry_after), 60) if retry_after.isdigit() else 0
 
 
 def _get_taxonomy_github_filesystem() -> GithubFileSystem:
     # "<ref>:<path>" tree-ish lists the taxonomy directory in a single API request.
     # GITHUB_TOKEN raises the limit from 60 to 5000 requests per hour.
-    token = os.getenv("GITHUB_TOKEN")
+    token = os.getenv("GITHUB_TOKEN") or None
     return GithubFileSystem(
         org=TAXONOMY_GITHUB_ORG,
         repo=TAXONOMY_GITHUB_REPO,
@@ -46,7 +61,7 @@ def _get_taxonomy_github_filesystem() -> GithubFileSystem:
 
 @retry(
     retry=retry_if_exception(_is_github_rate_limit_error),
-    wait=wait_exponential(multiplier=2, max=60),
+    wait=wait_exception(_github_retry_after_seconds) + wait_exponential(multiplier=2, max=60),
     stop=stop_after_attempt(5),
     reraise=True,
 )
