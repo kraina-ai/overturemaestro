@@ -66,6 +66,7 @@ def _get_taxonomy_github_filesystem() -> GithubFileSystem:
     reraise=True,
 )
 def _get_taxonomy_release_versions_from_github() -> list[str]:
+    # Filesystem root is already the taxonomy directory, listed and cached on init
     available_paths = _get_taxonomy_github_filesystem().ls("")
 
     return sorted(
