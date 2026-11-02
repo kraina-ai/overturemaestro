@@ -46,13 +46,12 @@ def _wait_github_retry_after(retry_state: "RetryCallState") -> float:  # pragma:
 
 
 def _get_taxonomy_github_filesystem() -> GithubFileSystem:
-    # "<ref>:<path>" tree-ish lists the taxonomy directory in a single API request.
     # GITHUB_TOKEN raises the limit from 60 to 5000 requests per hour.
     token = os.getenv("GITHUB_TOKEN") or None
     return GithubFileSystem(
         org=TAXONOMY_GITHUB_ORG,
         repo=TAXONOMY_GITHUB_REPO,
-        sha=f"{TAXONOMY_GITHUB_REF}:{TAXONOMY_GITHUB_PATH}",
+        sha=TAXONOMY_GITHUB_REF,
         username="x-access-token" if token else None,
         token=token,
     )
@@ -65,8 +64,7 @@ def _get_taxonomy_github_filesystem() -> GithubFileSystem:
     reraise=True,
 )
 def _get_taxonomy_release_versions_from_github() -> list[str]:
-    # Filesystem root is already the taxonomy directory, listed and cached on init
-    available_paths = _get_taxonomy_github_filesystem().ls("")
+    available_paths = _get_taxonomy_github_filesystem().ls(TAXONOMY_GITHUB_PATH)
 
     return sorted(
         PurePosixPath(available_path).name
