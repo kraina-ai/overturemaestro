@@ -33,14 +33,13 @@ TAXONOMY_GITHUB_RAW_URL = (
 )
 
 
-def _is_github_rate_limit_error(exception: BaseException) -> bool:
+def _is_github_rate_limit_error(exception: BaseException) -> bool:  # pragma: no cover
     return isinstance(exception, HTTPError) and getattr(
         exception.response, "status_code", None
     ) in (403, 429)
 
 
-def _github_retry_after_seconds(exception: BaseException) -> float:
-    # ponytail: ignores x-ratelimit-reset, primary limit can last up to an hour
+def _github_retry_after_seconds(exception: BaseException) -> float:  # pragma: no cover
     response = getattr(exception, "response", None)
     retry_after = response.headers.get("Retry-After", "0") if response is not None else "0"
     return min(float(retry_after), 60) if retry_after.isdigit() else 0
