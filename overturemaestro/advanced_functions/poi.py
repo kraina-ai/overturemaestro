@@ -1,5 +1,6 @@
 """Functions for retrieving Overture Maps places data."""
 
+import os
 import warnings
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
@@ -7,6 +8,8 @@ from urllib.error import HTTPError as urllib_HTTPError
 
 import pandas as pd
 from fsspec.implementations.github import GithubFileSystem
+from requests import HTTPError
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 if TYPE_CHECKING:  # pragma: no cover
     from pandas import DataFrame
@@ -23,14 +26,32 @@ TAXONOMY_GITHUB_RAW_URL = (
     f"/refs/heads/{TAXONOMY_GITHUB_REF}/{TAXONOMY_GITHUB_PATH}"
 )
 
+
+def _is_github_rate_limit_error(exception: BaseException) -> bool:
+    return isinstance(exception, HTTPError) and exception.response.status_code in (403, 429)
+
+
 def _get_taxonomy_github_filesystem() -> GithubFileSystem:
+    # "<ref>:<path>" tree-ish lists the taxonomy directory in a single API request.
+    # GITHUB_TOKEN raises the limit from 60 to 5000 requests per hour.
+    token = os.getenv("GITHUB_TOKEN")
     return GithubFileSystem(
-        org=TAXONOMY_GITHUB_ORG, repo=TAXONOMY_GITHUB_REPO, sha=TAXONOMY_GITHUB_REF
+        org=TAXONOMY_GITHUB_ORG,
+        repo=TAXONOMY_GITHUB_REPO,
+        sha=f"{TAXONOMY_GITHUB_REF}:{TAXONOMY_GITHUB_PATH}",
+        username="x-access-token" if token else None,
+        token=token,
     )
 
 
+@retry(
+    retry=retry_if_exception(_is_github_rate_limit_error),
+    wait=wait_exponential(multiplier=2, max=60),
+    stop=stop_after_attempt(5),
+    reraise=True,
+)
 def _get_taxonomy_release_versions_from_github() -> list[str]:
-    available_paths = _get_taxonomy_github_filesystem().ls(TAXONOMY_GITHUB_PATH)
+    available_paths = _get_taxonomy_github_filesystem().ls("")
 
     return sorted(
         PurePosixPath(available_path).name
