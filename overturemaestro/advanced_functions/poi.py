@@ -9,16 +9,11 @@ from urllib.error import HTTPError as urllib_HTTPError
 import pandas as pd
 from fsspec.implementations.github import GithubFileSystem
 from requests import HTTPError
-from tenacity import (
-    retry,
-    retry_if_exception,
-    stop_after_attempt,
-    wait_exception,
-    wait_exponential,
-)
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 if TYPE_CHECKING:  # pragma: no cover
     from pandas import DataFrame
+    from tenacity import RetryCallState
 
 # Oldest release with the schema v2.0 taxonomy published in the docs repository
 TAXONOMY_MIN_RELEASE_VERSION = "2026-09-23.0"
@@ -39,10 +34,15 @@ def _is_github_rate_limit_error(exception: BaseException) -> bool:  # pragma: no
     ) in (403, 429)
 
 
-def _github_retry_after_seconds(exception: BaseException) -> float:  # pragma: no cover
+_wait_github_backoff = wait_exponential(multiplier=2, max=60)
+
+
+def _wait_github_retry_after(retry_state: "RetryCallState") -> float:  # pragma: no cover
+    exception = retry_state.outcome.exception() if retry_state.outcome else None
     response = getattr(exception, "response", None)
     retry_after = response.headers.get("Retry-After", "0") if response is not None else "0"
-    return min(float(retry_after), 60) if retry_after.isdigit() else 0
+    retry_after_seconds = min(float(retry_after), 60) if retry_after.isdigit() else 0
+    return retry_after_seconds + _wait_github_backoff(retry_state)
 
 
 def _get_taxonomy_github_filesystem() -> GithubFileSystem:
@@ -60,7 +60,7 @@ def _get_taxonomy_github_filesystem() -> GithubFileSystem:
 
 @retry(
     retry=retry_if_exception(_is_github_rate_limit_error),
-    wait=wait_exception(_github_retry_after_seconds) + wait_exponential(multiplier=2, max=60),
+    wait=_wait_github_retry_after,
     stop=stop_after_attempt(5),
     reraise=True,
 )
