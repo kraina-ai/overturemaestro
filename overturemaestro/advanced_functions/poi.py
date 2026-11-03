@@ -1,5 +1,6 @@
 """Functions for retrieving Overture Maps places data."""
 
+import os
 import warnings
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
@@ -7,9 +8,12 @@ from urllib.error import HTTPError as urllib_HTTPError
 
 import pandas as pd
 from fsspec.implementations.github import GithubFileSystem
+from requests import HTTPError
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 if TYPE_CHECKING:  # pragma: no cover
     from pandas import DataFrame
+    from tenacity import RetryCallState
 
 # Oldest release with the schema v2.0 taxonomy published in the docs repository
 TAXONOMY_MIN_RELEASE_VERSION = "2026-09-23.0"
@@ -23,12 +27,42 @@ TAXONOMY_GITHUB_RAW_URL = (
     f"/refs/heads/{TAXONOMY_GITHUB_REF}/{TAXONOMY_GITHUB_PATH}"
 )
 
+
+def _is_github_rate_limit_error(exception: BaseException) -> bool:  # pragma: no cover
+    return isinstance(exception, HTTPError) and getattr(
+        exception.response, "status_code", None
+    ) in (403, 429)
+
+
+_wait_github_backoff = wait_exponential(multiplier=2, max=60)
+
+
+def _wait_github_retry_after(retry_state: "RetryCallState") -> float:  # pragma: no cover
+    exception = retry_state.outcome.exception() if retry_state.outcome else None
+    response = getattr(exception, "response", None)
+    retry_after = response.headers.get("Retry-After", "0") if response is not None else "0"
+    retry_after_seconds = min(float(retry_after), 60) if retry_after.isdigit() else 0
+    return retry_after_seconds + _wait_github_backoff(retry_state)
+
+
 def _get_taxonomy_github_filesystem() -> GithubFileSystem:
+    # GITHUB_TOKEN raises the limit from 60 to 5000 requests per hour.
+    token = os.getenv("GITHUB_TOKEN") or None
     return GithubFileSystem(
-        org=TAXONOMY_GITHUB_ORG, repo=TAXONOMY_GITHUB_REPO, sha=TAXONOMY_GITHUB_REF
+        org=TAXONOMY_GITHUB_ORG,
+        repo=TAXONOMY_GITHUB_REPO,
+        sha=TAXONOMY_GITHUB_REF,
+        username="x-access-token" if token else None,
+        token=token,
     )
 
 
+@retry(
+    retry=retry_if_exception(_is_github_rate_limit_error),
+    wait=_wait_github_retry_after,
+    stop=stop_after_attempt(5),
+    reraise=True,
+)
 def _get_taxonomy_release_versions_from_github() -> list[str]:
     available_paths = _get_taxonomy_github_filesystem().ls(TAXONOMY_GITHUB_PATH)
 
