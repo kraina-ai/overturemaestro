@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Added `GITHUB_TOKEN` support and retries on rate limit errors when listing taxonomy releases from GitHub
+
 ## [0.7.1] - 2026-10-27
 
 ### Fixed
