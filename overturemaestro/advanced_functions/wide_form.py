@@ -345,7 +345,7 @@ def _get_all_possible_column_names(
         f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
     )
     joined_hierarchy_columns = ",".join(hierarchy_columns)
-    df = duckdb.sql(
+    df = connection.sql(
         f"""
         SELECT DISTINCT
             {joined_hierarchy_columns}
@@ -378,7 +378,7 @@ def _get_all_possible_column_names_for_poi(
     )
 
     df = (
-        duckdb.sql(
+        connection.sql(
             f"""
         SELECT DISTINCT
             taxonomy.primary as column_name
@@ -958,7 +958,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 
                     sorted_parquet_path.unlink(missing_ok=True)
             else:
-                merged_parquet_path.rename(result_file_path)
+                merged_parquet_path.replace(result_file_path)
 
     return result_file_path
 

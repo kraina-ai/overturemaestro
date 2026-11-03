@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Added `GITHUB_TOKEN` support and retries on rate limit errors when listing taxonomy releases from GitHub
+- Replaced the global DuckDB connection usage to support running functions from multiple threads
+- Writing result files atomically to support concurrent runs in the same working directory
 
 ## [0.7.1] - 2026-10-27
 

@@ -8,6 +8,7 @@ import multiprocessing
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
+from rq_geo_toolkit.file_utils import atomic_output_path
 from rq_geo_toolkit.geoparquet_compression import compress_parquet_with_duckdb
 from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 
@@ -781,7 +782,10 @@ def _generate_empty_file(
                     geoarrow_schema_filtered.get_field_index(column_name)
                 )
 
-        pq.write_table(table=pa.Table.from_pylist([], schema=schema), where=result_file_path)
+        with atomic_output_path(result_file_path) as tmp_result_file_path:
+            pq.write_table(
+                table=pa.Table.from_pylist([], schema=schema), where=tmp_result_file_path
+            )
 
     return result_file_path
 
