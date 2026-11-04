@@ -25,6 +25,7 @@ repos:
     rev: v1.20.2
     hooks:
       - id: mypy
+        stages: [pre-commit, manual]
         additional_dependencies: ['types-requests', 'types-six', 'tenacity', 'rq_geo_toolkit']
   - repo: https://github.com/pdm-project/pdm
     rev: 2.26.8
@@ -73,5 +74,5 @@ ci:
   autoupdate_branch: ""
   autoupdate_commit_msg: "build(pre-commit.ci): pre-commit autoupdate"
   autoupdate_schedule: monthly
-  skip: []
+  skip: [mypy]
   submodules: false
