@@ -94,7 +94,7 @@ def download_data_for_multiple_types(
 ) -> list[Path]: ...
 
 
-@show_total_elapsed_time_decorator(total_steps=2)
+@show_total_elapsed_time_decorator(total_steps=2)  # type: ignore[untyped-decorator]
 def download_data_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
@@ -345,7 +345,7 @@ def download_data(
 ) -> Path: ...
 
 
-@show_total_elapsed_time_decorator(total_steps=4)
+@show_total_elapsed_time_decorator(total_steps=4)  # type: ignore[untyped-decorator]
 def download_data(
     theme: str,
     type: str,
@@ -510,7 +510,7 @@ def download_data(
     return result_file_path
 
 
-@show_total_elapsed_time_decorator
+@show_total_elapsed_time_decorator  # type: ignore[untyped-decorator]
 def _download_data(
     release: str,
     theme_type_pairs: list[tuple[str, str]],

@@ -689,7 +689,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 ) -> Path: ...
 
 
-@show_total_elapsed_time_decorator(total_steps=5)
+@show_total_elapsed_time_decorator(total_steps=5)  # type: ignore[untyped-decorator]
 def convert_geometry_to_wide_form_parquet_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
