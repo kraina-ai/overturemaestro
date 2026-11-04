@@ -15,7 +15,7 @@ import pandas as pd
 import pyarrow.fs as fs
 import pyarrow.parquet as pq
 
-from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
+from overturemaestro._rich_progress import VERBOSITY_MODE, progress_display
 
 INDEX_COLUMNS = ("filename", "row_group", "xmin", "ymin", "xmax", "ymax")
 
@@ -40,7 +40,10 @@ def get_rects_parallel(
     Returns:
         pd.DataFrame: DataFrame with calculated bounding boxes.
     """
-    with TrackProgressSpinner("Reading all release parquet files", verbosity_mode=verbosity_mode):
+    with (
+        progress_display(verbosity_mode) as display,
+        display.spinner("Reading all release parquet files"),
+    ):
         dataset = pq.ParquetDataset(dataset_path, filesystem=filesystem)
         total_files = len(dataset.files)
 
@@ -49,17 +52,12 @@ def get_rects_parallel(
         no_scan_workers = min(max(min_no_workers, no_cpus + 4), 64)
 
     with (
-        TrackProgressBar(verbosity_mode=verbosity_mode) as progress,
+        progress_display(verbosity_mode) as display,
+        display.bar("Generating Overture Maps release cache index") as task,
         ProcessPoolExecutor(max_workers=min(no_scan_workers, total_files)) as ex,
     ):
         fn = partial(_parquet_path_to_dataframe, filesystem=dataset.filesystem)
-        gdfs = list(
-            progress.track(
-                ex.map(fn, dataset.files),
-                description="Generating Overture Maps release cache index",
-                total=total_files,
-            )
-        )
+        gdfs = list(task.track(ex.map(fn, dataset.files), total_files))
 
     nonempty_gdfs = [gdf for gdf in gdfs if not gdf.empty]
     if not nonempty_gdfs:

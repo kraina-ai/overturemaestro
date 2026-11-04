@@ -34,8 +34,7 @@ from overturemaestro._exceptions import (
 )
 from overturemaestro._rich_progress import (
     VERBOSITY_MODE,
-    TrackProgressBar,
-    TrackProgressSpinner,
+    progress_display,
     skip_step,
     step_group,
 )
@@ -847,16 +846,17 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             transformed_wide_form_directory_output = tmp_dir_path / "wide_form_files"
             transformed_wide_form_directory_output.mkdir(parents=True, exist_ok=True)
 
-            with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
+            with (
+                progress_display(verbosity_mode) as display,
+                display.bar("Transforming data into wide form", step="major") as task,
+            ):
                 for (
                     (theme_value, type_value),
                     hierachy_columns,
                     downloaded_parquet_file,
-                ) in progress.track(
+                ) in task.track(
                     zip(theme_type_pairs, hierachy_columns_list, downloaded_parquet_files),
-                    total=len(theme_type_pairs),
-                    description="Transforming data into wide form",
-                    step="major",
+                    len(theme_type_pairs),
                 ):
                     wide_form_definition = get_theme_type_classification(release=release)[
                         (theme_value, type_value)
@@ -898,8 +898,9 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         )
 
             if len(theme_type_pairs) > 1:
-                with TrackProgressSpinner(
-                    "Joining results to a single file", verbosity_mode=verbosity_mode, step="major"
+                with (
+                    progress_display(verbosity_mode) as display,
+                    display.spinner("Joining results to a single file", step="major"),
                 ):
                     _combine_multiple_wide_form_files(
                         theme_type_pairs=theme_type_pairs,
@@ -914,17 +915,11 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                 skip_step()
 
             if sort_result:
-                with TrackProgressBar(verbosity_mode=verbosity_mode) as progress_bar:
-                    total_rows = pq.read_metadata(merged_parquet_path).num_rows
-                    task = progress_bar.add_task(
-                        description="Sorting result file by geometry",
-                        total=total_rows,
-                        step="major",
-                    )
-
-                    def progress_callback(processed: int) -> None:
-                        progress_bar.update(task, completed=processed, refresh=True)
-
+                total_rows = pq.read_metadata(merged_parquet_path).num_rows
+                with (
+                    progress_display(verbosity_mode) as display,
+                    display.bar("Sorting result file by geometry", total_rows, step="major") as bar,
+                ):
                     columns = pq.read_schema(merged_parquet_path).names
                     value_columns = [
                         col for col in columns if col not in (INDEX_COLUMN, GEOMETRY_COLUMN)
@@ -950,7 +945,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         working_directory=working_directory,
                         sort_extent=geometry_filter.bounds,
                         verbosity_mode=verbosity_mode,
-                        progress_callback=progress_callback,
+                        progress_callback=bar.update,
                     )
 
                     compressed_parquet_path.unlink(missing_ok=True)
@@ -966,7 +961,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         verbosity_mode=verbosity_mode,
                     )
 
-                    progress_callback(total_rows)
+                    bar.update(total_rows)
 
                     sorted_parquet_path.unlink(missing_ok=True)
             else:
@@ -1284,12 +1279,12 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
     **kwargs: Any,
 ) -> list[tuple[list[str], list[str], Optional[PYARROW_FILTER]]]:
     prepared_parameters = []
-    with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-        for idx, (theme_value, type_value) in progress.track(
-            enumerate(theme_type_pairs),
-            total=len(theme_type_pairs),
-            description="Preparing download parameters",
-            step="major",
+    with (
+        progress_display(verbosity_mode) as display,
+        display.bar("Preparing download parameters", step="major") as task,
+    ):
+        for idx, (theme_value, type_value) in task.track(
+            enumerate(theme_type_pairs), len(theme_type_pairs)
         ):
             single_pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
             single_hierarchy_depth = (
@@ -1583,11 +1578,11 @@ def _download_existing_wide_form_all_column_names_release_index(
             (global_cache_directory / index_content_file_name).read_text()
         )
 
-        with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-            for theme_type_tuple in progress.track(
-                theme_type_tuples,
-                description="Downloading release indexes",
-            ):
+        with (
+            progress_display(verbosity_mode) as display,
+            display.bar("Downloading release indexes") as task,
+        ):
+            for theme_type_tuple in task.track(theme_type_tuples):
                 theme_value = theme_type_tuple["theme"]
                 type_value = theme_type_tuple["type"]
                 sha_value = theme_type_tuple["sha"]
@@ -1680,10 +1675,9 @@ def _generate_wide_form_all_column_names_release_index(
 
     file_hashes = []
 
-    with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-        for (theme_value, type_value), definition in progress.track(
-            sorted(get_theme_type_classification(release=release).items()),
-            description="Saving parquet indexes",
+    with progress_display(verbosity_mode) as display, display.bar("Saving parquet indexes") as task:
+        for (theme_value, type_value), definition in task.track(
+            sorted(get_theme_type_classification(release=release).items())
         ):
             file_name = _get_wide_form_release_index_file_name(theme_value, type_value)
             cache_file_path = cache_directory / file_name

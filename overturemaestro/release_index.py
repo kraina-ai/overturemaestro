@@ -27,7 +27,7 @@ from shapely import box
 from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._constants import GEOMETRY_COLUMN, PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
-from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar
+from overturemaestro._rich_progress import VERBOSITY_MODE, progress_display
 from overturemaestro.cache import (
     _get_global_release_cache_directory,
     _get_local_release_cache_directory,
@@ -442,11 +442,11 @@ def _download_existing_release_index(
             (global_cache_directory / index_content_file_name).read_text()
         )
 
-        with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-            for theme_type_tuple in progress.track(
-                theme_type_tuples,
-                description="Downloading release indexes",
-            ):
+        with (
+            progress_display(verbosity_mode) as display,
+            display.bar("Downloading release indexes") as task,
+        ):
+            for theme_type_tuple in task.track(theme_type_tuples):
                 theme_value = theme_type_tuple["theme"]
                 type_value = theme_type_tuple["type"]
                 sha_value = theme_type_tuple["sha"]
@@ -574,13 +574,13 @@ def _generate_release_index(
             crs=4326,
         )
 
-        with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
+        with (
+            progress_display(verbosity_mode) as display,
+            display.bar("Saving geoparquet indexes") as task,
+        ):
             theme_type_tuples = df[["theme", "type"]].drop_duplicates().reset_index(drop=True)
             file_hashes = []
-            for value_tuple in progress.track(
-                theme_type_tuples.to_dict(orient="records"),
-                description="Saving geoparquet indexes",
-            ):
+            for value_tuple in task.track(theme_type_tuples.to_dict(orient="records")):
                 theme_value = value_tuple["theme"]
                 type_value = value_tuple["type"]
                 file_name = _get_index_file_name(theme_value, type_value)

@@ -2,22 +2,20 @@
 
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional, Union
+from typing import Optional
 
 import pytest
 
-from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
+from overturemaestro._rich_progress import VERBOSITY_MODE, progress_display
 
 
 def _run_operation(
     spinner: bool, mode: VERBOSITY_MODE, inner: Optional[Callable[[], None]] = None
 ) -> None:
-    progress: Union[TrackProgressBar, TrackProgressSpinner] = (
-        TrackProgressSpinner("Working", verbosity_mode=mode)
-        if spinner
-        else TrackProgressBar(verbosity_mode=mode)
-    )
-    with progress:
+    with (
+        progress_display(mode) as display,
+        display.spinner("Working") if spinner else display.bar("Working", 1),
+    ):
         if inner:
             with ThreadPoolExecutor(max_workers=1) as executor:
                 executor.submit(inner).result(timeout=5)
@@ -35,7 +33,7 @@ def test_overlapping_operations(
 
 def test_display_recovers_after_exception() -> None:
     """Test if a failed operation releases the display for the next one."""
-    with pytest.raises(ValueError, match="operation failed"), TrackProgressBar():
+    with pytest.raises(ValueError, match="operation failed"), progress_display("transient"):
         raise ValueError("operation failed")
 
     _run_operation(False, "transient")
