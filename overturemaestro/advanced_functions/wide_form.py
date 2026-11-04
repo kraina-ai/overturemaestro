@@ -32,7 +32,13 @@ from overturemaestro._exceptions import (
     HierarchyDepthOutOfBoundsWarning,
     NegativeHierarchyDepthError,
 )
-from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
+from overturemaestro._rich_progress import (
+    VERBOSITY_MODE,
+    TrackProgressBar,
+    TrackProgressSpinner,
+    skip_step,
+    step_group,
+)
 from overturemaestro.cache import (
     _get_global_wide_form_release_cache_directory,
     _get_local_wide_form_release_cache_directory,
@@ -683,7 +689,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 ) -> Path: ...
 
 
-@show_total_elapsed_time_decorator
+@show_total_elapsed_time_decorator(total_steps=5)
 def convert_geometry_to_wide_form_parquet_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
@@ -811,6 +817,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             *prepared_download_parameters
         )
 
+        step_group("Downloading data")
         downloaded_parquet_files = download_data_for_multiple_types(
             release=release,
             theme_type_pairs=theme_type_pairs,
@@ -849,6 +856,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                     zip(theme_type_pairs, hierachy_columns_list, downloaded_parquet_files),
                     total=len(theme_type_pairs),
                     description="Transforming data into wide form",
+                    step="major",
                 ):
                     wide_form_definition = get_theme_type_classification(release=release)[
                         (theme_value, type_value)
@@ -891,7 +899,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 
             if len(theme_type_pairs) > 1:
                 with TrackProgressSpinner(
-                    "Joining results to a single file", verbosity_mode=verbosity_mode
+                    "Joining results to a single file", verbosity_mode=verbosity_mode, step="major"
                 ):
                     _combine_multiple_wide_form_files(
                         theme_type_pairs=theme_type_pairs,
@@ -902,12 +910,16 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         row_group_size=row_group_size,
                         working_directory=tmp_dir_path,
                     )
+            else:
+                skip_step()
 
             if sort_result:
                 with TrackProgressBar(verbosity_mode=verbosity_mode) as progress_bar:
                     total_rows = pq.read_metadata(merged_parquet_path).num_rows
                     task = progress_bar.add_task(
-                        description="Sorting result file by geometry", total=total_rows
+                        description="Sorting result file by geometry",
+                        total=total_rows,
+                        step="major",
                     )
 
                     def progress_callback(processed: int) -> None:
@@ -958,6 +970,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 
                     sorted_parquet_path.unlink(missing_ok=True)
             else:
+                skip_step()
                 merged_parquet_path.replace(result_file_path)
 
     return result_file_path
@@ -1276,6 +1289,7 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
             enumerate(theme_type_pairs),
             total=len(theme_type_pairs),
             description="Preparing download parameters",
+            step="major",
         ):
             single_pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
             single_hierarchy_depth = (
@@ -1737,7 +1751,7 @@ def _decompress_value_columns(
     compression: str,
     compression_level: int,
     row_group_size: int,
-    verbosity_mode: str,
+    verbosity_mode: VERBOSITY_MODE,
 ) -> None:
     select_clauses = ", ".join(
         f'{column_idx} IN column_indexes AS "{column}"'

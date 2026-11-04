@@ -6,7 +6,12 @@ from time import sleep, time
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
 from overturemaestro._constants import PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
-from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
+from overturemaestro._rich_progress import (
+    VERBOSITY_MODE,
+    TrackProgressBar,
+    TrackProgressSpinner,
+    step_group,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
     from multiprocessing.managers import ValueProxy
@@ -14,7 +19,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
     import pyarrow as pa
     import pyarrow.fs as fs
-    from rich.progress import Progress
 
 # Using `spawn` method to enable integration with Polars and probably other Rust-based libraries
 # https://docs.pola.rs/user-guide/misc/multiprocessing/
@@ -169,15 +173,16 @@ def map_parquet_dataset(
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
     """
+    step_group("Filtering data", 3)
     with TrackProgressSpinner(
-        "Preparing multiprocessing environment", verbosity_mode=verbosity_mode
+        "Preparing multiprocessing environment",
+        verbosity_mode=verbosity_mode,
+        step="minor",
     ):
         from concurrent.futures import ProcessPoolExecutor
         from functools import partial
 
         import pyarrow.parquet as pq
-
-        from overturemaestro._rich_progress import TrackProgressBar
 
         manager = SingletonContextManager(ctx=ctx)
 
@@ -212,6 +217,7 @@ def map_parquet_dataset(
                 ex.map(fn, dataset.files),
                 description="Reading all parquet files row groups",
                 total=total_files,
+                step="minor",
             )
         )
 
@@ -240,7 +246,7 @@ def map_parquet_dataset(
             for _ in range(min(no_processing_workers, total))
         ]
         with TrackProgressBar(verbosity_mode=verbosity_mode) as progress_bar:
-            progress_bar.add_task(description=progress_description, total=total)
+            progress_bar.add_task(description=progress_description, total=total, step="minor")
             _run_processes(
                 processes=processes,
                 queue=queue,
@@ -260,7 +266,7 @@ def _run_processes(
     tracker: "ValueProxy[int]",
     tracker_lock: "Lock",
     total: int,
-    progress_bar: "Progress",
+    progress_bar: TrackProgressBar,
     report_progress_as_text: bool,
 ) -> None:
     # Run processes

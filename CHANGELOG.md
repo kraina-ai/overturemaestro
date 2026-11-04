@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Progress of the whole operation is shown in a single live display from `rq_geo_toolkit`, so Jupyter cells don't get empty gaps between steps and parallel downloads don't break each other's progress bars
+- Download and wide form operations show numbered steps
+
 ### Fixed
 
+- Overlapping operations no longer crash with `LiveError` from concurrent progress displays ([#75](https://github.com/kraina-ai/overturemaestro/issues/75))
+- Total elapsed time wasn't printed when `verbosity_mode` was passed positionally or left at its default value
 - Added `GITHUB_TOKEN` support and retries on rate limit errors when listing taxonomy releases from GitHub
 - Replaced the global DuckDB connection usage to support running functions from multiple threads
 - Writing result files atomically to support concurrent runs in the same working directory
