@@ -16,7 +16,11 @@ from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
 from requests import HTTPError
 from rich import print as rprint
-from rq_geo_toolkit.duckdb import set_up_duckdb_connection, sql_escape
+from rq_geo_toolkit.duckdb import (
+    set_up_duckdb_connection,
+    sql_escape,
+    temporary_duckdb_connection,
+)
 from rq_geo_toolkit.geoparquet_compression import compress_query_with_duckdb
 from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 from shapely.geometry.base import BaseGeometry
@@ -339,9 +343,7 @@ def _transform_poi_to_wide_form(
 def _get_all_possible_column_names(
     theme: str, type: str, release_version: str, hierarchy_columns: list[str], **kwargs: Any
 ) -> "DataFrame":
-    import duckdb
-
-    with duckdb.connect() as connection:
+    with temporary_duckdb_connection() as connection:
         for extension in ("spatial", "httpfs"):
             connection.install_extension(extension)
             connection.load_extension(extension)
@@ -368,11 +370,9 @@ def _get_all_possible_column_names(
 def _get_all_possible_column_names_for_poi(
     theme: str, type: str, release_version: str, hierarchy_columns: list[str], **kwargs: Any
 ) -> "DataFrame":
-    import duckdb
-
     from overturemaestro.advanced_functions.poi import _download_taxonomy_for_release
 
-    with duckdb.connect() as connection:
+    with temporary_duckdb_connection() as connection:
         for extension in ("spatial", "httpfs"):
             connection.install_extension(extension)
             connection.load_extension(extension)
