@@ -59,7 +59,7 @@ OvertureMaestro supports **Python >= 3.10**
 
 Required:
 
-- `overturemaps (>=0.8.0)`: Reusing oficial CLI library with dedicated schema related functions
+- `overturemaps (>=0.8.0)`: Reusing official CLI library with dedicated schema related functions
 
 - `pyarrow (>=16.0.0)`: For OvertureMaps GeoParquet dataset wrangling
 
