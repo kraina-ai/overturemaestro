@@ -6,7 +6,12 @@ from time import sleep, time
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
 from overturemaestro._constants import PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SIZE
-from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressSpinner
+from overturemaestro._rich_progress import (
+    VERBOSITY_MODE,
+    ProgressTask,
+    progress_display,
+    step_group,
+)
 
 if TYPE_CHECKING:  # pragma: no cover
     from multiprocessing.managers import ValueProxy
@@ -14,7 +19,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
     import pyarrow as pa
     import pyarrow.fs as fs
-    from rich.progress import Progress
 
 # Using `spawn` method to enable integration with Polars and probably other Rust-based libraries
 # https://docs.pola.rs/user-guide/misc/multiprocessing/
@@ -169,15 +173,15 @@ def map_parquet_dataset(
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
     """
-    with TrackProgressSpinner(
-        "Preparing multiprocessing environment", verbosity_mode=verbosity_mode
+    step_group("Filtering data", 3)
+    with (
+        progress_display(verbosity_mode) as display,
+        display.spinner("Preparing multiprocessing environment", step="minor"),
     ):
         from concurrent.futures import ProcessPoolExecutor
         from functools import partial
 
         import pyarrow.parquet as pq
-
-        from overturemaestro._rich_progress import TrackProgressBar
 
         manager = SingletonContextManager(ctx=ctx)
 
@@ -203,17 +207,12 @@ def map_parquet_dataset(
     total_files = len(dataset.files)
 
     with (
-        TrackProgressBar(verbosity_mode=verbosity_mode) as progress,
+        progress_display(verbosity_mode) as display,
+        display.bar("Reading all parquet files row groups", step="minor") as task,
         ProcessPoolExecutor(max_workers=min(no_scan_workers, total_files)) as ex,
     ):
         fn = partial(_read_row_group_number, filesystem=dataset.filesystem)
-        row_group_numbers = list(
-            progress.track(
-                ex.map(fn, dataset.files),
-                description="Reading all parquet files row groups",
-                total=total_files,
-            )
-        )
+        row_group_numbers = list(task.track(ex.map(fn, dataset.files), total_files))
 
         for pq_file, row_group_number in zip(dataset.files, row_group_numbers):
             for row_group in range(row_group_number):
@@ -239,8 +238,10 @@ def map_parquet_dataset(
             )
             for _ in range(min(no_processing_workers, total))
         ]
-        with TrackProgressBar(verbosity_mode=verbosity_mode) as progress_bar:
-            progress_bar.add_task(description=progress_description, total=total)
+        with (
+            progress_display(verbosity_mode) as display,
+            display.bar(progress_description, total, step="minor") as progress_bar,
+        ):
             _run_processes(
                 processes=processes,
                 queue=queue,
@@ -260,7 +261,7 @@ def _run_processes(
     tracker: "ValueProxy[int]",
     tracker_lock: "Lock",
     total: int,
-    progress_bar: "Progress",
+    progress_bar: ProgressTask,
     report_progress_as_text: bool,
 ) -> None:
     # Run processes
@@ -278,7 +279,7 @@ def _run_processes(
         with tracker_lock:
             completed = tracker.value
 
-        progress_bar.update(task_id=progress_bar.task_ids[0], completed=completed, refresh=True)
+        progress_bar.update(completed)
 
         if report_progress_as_text:
             current_time = time()
@@ -289,7 +290,7 @@ def _run_processes(
         sleep(sleep_time)
         sleep_time = min(1.0, sleep_time + 0.1)
 
-    progress_bar.update(task_id=progress_bar.task_ids[0], completed=total, refresh=True)
+    progress_bar.update(total)
 
 
 def _report_exceptions(processes: list[WorkerProcess]) -> None:
