@@ -17,8 +17,12 @@ def _run_operation(
         display.spinner("Working") if spinner else display.bar("Working", 1),
     ):
         if inner:
-            with ThreadPoolExecutor(max_workers=1) as executor:
+            executor = ThreadPoolExecutor(max_workers=1)
+            try:
                 executor.submit(inner).result(timeout=5)
+            finally:
+                # waiting for a blocked operation would hang the test instead of failing it
+                executor.shutdown(wait=False)
 
 
 @pytest.mark.parametrize("outer_spinner", [False, True])  # type: ignore
