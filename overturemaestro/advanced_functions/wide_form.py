@@ -912,7 +912,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         working_directory=tmp_dir_path,
                     )
             else:
-                skip_step()
+                skip_step("Joining results to a single file")
 
             if sort_result:
                 total_rows = pq.read_metadata(merged_parquet_path).num_rows
@@ -965,7 +965,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 
                     sorted_parquet_path.unlink(missing_ok=True)
             else:
-                skip_step()
+                skip_step("Sorting result file by geometry")
                 merged_parquet_path.replace(result_file_path)
 
     return result_file_path

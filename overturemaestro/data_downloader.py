@@ -610,9 +610,14 @@ def _download_prepared_row_groups(
     from overturemaestro._rich_progress import progress_display, skip_step
 
     total_row_groups = len(all_row_groups_to_download)
+    theme_type_task_description = (
+        f"{theme_type_pairs[0][0]}/{theme_type_pairs[0][1]}"
+        if len(theme_type_pairs) == 1
+        else f"{len(theme_type_pairs)} datasets"
+    )
 
     if total_row_groups == 0:
-        skip_step()
+        skip_step(f"Downloading parquet files ({theme_type_task_description})")
         return []
 
     min_no_workers = 8
@@ -623,11 +628,6 @@ def _download_prepared_row_groups(
     if max_workers:
         no_workers = min(max_workers, no_workers)
 
-    theme_type_task_description = (
-        f"{theme_type_pairs[0][0]}/{theme_type_pairs[0][1]}"
-        if len(theme_type_pairs) == 1
-        else f"{len(theme_type_pairs)} datasets"
-    )
     with (
         progress_display(verbosity_mode) as display,
         display.bar(
@@ -670,14 +670,14 @@ def _filter_downloaded_files(
     from overturemaestro._parquet_multiprocessing import map_parquet_dataset
     from overturemaestro._rich_progress import skip_step
 
+    theme_type_task_description = (
+        f"{theme_type_pairs[0][0]}/{theme_type_pairs[0][1]}"
+        if len(theme_type_pairs) == 1
+        else f"{len(theme_type_pairs)} datasets"
+    )
     if not geometry_filter.equals(geometry_filter.envelope):
         destination_path = working_directory / Path("intersected_data")
         fn = partial(_filter_data_properly, geometry_filter=geometry_filter)
-        theme_type_task_description = (
-            f"{theme_type_pairs[0][0]}/{theme_type_pairs[0][1]}"
-            if len(theme_type_pairs) == 1
-            else f"{len(theme_type_pairs)} datasets"
-        )
         map_parquet_dataset(
             dataset_path=downloaded_parquet_files,
             destination_path=destination_path,
@@ -690,7 +690,7 @@ def _filter_downloaded_files(
 
         filtered_parquet_files = list(destination_path.glob("**/*.parquet"))
     else:
-        skip_step()
+        skip_step(f"Filtering data by geometry ({theme_type_task_description})")
         filtered_parquet_files = downloaded_parquet_files
 
     return filtered_parquet_files

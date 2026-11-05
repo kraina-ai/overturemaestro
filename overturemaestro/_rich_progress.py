@@ -31,8 +31,8 @@ def step_group(description: str, total: int = 0) -> None:
         display.step_group(description, total)
 
 
-def skip_step() -> None:
-    """Count a step of the current operation that has nothing to do."""
+def skip_step(description: str) -> None:
+    """Count a step of the current operation that has nothing to do and show it as skipped."""
     with progress_display() as display:
         if display.steps:
-            display.steps.next_step()
+            display.skip_step(description)
