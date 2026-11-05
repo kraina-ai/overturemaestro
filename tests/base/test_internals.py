@@ -63,7 +63,7 @@ def test_generate_empty_file_with_selected_columns(
         theme="places",
         type="place",
         release=test_release_version,
-        columns_to_download=[INDEX_COLUMN, "confidence"],
+        columns_to_download=["confidence"],
         working_directory=tmp_path,
         verbosity_mode="silent",
     )

@@ -814,6 +814,9 @@ def _generate_empty_file(
                     f"Cannot download given columns: {', '.join(sorted(nonexistent_columns))}"
                 )
 
+            if INDEX_COLUMN not in columns_to_download:
+                columns_to_download.append(INDEX_COLUMN)
+
             if GEOMETRY_COLUMN not in columns_to_download:
                 columns_to_download.append(GEOMETRY_COLUMN)
 
