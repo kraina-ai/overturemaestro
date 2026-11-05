@@ -6,12 +6,15 @@ from typing import Any, Optional
 import pyarrow.parquet as pq
 import pytest
 from parametrization import Parametrization as P
+from shapely.geometry import Polygon, box
 
 from overturemaestro._constants import GEOMETRY_COLUMN, INDEX_COLUMN, PARQUET_COMPRESSION
 from overturemaestro._exceptions import MissingColumnError
 from overturemaestro.functions import (
     convert_bounding_box_to_geodataframe,
     convert_bounding_box_to_parquet,
+    convert_geometry_to_parquet,
+    convert_geometry_to_parquet_for_multiple_types,
 )
 from overturemaestro.release_index import get_available_theme_type_pairs
 from tests.conftest import TEST_RELEASE_VERSION, bbox
@@ -85,6 +88,36 @@ def test_columns_download(
             for column_name in (columns_to_download or [])
             if column_name != INDEX_COLUMN  # skip indexed column
         )
+
+
+@pytest.mark.parametrize("sort_result", [True, False])  # type: ignore
+@pytest.mark.parametrize(
+    "geometry_filter",
+    [
+        box(7.416, 43.731, 7.421, 43.734),
+        Polygon([(7.416, 43.731), (7.421, 43.731), (7.416, 43.734)]),
+    ],
+    ids=["rectangle", "triangle"],
+)  # type: ignore
+def test_step_counts(
+    geometry_filter: Polygon, sort_result: bool, test_release_version: str
+) -> None:
+    """Test all branches of numbered steps, checked by the `check_step_counts` fixture."""
+    convert_geometry_to_parquet(
+        "places",
+        "place",
+        geometry_filter,
+        release=test_release_version,
+        sort_result=sort_result,
+        ignore_cache=True,
+    )
+    convert_geometry_to_parquet_for_multiple_types(
+        [("places", "place"), ("base", "water")],
+        geometry_filter,
+        release=test_release_version,
+        sort_result=sort_result,
+        ignore_cache=True,
+    )
 
 
 def test_empty_region(test_release_version: str) -> None:

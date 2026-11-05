@@ -45,6 +45,7 @@ from overturemaestro.cache import (
 from overturemaestro.data_downloader import (
     PYARROW_FILTER,
     _generate_geometry_hash,
+    _get_result_files,
     download_data_for_multiple_types,
 )
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
@@ -340,27 +341,26 @@ def _get_all_possible_column_names(
 ) -> "DataFrame":
     import duckdb
 
-    connection = duckdb.connect()
+    with duckdb.connect() as connection:
+        for extension in ("spatial", "httpfs"):
+            connection.install_extension(extension)
+            connection.load_extension(extension)
 
-    for extension in ("spatial", "httpfs"):
-        connection.install_extension(extension)
-        connection.load_extension(extension)
-
-    dataset_path = (
-        f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
-    )
-    joined_hierarchy_columns = ",".join(hierarchy_columns)
-    df = connection.sql(
-        f"""
-        SELECT DISTINCT
-            {joined_hierarchy_columns}
-        FROM read_parquet(
-            '{dataset_path}',
-            hive_partitioning=false
+        dataset_path = (
+            f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
         )
-        ORDER BY ALL
-        """
-    ).to_df()
+        joined_hierarchy_columns = ",".join(hierarchy_columns)
+        df = connection.sql(
+            f"""
+            SELECT DISTINCT
+                {joined_hierarchy_columns}
+            FROM read_parquet(
+                '{dataset_path}',
+                hive_partitioning=false
+            )
+            ORDER BY ALL
+            """
+        ).to_df()
 
     return df
 
@@ -372,39 +372,38 @@ def _get_all_possible_column_names_for_poi(
 
     from overturemaestro.advanced_functions.poi import _download_taxonomy_for_release
 
-    connection = duckdb.connect()
+    with duckdb.connect() as connection:
+        for extension in ("spatial", "httpfs"):
+            connection.install_extension(extension)
+            connection.load_extension(extension)
 
-    for extension in ("spatial", "httpfs"):
-        connection.install_extension(extension)
-        connection.load_extension(extension)
+        dataset_path = (
+            f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
+        )
 
-    dataset_path = (
-        f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
-    )
-
-    df = (
-        connection.sql(
-            f"""
-        SELECT DISTINCT
-            taxonomy.primary as column_name
-        FROM read_parquet(
-            '{dataset_path}',
-            hive_partitioning=false
+        df = (
+            connection.sql(
+                f"""
+            SELECT DISTINCT
+                taxonomy.primary as column_name
+            FROM read_parquet(
+                '{dataset_path}',
+                hive_partitioning=false
+            )
+            UNION
+            SELECT DISTINCT
+                UNNEST(taxonomy.alternates) as column_name
+            FROM read_parquet(
+                '{dataset_path}',
+                hive_partitioning=false
+            )
+            """
+            )
+            .to_df()
+            .dropna()
+            .sort_values(by="column_name")
+            .reset_index(drop=True)
         )
-        UNION
-        SELECT DISTINCT
-            UNNEST(taxonomy.alternates) as column_name
-        FROM read_parquet(
-            '{dataset_path}',
-            hive_partitioning=false
-        )
-        """
-        )
-        .to_df()
-        .dropna()
-        .sort_values(by="column_name")
-        .reset_index(drop=True)
-    )
 
     hierarchy_data = _download_taxonomy_for_release(release_version)
 
@@ -816,25 +815,42 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             *prepared_download_parameters
         )
 
-        step_group("Downloading data")
-        downloaded_parquet_files = download_data_for_multiple_types(
-            release=release,
-            theme_type_pairs=theme_type_pairs,
-            geometry_filter=geometry_filter,
-            pyarrow_filters=pyarrow_filter_list,
-            columns_to_download=[
-                [INDEX_COLUMN, GEOMETRY_COLUMN, *columns_to_download]
-                for columns_to_download in columns_to_download_list
-            ],
-            compression=compression,
-            compression_level=compression_level,
-            row_group_size=row_group_size,
-            ignore_cache=ignore_cache,
-            working_directory=working_directory,
-            verbosity_mode=verbosity_mode,
-            max_workers=max_workers,
-            sort_result=False,
-        )
+        columns_to_download_per_type: list[Optional[list[str]]] = [
+            [INDEX_COLUMN, GEOMETRY_COLUMN, *columns_to_download]
+            for columns_to_download in columns_to_download_list
+        ]
+        downloaded_parquet_files = [
+            downloaded_file_path
+            for downloaded_file_path, _ in _get_result_files(
+                release=release,
+                theme_type_pairs=theme_type_pairs,
+                geometry_filter=geometry_filter,
+                pyarrow_filters=pyarrow_filter_list,
+                columns_to_download=columns_to_download_per_type,
+                working_directory=Path(working_directory),
+                sort_result=False,
+            )
+        ]
+        # a group has to be started before the download, so check for cached files first
+        if ignore_cache or not all(path.exists() for path in downloaded_parquet_files):
+            step_group("Downloading data")
+            downloaded_parquet_files = download_data_for_multiple_types(
+                release=release,
+                theme_type_pairs=theme_type_pairs,
+                geometry_filter=geometry_filter,
+                pyarrow_filters=pyarrow_filter_list,
+                columns_to_download=columns_to_download_per_type,
+                compression=compression,
+                compression_level=compression_level,
+                row_group_size=row_group_size,
+                ignore_cache=ignore_cache,
+                working_directory=working_directory,
+                verbosity_mode=verbosity_mode,
+                max_workers=max_workers,
+                sort_result=False,
+            )
+        else:
+            skip_step("Downloading data")
 
         with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
             tmp_dir_path = Path(tmp_dir_name)

@@ -169,35 +169,27 @@ def download_data_for_multiple_types(
     working_directory = Path(working_directory)
     working_directory.mkdir(parents=True, exist_ok=True)
 
-    all_result_file_paths = []
     theme_type_pairs_to_download = []
     pyarrow_filters_list = []
     columns_to_download_list = []
     result_file_paths_to_download = []
-    for idx, (theme_value, type_value) in enumerate(theme_type_pairs):
-        _pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
-        _columns_to_download = columns_to_download[idx] if columns_to_download else None
-
-        if _pyarrow_filter is not None:
-            from pyarrow.parquet import filters_to_expression
-
-            _pyarrow_filter = filters_to_expression(_pyarrow_filter)
-
-        result_file_path = working_directory / _generate_result_file_path(
-            release=release,
-            theme=theme_value,
-            type=type_value,
-            geometry_filter=geometry_filter,
-            pyarrow_filter=_pyarrow_filter,
-            columns_to_download=_columns_to_download,
-            sort_result=sort_result,
-        )
-        all_result_file_paths.append(result_file_path)
-
+    result_files = _get_result_files(
+        release=release,
+        theme_type_pairs=theme_type_pairs,
+        geometry_filter=geometry_filter,
+        pyarrow_filters=pyarrow_filters,
+        columns_to_download=columns_to_download,
+        working_directory=working_directory,
+        sort_result=sort_result,
+    )
+    all_result_file_paths = [result_file_path for result_file_path, _ in result_files]
+    for idx, (result_file_path, _pyarrow_filter) in enumerate(result_files):
         if not result_file_path.exists() or ignore_cache:
-            theme_type_pairs_to_download.append((theme_value, type_value))
+            theme_type_pairs_to_download.append(theme_type_pairs[idx])
             pyarrow_filters_list.append(_pyarrow_filter)
-            columns_to_download_list.append(_columns_to_download)
+            columns_to_download_list.append(
+                columns_to_download[idx] if columns_to_download else None
+            )
             result_file_paths_to_download.append(result_file_path)
 
     if theme_type_pairs_to_download:
@@ -272,9 +264,41 @@ def download_data_for_multiple_types(
                             compression_level=compression_level,
                             row_group_size=row_group_size,
                             working_directory=working_directory,
+                            verbosity_mode=verbosity_mode,
                         )
 
     return all_result_file_paths
+
+
+def _get_result_files(
+    release: str,
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: "BaseGeometry",
+    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]],
+    columns_to_download: Optional[list[Optional[list[str]]]],
+    working_directory: Path,
+    sort_result: bool,
+) -> list[tuple[Path, Optional["Expression"]]]:
+    from pyarrow.parquet import filters_to_expression
+
+    result_files = []
+    for idx, (theme_value, type_value) in enumerate(theme_type_pairs):
+        _pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
+        if _pyarrow_filter is not None:
+            _pyarrow_filter = filters_to_expression(_pyarrow_filter)
+
+        result_file_path = working_directory / _generate_result_file_path(
+            release=release,
+            theme=theme_value,
+            type=type_value,
+            geometry_filter=geometry_filter,
+            pyarrow_filter=_pyarrow_filter,
+            columns_to_download=columns_to_download[idx] if columns_to_download else None,
+            sort_result=sort_result,
+        )
+        result_files.append((result_file_path, _pyarrow_filter))
+
+    return result_files
 
 
 @overload
@@ -493,6 +517,7 @@ def download_data(
                         compression_level=compression_level,
                         row_group_size=row_group_size,
                         working_directory=working_directory,
+                        verbosity_mode=verbosity_mode,
                     )
 
     return result_file_path
@@ -690,7 +715,7 @@ def _filter_downloaded_files(
 
         filtered_parquet_files = list(destination_path.glob("**/*.parquet"))
     else:
-        skip_step(f"Filtering data by geometry ({theme_type_task_description})")
+        skip_step("Filtering data")
         filtered_parquet_files = downloaded_parquet_files
 
     return filtered_parquet_files
@@ -809,7 +834,8 @@ def _generate_empty_file(
 
         with atomic_output_path(result_file_path) as tmp_result_file_path:
             pq.write_table(
-                table=pa.Table.from_pylist([], schema=schema), where=tmp_result_file_path
+                table=pa.Table.from_pylist([], schema=geoarrow_schema_filtered),
+                where=tmp_result_file_path,
             )
 
     return result_file_path

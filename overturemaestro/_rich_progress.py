@@ -1,14 +1,12 @@
 """Step helpers over the shared progress display."""
 
 from rq_geo_toolkit.rich_utils import (
-    FORCE_TERMINAL,
     VERBOSITY_MODE,
     ProgressTask,
     progress_display,
 )
 
 __all__ = [
-    "FORCE_TERMINAL",
     "VERBOSITY_MODE",
     "ProgressTask",
     "add_steps",
