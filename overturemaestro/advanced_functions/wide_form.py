@@ -1,6 +1,7 @@
 """Functions for retrieving Overture Maps features in a wide form."""
 
 import json
+import shutil
 import tempfile
 import warnings
 from dataclasses import dataclass
@@ -21,6 +22,7 @@ from rq_geo_toolkit.duckdb import (
     sql_escape,
     temporary_duckdb_connection,
 )
+from rq_geo_toolkit.file_utils import atomic_output_path
 from rq_geo_toolkit.geoparquet_compression import compress_query_with_duckdb
 from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 from shapely.geometry.base import BaseGeometry
@@ -982,7 +984,9 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                     sorted_parquet_path.unlink(missing_ok=True)
             else:
                 skip_step("Sorting result file by geometry")
-                merged_parquet_path.replace(result_file_path)
+                # moved through a temporary file, because the result can be on another filesystem
+                with atomic_output_path(result_file_path) as tmp_result_file_path:
+                    shutil.move(merged_parquet_path, tmp_result_file_path)
 
     return result_file_path
 
