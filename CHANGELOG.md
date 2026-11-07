@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Progress of the whole operation is shown in a single live display from `rq_geo_toolkit`, so Jupyter cells don't get empty gaps between steps and parallel downloads don't break each other's progress bars
 - Download and wide form operations show numbered steps, steps with nothing to do are shown as skipped
+- Bumped minimal `rq_geo_toolkit` version to `2026.11.2`, which marks failed progress steps
 
 ### Fixed
 
