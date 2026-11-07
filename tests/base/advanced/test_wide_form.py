@@ -4,6 +4,7 @@ from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from typing import Any, Optional
 
+import pyarrow.parquet as pq
 import pytest
 from parametrization import Parametrization as P
 from shapely import box
@@ -394,6 +395,31 @@ def test_places_use_primary_category_only_parameter(
     assert primary_only.sum().sum() <= all_categories.sum().sum(), (
         "Primary only has more categories than all categories."
     )
+
+
+def test_unsorted_result_saved_outside_of_working_directory(
+    test_release_version: str, wide_form_working_directory: Path, tmp_path: Path
+) -> None:
+    """Test if an unsorted result is moved to a result path outside of the working directory."""
+    result_file_path = tmp_path / "nested" / "unsorted.parquet"
+    result_file_path.parent.mkdir()
+
+    returned_path = convert_bounding_box_to_wide_form_parquet(
+        theme="base",
+        type="water",
+        bbox=bbox(),
+        release=test_release_version,
+        result_file_path=result_file_path,
+        working_directory=wide_form_working_directory,
+        verbosity_mode="silent",
+        ignore_cache=True,
+        include_all_possible_columns=False,
+        sort_result=False,
+    )
+
+    assert returned_path == result_file_path
+    assert [path.name for path in result_file_path.parent.iterdir()] == [result_file_path.name]
+    assert pq.read_metadata(result_file_path).num_rows > 0
 
 
 def test_generate_result_file_name_order(
