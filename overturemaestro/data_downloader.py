@@ -8,6 +8,7 @@ import multiprocessing
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast, overload
 
+from rq_geo_toolkit.file_utils import atomic_output_path
 from rq_geo_toolkit.geoparquet_compression import compress_parquet_with_duckdb
 from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 
@@ -19,7 +20,6 @@ from overturemaestro._constants import (
     PARQUET_ROW_GROUP_SIZE,
 )
 from overturemaestro._exceptions import MissingColumnError
-from overturemaestro._rich_progress import TrackProgressBar
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -93,7 +93,7 @@ def download_data_for_multiple_types(
 ) -> list[Path]: ...
 
 
-@show_total_elapsed_time_decorator
+@show_total_elapsed_time_decorator(total_steps=2)  # type: ignore[untyped-decorator]
 def download_data_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: "BaseGeometry",
@@ -154,7 +154,7 @@ def download_data_for_multiple_types(
     import pyarrow.dataset as ds
     import pyarrow.parquet as pq
 
-    from overturemaestro._rich_progress import TrackProgressBar
+    from overturemaestro._rich_progress import add_steps, progress_display
     from overturemaestro.release_index import get_newest_release_version
 
     if pyarrow_filters is not None and len(theme_type_pairs) != len(pyarrow_filters):
@@ -169,38 +169,32 @@ def download_data_for_multiple_types(
     working_directory = Path(working_directory)
     working_directory.mkdir(parents=True, exist_ok=True)
 
-    all_result_file_paths = []
     theme_type_pairs_to_download = []
     pyarrow_filters_list = []
     columns_to_download_list = []
     result_file_paths_to_download = []
-    for idx, (theme_value, type_value) in enumerate(theme_type_pairs):
-        _pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
-        _columns_to_download = columns_to_download[idx] if columns_to_download else None
-
-        if _pyarrow_filter is not None:
-            from pyarrow.parquet import filters_to_expression
-
-            _pyarrow_filter = filters_to_expression(_pyarrow_filter)
-
-        result_file_path = working_directory / _generate_result_file_path(
-            release=release,
-            theme=theme_value,
-            type=type_value,
-            geometry_filter=geometry_filter,
-            pyarrow_filter=_pyarrow_filter,
-            columns_to_download=_columns_to_download,
-            sort_result=sort_result,
-        )
-        all_result_file_paths.append(result_file_path)
-
+    result_files = _get_result_files(
+        release=release,
+        theme_type_pairs=theme_type_pairs,
+        geometry_filter=geometry_filter,
+        pyarrow_filters=pyarrow_filters,
+        columns_to_download=columns_to_download,
+        working_directory=working_directory,
+        sort_result=sort_result,
+    )
+    all_result_file_paths = [result_file_path for result_file_path, _ in result_files]
+    for idx, (result_file_path, _pyarrow_filter) in enumerate(result_files):
         if not result_file_path.exists() or ignore_cache:
-            theme_type_pairs_to_download.append((theme_value, type_value))
+            theme_type_pairs_to_download.append(theme_type_pairs[idx])
             pyarrow_filters_list.append(_pyarrow_filter)
-            columns_to_download_list.append(_columns_to_download)
+            columns_to_download_list.append(
+                columns_to_download[idx] if columns_to_download else None
+            )
             result_file_paths_to_download.append(result_file_path)
 
     if theme_type_pairs_to_download:
+        # every dataset is saved and then sorted or compressed in separate steps
+        add_steps(2 * len(theme_type_pairs_to_download))
         with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
             tmp_dir_path = Path(tmp_dir_name)
             raw_parquet_files_per_pair = _download_data(
@@ -214,25 +208,38 @@ def download_data_for_multiple_types(
                 max_workers=max_workers,
             )
 
-            with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-                for result_file_path, raw_parquet_files in progress.track(
-                    zip(result_file_paths_to_download, raw_parquet_files_per_pair),
-                    total=len(result_file_paths_to_download),
-                    description="Saving final geoparquet files",
-                ):
-                    final_dataset = ds.dataset(raw_parquet_files)
-                    result_file_path.parent.mkdir(exist_ok=True, parents=True)
+            for (theme_value, type_value), result_file_path, raw_parquet_files in zip(
+                theme_type_pairs_to_download,
+                result_file_paths_to_download,
+                raw_parquet_files_per_pair,
+            ):
+                dataset_name = f"{theme_value}/{type_value}"
+                final_dataset = ds.dataset(raw_parquet_files)
+                result_file_path.parent.mkdir(exist_ok=True, parents=True)
 
-                    merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
-                    with pq.ParquetWriter(
+                merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
+                with (
+                    progress_display(verbosity_mode) as display,
+                    display.spinner(f"Saving final geoparquet file ({dataset_name})", step="major"),
+                    pq.ParquetWriter(
                         merged_parquet_path,
                         schema=final_dataset.schema,
                         compression=PARQUET_COMPRESSION,
-                    ) as writer:
-                        for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):
-                            writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
+                    ) as writer,
+                ):
+                    for batch in final_dataset.to_batches(batch_size=PARQUET_ROW_GROUP_SIZE):
+                        writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
 
-                    if sort_result:
+                if sort_result:
+                    total_rows = pq.read_metadata(merged_parquet_path).num_rows
+                    with (
+                        progress_display(verbosity_mode) as display,
+                        display.bar(
+                            f"Sorting result file by geometry ({dataset_name})",
+                            total_rows,
+                            step="major",
+                        ) as bar,
+                    ):
                         sort_geoparquet_file_by_geometry(
                             input_file_path=merged_parquet_path,
                             output_file_path=result_file_path,
@@ -242,8 +249,14 @@ def download_data_for_multiple_types(
                             row_group_size=row_group_size,
                             working_directory=working_directory,
                             verbosity_mode=verbosity_mode,
+                            progress_callback=bar.update,
                         )
-                    else:
+                        bar.update(total_rows)
+                else:
+                    with (
+                        progress_display(verbosity_mode) as display,
+                        display.spinner(f"Compressing result file ({dataset_name})", step="major"),
+                    ):
                         compress_parquet_with_duckdb(
                             input_file_path=merged_parquet_path,
                             output_file_path=result_file_path,
@@ -255,6 +268,37 @@ def download_data_for_multiple_types(
                         )
 
     return all_result_file_paths
+
+
+def _get_result_files(
+    release: str,
+    theme_type_pairs: list[tuple[str, str]],
+    geometry_filter: "BaseGeometry",
+    pyarrow_filters: Optional[list[Optional[PYARROW_FILTER]]],
+    columns_to_download: Optional[list[Optional[list[str]]]],
+    working_directory: Path,
+    sort_result: bool,
+) -> list[tuple[Path, Optional["Expression"]]]:
+    from pyarrow.parquet import filters_to_expression
+
+    result_files = []
+    for idx, (theme_value, type_value) in enumerate(theme_type_pairs):
+        _pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
+        if _pyarrow_filter is not None:
+            _pyarrow_filter = filters_to_expression(_pyarrow_filter)
+
+        result_file_path = working_directory / _generate_result_file_path(
+            release=release,
+            theme=theme_value,
+            type=type_value,
+            geometry_filter=geometry_filter,
+            pyarrow_filter=_pyarrow_filter,
+            columns_to_download=columns_to_download[idx] if columns_to_download else None,
+            sort_result=sort_result,
+        )
+        result_files.append((result_file_path, _pyarrow_filter))
+
+    return result_files
 
 
 @overload
@@ -319,7 +363,7 @@ def download_data(
 ) -> Path: ...
 
 
-@show_total_elapsed_time_decorator
+@show_total_elapsed_time_decorator(total_steps=4)  # type: ignore[untyped-decorator]
 def download_data(
     theme: str,
     type: str,
@@ -385,7 +429,7 @@ def download_data(
     import pyarrow.dataset as ds
     import pyarrow.parquet as pq
 
-    from overturemaestro._rich_progress import TrackProgressSpinner
+    from overturemaestro._rich_progress import progress_display
     from overturemaestro.release_index import get_newest_release_version
 
     if not release:
@@ -432,7 +476,8 @@ def download_data(
 
             merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
             with (
-                TrackProgressSpinner("Saving final geoparquet file", verbosity_mode=verbosity_mode),
+                progress_display(verbosity_mode) as display,
+                display.spinner("Saving final geoparquet file", step="major"),
                 pq.ParquetWriter(
                     merged_parquet_path,
                     schema=final_dataset.schema,
@@ -443,15 +488,11 @@ def download_data(
                     writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
 
             if sort_result:
-                with TrackProgressBar(verbosity_mode=verbosity_mode) as progress_bar:
-                    total_rows = pq.read_metadata(merged_parquet_path).num_rows
-                    task = progress_bar.add_task(
-                        description="Sorting result file by geometry", total=total_rows
-                    )
-
-                    def progress_callback(processed: int) -> None:
-                        progress_bar.update(task, completed=processed, refresh=True)
-
+                total_rows = pq.read_metadata(merged_parquet_path).num_rows
+                with (
+                    progress_display(verbosity_mode) as display,
+                    display.bar("Sorting result file by geometry", total_rows, step="major") as bar,
+                ):
                     sort_geoparquet_file_by_geometry(
                         input_file_path=merged_parquet_path,
                         output_file_path=result_file_path,
@@ -461,11 +502,14 @@ def download_data(
                         row_group_size=row_group_size,
                         working_directory=working_directory,
                         verbosity_mode=verbosity_mode,
-                        progress_callback=progress_callback,
+                        progress_callback=bar.update,
                     )
-                    progress_callback(total_rows)
+                    bar.update(total_rows)
             else:
-                with TrackProgressSpinner("Compressing result file", verbosity_mode=verbosity_mode):
+                with (
+                    progress_display(verbosity_mode) as display,
+                    display.spinner("Compressing result file", step="major"),
+                ):
                     compress_parquet_with_duckdb(
                         input_file_path=merged_parquet_path,
                         output_file_path=result_file_path,
@@ -473,12 +517,13 @@ def download_data(
                         compression_level=compression_level,
                         row_group_size=row_group_size,
                         working_directory=working_directory,
+                        verbosity_mode=verbosity_mode,
                     )
 
     return result_file_path
 
 
-@show_total_elapsed_time_decorator
+@show_total_elapsed_time_decorator  # type: ignore[untyped-decorator]
 def _download_data(
     release: str,
     theme_type_pairs: list[tuple[str, str]],
@@ -587,11 +632,17 @@ def _download_prepared_row_groups(
     from concurrent.futures import ProcessPoolExecutor
     from functools import partial
 
-    from overturemaestro._rich_progress import TrackProgressBar
+    from overturemaestro._rich_progress import progress_display, skip_step
 
     total_row_groups = len(all_row_groups_to_download)
+    theme_type_task_description = (
+        f"{theme_type_pairs[0][0]}/{theme_type_pairs[0][1]}"
+        if len(theme_type_pairs) == 1
+        else f"{len(theme_type_pairs)} datasets"
+    )
 
     if total_row_groups == 0:
+        skip_step(f"Downloading parquet files ({theme_type_task_description})")
         return []
 
     min_no_workers = 8
@@ -603,7 +654,10 @@ def _download_prepared_row_groups(
         no_workers = min(max_workers, no_workers)
 
     with (
-        TrackProgressBar(verbosity_mode=verbosity_mode) as progress,
+        progress_display(verbosity_mode) as display,
+        display.bar(
+            f"Downloading parquet files ({theme_type_task_description})", step="major"
+        ) as task,
         ProcessPoolExecutor(
             max_workers=min(no_workers, total_row_groups),
             mp_context=multiprocessing.get_context("spawn"),
@@ -614,20 +668,14 @@ def _download_prepared_row_groups(
             bbox=geometry_filter.bounds,
             working_directory=working_directory,
         )
-        theme_type_task_description = (
-            f"{theme_type_pairs[0][0]}/{theme_type_pairs[0][1]}"
-            if len(theme_type_pairs) == 1
-            else f"{len(theme_type_pairs)} datasets"
-        )
         downloaded_parquet_files = list(
-            progress.track(
+            task.track(
                 ex.map(
                     fn,
                     all_row_groups_to_download,
                     chunksize=1,
                 ),
-                description=f"Downloading parquet files ({theme_type_task_description})",
-                total=total_row_groups,
+                total_row_groups,
             )
         )
 
@@ -645,15 +693,16 @@ def _filter_downloaded_files(
     from functools import partial
 
     from overturemaestro._parquet_multiprocessing import map_parquet_dataset
+    from overturemaestro._rich_progress import skip_step
 
+    theme_type_task_description = (
+        f"{theme_type_pairs[0][0]}/{theme_type_pairs[0][1]}"
+        if len(theme_type_pairs) == 1
+        else f"{len(theme_type_pairs)} datasets"
+    )
     if not geometry_filter.equals(geometry_filter.envelope):
         destination_path = working_directory / Path("intersected_data")
         fn = partial(_filter_data_properly, geometry_filter=geometry_filter)
-        theme_type_task_description = (
-            f"{theme_type_pairs[0][0]}/{theme_type_pairs[0][1]}"
-            if len(theme_type_pairs) == 1
-            else f"{len(theme_type_pairs)} datasets"
-        )
         map_parquet_dataset(
             dataset_path=downloaded_parquet_files,
             destination_path=destination_path,
@@ -666,6 +715,7 @@ def _filter_downloaded_files(
 
         filtered_parquet_files = list(destination_path.glob("**/*.parquet"))
     else:
+        skip_step("Filtering data")
         filtered_parquet_files = downloaded_parquet_files
 
     return filtered_parquet_files
@@ -724,14 +774,15 @@ def _generate_empty_file(
     import pyarrow.parquet as pq
     from overturemaps.core import geoarrow_schema_adapter
 
-    from overturemaestro._rich_progress import TrackProgressSpinner
+    from overturemaestro._rich_progress import progress_display
     from overturemaestro.release_index import load_release_index
 
     result_file_path = working_directory / f"empty_{theme}_{type}.parquet"
     result_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with TrackProgressSpinner(
-        f"Preparing empty file ({theme}/{type})", verbosity_mode=verbosity_mode
+    with (
+        progress_display(verbosity_mode) as display,
+        display.spinner(f"Preparing empty file ({theme}/{type})"),
     ):
         index = load_release_index(release=release, theme=theme, type=type, verbosity_mode="silent")
         remote_file = index.iloc[0].filename
@@ -763,6 +814,11 @@ def _generate_empty_file(
                     f"Cannot download given columns: {', '.join(sorted(nonexistent_columns))}"
                 )
 
+            # copied, so the list of the caller isn't changed
+            columns_to_download = list(columns_to_download)
+            if INDEX_COLUMN not in columns_to_download:
+                columns_to_download.append(INDEX_COLUMN)
+
             if GEOMETRY_COLUMN not in columns_to_download:
                 columns_to_download.append(GEOMETRY_COLUMN)
 
@@ -781,7 +837,11 @@ def _generate_empty_file(
                     geoarrow_schema_filtered.get_field_index(column_name)
                 )
 
-        pq.write_table(table=pa.Table.from_pylist([], schema=schema), where=result_file_path)
+        with atomic_output_path(result_file_path) as tmp_result_file_path:
+            pq.write_table(
+                table=pa.Table.from_pylist([], schema=geoarrow_schema_filtered),
+                where=tmp_result_file_path,
+            )
 
     return result_file_path
 

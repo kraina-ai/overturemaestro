@@ -1,115 +1,36 @@
-from datetime import timedelta
-from typing import Any
+"""Step helpers over the shared progress display."""
 
-from rich import print as rprint
-from rich.console import Console
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    ProgressColumn,
-    SpinnerColumn,
-    Task,
-    Text,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
+from rq_geo_toolkit.rich_utils import (
+    VERBOSITY_MODE,
+    ProgressTask,
+    progress_display,
 )
-from rq_geo_toolkit.rich_utils import FORCE_TERMINAL, VERBOSITY_MODE
 
 __all__ = [
-    "show_total_elapsed_time",
-    "FORCE_TERMINAL",
     "VERBOSITY_MODE",
-    "TrackProgressSpinner",
-    "TrackProgressBar",
+    "ProgressTask",
+    "add_steps",
+    "progress_display",
+    "skip_step",
+    "step_group",
 ]
 
-def show_total_elapsed_time(elapsed_seconds: float) -> None:
-    elapsed_time_formatted = str(timedelta(seconds=int(elapsed_seconds)))
-    rprint(f"Finished operation in [progress.elapsed]{elapsed_time_formatted}")
+
+def add_steps(count: int) -> None:
+    """Extend the total number of steps of the current operation."""
+    with progress_display() as display:
+        if display.steps:
+            display.steps.add_steps(count)
 
 
-class TrackProgressSpinner(Progress):  # type: ignore[misc]
-    def __init__(
-        self,
-        task_name: str,
-        verbosity_mode: VERBOSITY_MODE = "verbose",
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            TextColumn("•"),
-            TimeElapsedColumn(),
-            refresh_per_second=1,
-            speed_estimate_period=3600,
-            transient=verbosity_mode == "transient",
-            disable=verbosity_mode == "silent",
-            console=Console(force_interactive=False, force_jupyter=False, force_terminal=True)
-            if FORCE_TERMINAL
-            else None,
-            **kwargs,
-        )
-        self.task_name = task_name
-
-    def __enter__(self):  # type: ignore
-        self.add_task(description=self.task_name, total=None)
-        self.start()
-
-    def __exit__(self, exc_type, exc_value, exc_tb):  # type: ignore
-        self.stop()
+def step_group(description: str, total: int = 0) -> None:
+    """Start the next major step of the current operation, with minor steps shown under it."""
+    with progress_display() as display:
+        display.step_group(description, total)
 
 
-class SpeedColumn(ProgressColumn):  # type: ignore[misc]
-    def render(self, task: "Task") -> Text:
-        if task.speed is None:
-            return Text("0 it/s")
-        elif task.speed >= 1:
-            return Text(f"{task.speed:.2f} it/s")
-        else:
-            return Text(f"{1/task.speed:.2f} s/it")  # noqa: FURB126
-
-
-class TrackProgressBar(Progress):  # type: ignore[misc]
-    def __init__(
-        self,
-        verbosity_mode: VERBOSITY_MODE = "verbose",
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(
-            SpinnerColumn(),
-            TextColumn(
-                "[progress.description]{task.description}"
-                " [progress.percentage]{task.percentage:>3.0f}%"
-            ),
-            BarColumn(),
-            MofNCompleteColumn(),
-            TextColumn("•"),
-            TimeElapsedColumn(),
-            TextColumn("<"),
-            TimeRemainingColumn(),
-            TextColumn("•"),
-            SpeedColumn(),
-            refresh_per_second=1,
-            speed_estimate_period=3600,
-            transient=verbosity_mode == "transient",
-            disable=verbosity_mode == "silent",
-            console=Console(force_interactive=False, force_jupyter=False, force_terminal=True)
-            if FORCE_TERMINAL
-            else None,
-            **kwargs,
-        )
-        self.verbosity_mode = verbosity_mode
-
-    def print_progress(self) -> None:
-        if self.verbosity_mode != "silent":
-            current_task = self.tasks[0]
-            mofn = self.columns[3].render(current_task)
-            elapsed = self.columns[5].render(current_task)
-            remaining = self.columns[7].render(current_task)
-            speed = self.columns[9].render(current_task)
-            self.print(
-                f"{current_task.description} {current_task.percentage:>6.2f}% • "
-                f"{mofn} • {elapsed} < {remaining} • {speed}"
-            )
+def skip_step(description: str) -> None:
+    """Count a step of the current operation that has nothing to do and show it as skipped."""
+    with progress_display() as display:
+        if display.steps:
+            display.skip_step(description)

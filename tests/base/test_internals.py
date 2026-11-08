@@ -8,7 +8,10 @@ import pyarrow.parquet as pq
 import requests
 
 from overturemaestro._constants import GEOMETRY_COLUMN, INDEX_COLUMN
-from overturemaestro.data_downloader import _download_single_parquet_row_group_multiprocessing
+from overturemaestro.data_downloader import (
+    _download_single_parquet_row_group_multiprocessing,
+    _generate_empty_file,
+)
 
 
 def test_download_single_parquet_row_group(test_release_version: str) -> None:
@@ -50,3 +53,23 @@ def test_download_single_parquet_row_group(test_release_version: str) -> None:
     assert result_path.exists()
     assert pq.ParquetFile(result_path).num_row_groups > 0
     assert pq.read_metadata(result_path).num_rows > 0
+
+
+def test_generate_empty_file_with_selected_columns(
+    test_release_version: str, tmp_path: Path
+) -> None:
+    """Test if an empty file has the same columns and metadata as downloaded files."""
+    result_path = _generate_empty_file(
+        theme="places",
+        type="place",
+        release=test_release_version,
+        columns_to_download=["confidence"],
+        working_directory=tmp_path,
+        verbosity_mode="silent",
+    )
+
+    schema = pq.read_schema(result_path)
+    assert set(schema.names) == {INDEX_COLUMN, GEOMETRY_COLUMN, "confidence"}
+    assert schema.metadata[b"_theme"] == b"places"
+    assert schema.metadata[b"_type"] == b"place"
+    assert pq.read_metadata(result_path).num_rows == 0

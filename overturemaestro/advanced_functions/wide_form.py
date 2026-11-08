@@ -1,6 +1,7 @@
 """Functions for retrieving Overture Maps features in a wide form."""
 
 import json
+import shutil
 import tempfile
 import warnings
 from dataclasses import dataclass
@@ -16,7 +17,12 @@ from pooch import file_hash, retrieve
 from pooch import get_logger as get_pooch_logger
 from requests import HTTPError
 from rich import print as rprint
-from rq_geo_toolkit.duckdb import set_up_duckdb_connection, sql_escape
+from rq_geo_toolkit.duckdb import (
+    set_up_duckdb_connection,
+    sql_escape,
+    temporary_duckdb_connection,
+)
+from rq_geo_toolkit.file_utils import atomic_output_path
 from rq_geo_toolkit.geoparquet_compression import compress_query_with_duckdb
 from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 from shapely.geometry.base import BaseGeometry
@@ -32,7 +38,12 @@ from overturemaestro._exceptions import (
     HierarchyDepthOutOfBoundsWarning,
     NegativeHierarchyDepthError,
 )
-from overturemaestro._rich_progress import VERBOSITY_MODE, TrackProgressBar, TrackProgressSpinner
+from overturemaestro._rich_progress import (
+    VERBOSITY_MODE,
+    progress_display,
+    skip_step,
+    step_group,
+)
 from overturemaestro.cache import (
     _get_global_wide_form_release_cache_directory,
     _get_local_wide_form_release_cache_directory,
@@ -40,6 +51,7 @@ from overturemaestro.cache import (
 from overturemaestro.data_downloader import (
     PYARROW_FILTER,
     _generate_geometry_hash,
+    _get_result_files,
     download_data_for_multiple_types,
 )
 from overturemaestro.elapsed_time_decorator import show_total_elapsed_time_decorator
@@ -333,29 +345,26 @@ def _transform_poi_to_wide_form(
 def _get_all_possible_column_names(
     theme: str, type: str, release_version: str, hierarchy_columns: list[str], **kwargs: Any
 ) -> "DataFrame":
-    import duckdb
+    with temporary_duckdb_connection() as connection:
+        for extension in ("spatial", "httpfs"):
+            connection.install_extension(extension)
+            connection.load_extension(extension)
 
-    connection = duckdb.connect()
-
-    for extension in ("spatial", "httpfs"):
-        connection.install_extension(extension)
-        connection.load_extension(extension)
-
-    dataset_path = (
-        f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
-    )
-    joined_hierarchy_columns = ",".join(hierarchy_columns)
-    df = duckdb.sql(
-        f"""
-        SELECT DISTINCT
-            {joined_hierarchy_columns}
-        FROM read_parquet(
-            '{dataset_path}',
-            hive_partitioning=false
+        dataset_path = (
+            f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
         )
-        ORDER BY ALL
-        """
-    ).to_df()
+        joined_hierarchy_columns = ",".join(hierarchy_columns)
+        df = connection.sql(
+            f"""
+            SELECT DISTINCT
+                {joined_hierarchy_columns}
+            FROM read_parquet(
+                '{dataset_path}',
+                hive_partitioning=false
+            )
+            ORDER BY ALL
+            """
+        ).to_df()
 
     return df
 
@@ -363,43 +372,40 @@ def _get_all_possible_column_names(
 def _get_all_possible_column_names_for_poi(
     theme: str, type: str, release_version: str, hierarchy_columns: list[str], **kwargs: Any
 ) -> "DataFrame":
-    import duckdb
-
     from overturemaestro.advanced_functions.poi import _download_taxonomy_for_release
 
-    connection = duckdb.connect()
+    with temporary_duckdb_connection() as connection:
+        for extension in ("spatial", "httpfs"):
+            connection.install_extension(extension)
+            connection.load_extension(extension)
 
-    for extension in ("spatial", "httpfs"):
-        connection.install_extension(extension)
-        connection.load_extension(extension)
+        dataset_path = (
+            f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
+        )
 
-    dataset_path = (
-        f"s3://overturemaps-us-west-2/release/{release_version}/theme={theme}/type={type}/*"
-    )
-
-    df = (
-        duckdb.sql(
-            f"""
-        SELECT DISTINCT
-            taxonomy.primary as column_name
-        FROM read_parquet(
-            '{dataset_path}',
-            hive_partitioning=false
+        df = (
+            connection.sql(
+                f"""
+            SELECT DISTINCT
+                taxonomy.primary as column_name
+            FROM read_parquet(
+                '{dataset_path}',
+                hive_partitioning=false
+            )
+            UNION
+            SELECT DISTINCT
+                UNNEST(taxonomy.alternates) as column_name
+            FROM read_parquet(
+                '{dataset_path}',
+                hive_partitioning=false
+            )
+            """
+            )
+            .to_df()
+            .dropna()
+            .sort_values(by="column_name")
+            .reset_index(drop=True)
         )
-        UNION
-        SELECT DISTINCT
-            UNNEST(taxonomy.alternates) as column_name
-        FROM read_parquet(
-            '{dataset_path}',
-            hive_partitioning=false
-        )
-        """
-        )
-        .to_df()
-        .dropna()
-        .sort_values(by="column_name")
-        .reset_index(drop=True)
-    )
 
     hierarchy_data = _download_taxonomy_for_release(release_version)
 
@@ -683,7 +689,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
 ) -> Path: ...
 
 
-@show_total_elapsed_time_decorator
+@show_total_elapsed_time_decorator(total_steps=5)  # type: ignore[untyped-decorator]
 def convert_geometry_to_wide_form_parquet_for_multiple_types(
     theme_type_pairs: list[tuple[str, str]],
     geometry_filter: BaseGeometry,
@@ -811,24 +817,42 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             *prepared_download_parameters
         )
 
-        downloaded_parquet_files = download_data_for_multiple_types(
-            release=release,
-            theme_type_pairs=theme_type_pairs,
-            geometry_filter=geometry_filter,
-            pyarrow_filters=pyarrow_filter_list,
-            columns_to_download=[
-                [INDEX_COLUMN, GEOMETRY_COLUMN, *columns_to_download]
-                for columns_to_download in columns_to_download_list
-            ],
-            compression=compression,
-            compression_level=compression_level,
-            row_group_size=row_group_size,
-            ignore_cache=ignore_cache,
-            working_directory=working_directory,
-            verbosity_mode=verbosity_mode,
-            max_workers=max_workers,
-            sort_result=False,
-        )
+        columns_to_download_per_type: list[Optional[list[str]]] = [
+            [INDEX_COLUMN, GEOMETRY_COLUMN, *columns_to_download]
+            for columns_to_download in columns_to_download_list
+        ]
+        downloaded_parquet_files = [
+            downloaded_file_path
+            for downloaded_file_path, _ in _get_result_files(
+                release=release,
+                theme_type_pairs=theme_type_pairs,
+                geometry_filter=geometry_filter,
+                pyarrow_filters=pyarrow_filter_list,
+                columns_to_download=columns_to_download_per_type,
+                working_directory=Path(working_directory),
+                sort_result=False,
+            )
+        ]
+        # a group has to be started before the download, so check for cached files first
+        if ignore_cache or not all(path.exists() for path in downloaded_parquet_files):
+            step_group("Downloading data")
+            downloaded_parquet_files = download_data_for_multiple_types(
+                release=release,
+                theme_type_pairs=theme_type_pairs,
+                geometry_filter=geometry_filter,
+                pyarrow_filters=pyarrow_filter_list,
+                columns_to_download=columns_to_download_per_type,
+                compression=compression,
+                compression_level=compression_level,
+                row_group_size=row_group_size,
+                ignore_cache=ignore_cache,
+                working_directory=working_directory,
+                verbosity_mode=verbosity_mode,
+                max_workers=max_workers,
+                sort_result=False,
+            )
+        else:
+            skip_step("Downloading data")
 
         with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
             tmp_dir_path = Path(tmp_dir_name)
@@ -840,15 +864,17 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
             transformed_wide_form_directory_output = tmp_dir_path / "wide_form_files"
             transformed_wide_form_directory_output.mkdir(parents=True, exist_ok=True)
 
-            with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
+            with (
+                progress_display(verbosity_mode) as display,
+                display.bar("Transforming data into wide form", step="major") as task,
+            ):
                 for (
                     (theme_value, type_value),
                     hierachy_columns,
                     downloaded_parquet_file,
-                ) in progress.track(
+                ) in task.track(
                     zip(theme_type_pairs, hierachy_columns_list, downloaded_parquet_files),
-                    total=len(theme_type_pairs),
-                    description="Transforming data into wide form",
+                    len(theme_type_pairs),
                 ):
                     wide_form_definition = get_theme_type_classification(release=release)[
                         (theme_value, type_value)
@@ -890,8 +916,9 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         )
 
             if len(theme_type_pairs) > 1:
-                with TrackProgressSpinner(
-                    "Joining results to a single file", verbosity_mode=verbosity_mode
+                with (
+                    progress_display(verbosity_mode) as display,
+                    display.spinner("Joining results to a single file", step="major"),
                 ):
                     _combine_multiple_wide_form_files(
                         theme_type_pairs=theme_type_pairs,
@@ -902,17 +929,15 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         row_group_size=row_group_size,
                         working_directory=tmp_dir_path,
                     )
+            else:
+                skip_step("Joining results to a single file")
 
             if sort_result:
-                with TrackProgressBar(verbosity_mode=verbosity_mode) as progress_bar:
-                    total_rows = pq.read_metadata(merged_parquet_path).num_rows
-                    task = progress_bar.add_task(
-                        description="Sorting result file by geometry", total=total_rows
-                    )
-
-                    def progress_callback(processed: int) -> None:
-                        progress_bar.update(task, completed=processed, refresh=True)
-
+                total_rows = pq.read_metadata(merged_parquet_path).num_rows
+                with (
+                    progress_display(verbosity_mode) as display,
+                    display.bar("Sorting result file by geometry", total_rows, step="major") as bar,
+                ):
                     columns = pq.read_schema(merged_parquet_path).names
                     value_columns = [
                         col for col in columns if col not in (INDEX_COLUMN, GEOMETRY_COLUMN)
@@ -938,7 +963,7 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         working_directory=working_directory,
                         sort_extent=geometry_filter.bounds,
                         verbosity_mode=verbosity_mode,
-                        progress_callback=progress_callback,
+                        progress_callback=bar.update,
                     )
 
                     compressed_parquet_path.unlink(missing_ok=True)
@@ -954,11 +979,14 @@ def convert_geometry_to_wide_form_parquet_for_multiple_types(
                         verbosity_mode=verbosity_mode,
                     )
 
-                    progress_callback(total_rows)
+                    bar.update(total_rows)
 
                     sorted_parquet_path.unlink(missing_ok=True)
             else:
-                merged_parquet_path.rename(result_file_path)
+                skip_step("Sorting result file by geometry")
+                # moved through a temporary file, because the result can be on another filesystem
+                with atomic_output_path(result_file_path) as tmp_result_file_path:
+                    shutil.move(merged_parquet_path, tmp_result_file_path)
 
     return result_file_path
 
@@ -1271,11 +1299,12 @@ def _prepare_download_parameters_for_all_theme_type_pairs(
     **kwargs: Any,
 ) -> list[tuple[list[str], list[str], Optional[PYARROW_FILTER]]]:
     prepared_parameters = []
-    with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-        for idx, (theme_value, type_value) in progress.track(
-            enumerate(theme_type_pairs),
-            total=len(theme_type_pairs),
-            description="Preparing download parameters",
+    with (
+        progress_display(verbosity_mode) as display,
+        display.bar("Preparing download parameters", step="major") as task,
+    ):
+        for idx, (theme_value, type_value) in task.track(
+            enumerate(theme_type_pairs), len(theme_type_pairs)
         ):
             single_pyarrow_filter = pyarrow_filters[idx] if pyarrow_filters else None
             single_hierarchy_depth = (
@@ -1569,11 +1598,11 @@ def _download_existing_wide_form_all_column_names_release_index(
             (global_cache_directory / index_content_file_name).read_text()
         )
 
-        with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-            for theme_type_tuple in progress.track(
-                theme_type_tuples,
-                description="Downloading release indexes",
-            ):
+        with (
+            progress_display(verbosity_mode) as display,
+            display.bar("Downloading release indexes") as task,
+        ):
+            for theme_type_tuple in task.track(theme_type_tuples):
                 theme_value = theme_type_tuple["theme"]
                 type_value = theme_type_tuple["type"]
                 sha_value = theme_type_tuple["sha"]
@@ -1666,10 +1695,9 @@ def _generate_wide_form_all_column_names_release_index(
 
     file_hashes = []
 
-    with TrackProgressBar(verbosity_mode=verbosity_mode) as progress:
-        for (theme_value, type_value), definition in progress.track(
-            sorted(get_theme_type_classification(release=release).items()),
-            description="Saving parquet indexes",
+    with progress_display(verbosity_mode) as display, display.bar("Saving parquet indexes") as task:
+        for (theme_value, type_value), definition in task.track(
+            sorted(get_theme_type_classification(release=release).items())
         ):
             file_name = _get_wide_form_release_index_file_name(theme_value, type_value)
             cache_file_path = cache_directory / file_name
@@ -1737,7 +1765,7 @@ def _decompress_value_columns(
     compression: str,
     compression_level: int,
     row_group_size: int,
-    verbosity_mode: str,
+    verbosity_mode: VERBOSITY_MODE,
 ) -> None:
     select_clauses = ", ".join(
         f'{column_idx} IN column_indexes AS "{column}"'
