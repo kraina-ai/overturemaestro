@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-08
+
 ### Changed
 
 - Progress of the whole operation is shown in a single live display from `rq_geo_toolkit`, so Jupyter cells don't get empty gaps between steps and parallel downloads don't break each other's progress bars
@@ -267,7 +269,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Functions for downloading the data using generated indexes
 - Function for displaying available theme and type values
 
-[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.7.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/overturemaestro/compare/0.8.0...HEAD
+
+[0.8.0]: https://github.com/kraina-ai/overturemaestro/compare/0.7.1...0.8.0
 
 [0.7.1]: https://github.com/kraina-ai/overturemaestro/compare/0.7.0...0.7.1
 
