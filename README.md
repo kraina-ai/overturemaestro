@@ -81,7 +81,7 @@ Required:
 
 Optional:
 
-- `typer[all] (>=0.9.0)` (colorama, rich, shellingham): Required in CLI
+- `typer[all] (>=0.16.0)` (colorama, rich, shellingham): Required in CLI
 
 - `h3 (>=4.0.0b1)`: For reading H3 strings. Required in CLI
 
