@@ -654,9 +654,7 @@ def main(
         )
     )
     if theme_value is None or type_value is None or number_of_geometries_provided == 0:
-        from click.exceptions import UsageError
-
-        raise UsageError(
+        raise typer.BadParameter(
             message=(
                 "OvertureMaestro requires theme, type and a geometry filter"
                 " (one of --geom-filter-bbox --geom-filter-file, --geom-filter-geocode,"
