@@ -4,7 +4,6 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Optional, cast
 
-import click
 import typer
 from rq_geo_toolkit._geopandas_api_version import GEOPANDAS_NEW_API
 
@@ -83,7 +82,7 @@ def _empty_path_callback(ctx: typer.Context, value: Path) -> Optional[Path]:
     return _path_callback(ctx, value)
 
 
-class BboxGeometryParser(click.ParamType):  # type: ignore
+class BboxGeometryParser:
     """Parser for geometry in bounding box form."""
 
     name = "BBOX"
@@ -103,7 +102,7 @@ class BboxGeometryParser(click.ParamType):  # type: ignore
             ) from None
 
 
-class WktGeometryParser(click.ParamType):  # type: ignore
+class WktGeometryParser:
     """Parser for geometry in WKT form."""
 
     name = "TEXT (WKT)"
@@ -120,7 +119,7 @@ class WktGeometryParser(click.ParamType):  # type: ignore
             raise typer.BadParameter("Cannot parse provided WKT") from None
 
 
-class GeoJsonGeometryParser(click.ParamType):  # type: ignore
+class GeoJsonGeometryParser:
     """Parser for geometry in GeoJSON form."""
 
     name = "TEXT (GeoJSON)"
@@ -137,7 +136,7 @@ class GeoJsonGeometryParser(click.ParamType):  # type: ignore
             raise typer.BadParameter("Cannot parse provided GeoJSON") from None
 
 
-class GeoFileGeometryParser(click.ParamType):  # type: ignore
+class GeoFileGeometryParser:
     """Parser for geometry in geo file form."""
 
     name = "PATH"
@@ -161,7 +160,7 @@ class GeoFileGeometryParser(click.ParamType):  # type: ignore
             raise typer.BadParameter("Cannot parse provided geo file") from None
 
 
-class GeocodeGeometryParser(click.ParamType):  # type: ignore
+class GeocodeGeometryParser:
     """Parser for geometry in string Nominatim query form."""
 
     name = "TEXT"
@@ -179,7 +178,7 @@ class GeocodeGeometryParser(click.ParamType):  # type: ignore
             raise typer.BadParameter("Cannot geocode provided Nominatim query") from None
 
 
-class GeohashGeometryParser(click.ParamType):  # type: ignore
+class GeohashGeometryParser:
     """Parser for geometry in string Nominatim query form."""
 
     name = "TEXT (Geohash)"
@@ -207,7 +206,7 @@ class GeohashGeometryParser(click.ParamType):  # type: ignore
             raise
 
 
-class H3GeometryParser(click.ParamType):  # type: ignore
+class H3GeometryParser:
     """Parser for geometry in string Nominatim query form."""
 
     name = "TEXT (H3)"
@@ -251,7 +250,7 @@ class H3GeometryParser(click.ParamType):  # type: ignore
         return gpd.GeoSeries(geometries).union_all()
 
 
-class S2GeometryParser(click.ParamType):  # type: ignore
+class S2GeometryParser:
     """Parser for geometry in string Nominatim query form."""
 
     name = "TEXT (S2)"
@@ -287,7 +286,7 @@ class S2GeometryParser(click.ParamType):  # type: ignore
         return gpd.GeoSeries(geometries).union_all()
 
 
-class PyArrowExpressionParser(click.ParamType):  # type: ignore
+class PyArrowExpressionParser:
     """Parser for geometry in string Nominatim query form."""
 
     name = "FILTER"
@@ -386,7 +385,8 @@ def main(
                 " Cannot be used together with other"
                 " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
-            click_type=BboxGeometryParser(),
+            parser=BboxGeometryParser().convert,
+            metavar=BboxGeometryParser.name,
             show_default=False,
         ),
     ] = None,
@@ -400,7 +400,8 @@ def main(
                 " Cannot be used together with other"
                 " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
-            click_type=GeoFileGeometryParser(),
+            parser=GeoFileGeometryParser().convert,
+            metavar=GeoFileGeometryParser.name,
             show_default=False,
         ),
     ] = None,
@@ -414,7 +415,8 @@ def main(
                 " Cannot be used together with other"
                 " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
-            click_type=GeocodeGeometryParser(),
+            parser=GeocodeGeometryParser().convert,
+            metavar=GeocodeGeometryParser.name,
             show_default=False,
         ),
     ] = None,
@@ -427,7 +429,8 @@ def main(
                 " Cannot be used together with other"
                 " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
-            click_type=GeoJsonGeometryParser(),
+            parser=GeoJsonGeometryParser().convert,
+            metavar=GeoJsonGeometryParser.name,
             show_default=False,
         ),
     ] = None,
@@ -441,7 +444,8 @@ def main(
                 " Cannot be used together with other"
                 " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
-            click_type=GeohashGeometryParser(),
+            parser=GeohashGeometryParser().convert,
+            metavar=GeohashGeometryParser.name,
             show_default=False,
         ),
     ] = None,
@@ -454,7 +458,8 @@ def main(
                 " Cannot be used together with other"
                 " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
-            click_type=H3GeometryParser(),
+            parser=H3GeometryParser().convert,
+            metavar=H3GeometryParser.name,
             show_default=False,
         ),
     ] = None,
@@ -467,7 +472,8 @@ def main(
                 " Cannot be used together with other"
                 " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
-            click_type=S2GeometryParser(),
+            parser=S2GeometryParser().convert,
+            metavar=S2GeometryParser.name,
             show_default=False,
         ),
     ] = None,
@@ -480,7 +486,8 @@ def main(
                 " Cannot be used together with other"
                 " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
-            click_type=WktGeometryParser(),
+            parser=WktGeometryParser().convert,
+            metavar=WktGeometryParser.name,
             show_default=False,
         ),
     ] = None,
@@ -495,7 +502,8 @@ def main(
                 " Nested column names should be passed separated by a dot."
                 " Can pass multiple filters."
             ),
-            click_type=PyArrowExpressionParser(),
+            parser=PyArrowExpressionParser().convert,
+            metavar=PyArrowExpressionParser.name,
             show_default=False,
         ),
     ] = None,
