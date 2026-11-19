@@ -42,7 +42,7 @@ classifiers = [
 
 [project.optional-dependencies]
 cli = [
-    "typer>=0.16.0",
+    "typer>=0.18.0",
     "s2sphere>=0.2.5",
 ]
 
