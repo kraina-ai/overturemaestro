@@ -1,5 +1,9 @@
 name: tests
-on: workflow_call
+on:
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: false
 
 jobs:
   run-tests:
@@ -21,9 +25,9 @@ jobs:
       COLUMNS: 120
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - uses: pdm-project/setup-pdm@v3
@@ -38,7 +42,7 @@ jobs:
       - name: Cache tox runner
         # Cache only on the main branch
         if: github.ref == 'refs/heads/main'
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: .tox
           key: tox-cache-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/pdm.lock') }}
