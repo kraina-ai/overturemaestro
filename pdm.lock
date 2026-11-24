@@ -5,7 +5,7 @@
 groups = ["default", "benchmark", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:56f4efcc70d3dec30f1a101aafd5f28c96395cf9d92a4bd288d68fae3c2393a2"
+content_hash = "sha256:6b0c7f5f8db34c41e75ef0519f882148cd7526fb06b488ac6099d28b082011da"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -1119,16 +1119,13 @@ files = [
 
 [[package]]
 name = "click"
-version = "8.3.2"
+version = "8.5.1"
 requires_python = ">=3.10"
 summary = "Composable command line interface toolkit"
-groups = ["default", "cli", "cli-dev", "dev", "docs"]
-dependencies = [
-    "colorama; platform_system == \"Windows\"",
-]
+groups = ["default", "cli-dev", "dev", "docs"]
 files = [
-    {file = "click-8.3.2-py3-none-any.whl", hash = "sha256:1924d2c27c5653561cd2cae4548d1406039cb79b858b747cfea24924bbc1616d"},
-    {file = "click-8.3.2.tar.gz", hash = "sha256:14162b8b3b3550a7d479eafa77dfd3c38d9dc8951f6f69c78913a8f9a7540fd5"},
+    {file = "click-8.5.1-py3-none-any.whl", hash = "sha256:8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37"},
+    {file = "click-8.5.1.tar.gz", hash = "sha256:9bbfada76703fd1d784b83eea012e3e8c6a001a876543ef104fa56aaaeb072b4"},
 ]
 
 [[package]]
@@ -1163,7 +1160,7 @@ name = "colorama"
 version = "0.4.6"
 requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
 summary = "Cross-platform colored terminal text."
-groups = ["default", "cli", "cli-dev", "dev", "docs", "license", "test"]
+groups = ["cli", "cli-dev", "dev", "docs", "license", "test"]
 files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
