@@ -93,7 +93,8 @@ jobs:
       - name: Install overturemaestro
         run: |
           pdm build -v -d dist
-          uv pip install 'overturemaestro[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" --system
+          # The h3 extension is not available for DuckDB 2.0.1
+          uv pip install "duckdb<2.0" 'overturemaestro[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" --system
       - name: Cache Overpass data
         uses: actions/cache@v5
         with:
