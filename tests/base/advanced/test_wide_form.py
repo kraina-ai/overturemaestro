@@ -7,7 +7,7 @@ from typing import Any, Optional
 import pyarrow.parquet as pq
 import pytest
 from parametrization import Parametrization as P
-from shapely import box
+from shapely import Polygon, box
 
 from overturemaestro._constants import GEOMETRY_COLUMN, INDEX_COLUMN
 from overturemaestro._exceptions import (
@@ -19,6 +19,7 @@ from overturemaestro.advanced_functions import (
     convert_bounding_box_to_wide_form_geodataframe_for_all_types,
     convert_bounding_box_to_wide_form_geodataframe_for_multiple_types,
     convert_bounding_box_to_wide_form_parquet,
+    convert_geometry_to_wide_form_parquet_for_multiple_types,
 )
 from overturemaestro.advanced_functions.poi import (
     TAXONOMY_MIN_RELEASE_VERSION,
@@ -419,6 +420,25 @@ def test_unsorted_result_saved_outside_of_working_directory(
 
     assert returned_path == result_file_path
     assert [path.name for path in result_file_path.parent.iterdir()] == [result_file_path.name]
+    assert pq.read_metadata(result_file_path).num_rows > 0
+
+
+@pytest.mark.parametrize("theme_types", [["water"], ["water", "land"]])  # type: ignore
+def test_non_rectangular_geometry_filter(
+    test_release_version: str, wide_form_working_directory: Path, theme_types: list[str]
+) -> None:
+    """Test if step totals are known upfront when downloaded data is filtered by geometry."""
+    xmin, ymin, xmax, ymax = bbox()
+    result_file_path = convert_geometry_to_wide_form_parquet_for_multiple_types(
+        theme_type_pairs=[("base", type_value) for type_value in theme_types],
+        geometry_filter=Polygon([(xmin, ymin), (xmax, ymin), (xmax, ymax)]),
+        release=test_release_version,
+        working_directory=wide_form_working_directory,
+        verbosity_mode="verbose",
+        ignore_cache=True,
+        include_all_possible_columns=False,
+    )
+
     assert pq.read_metadata(result_file_path).num_rows > 0
 
 
