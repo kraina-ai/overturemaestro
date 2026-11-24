@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Install cells for Google Colab in the example notebooks, replaced by the "Open in Colab" badge in the documentation
+
 ### Changed
 
 - Bumped minimal `typer` version to `0.18.0`, since older versions mishandle CLI usage errors with `click>=8.2.0` (traceback instead of an error message, missing required arguments passed as `None`)
@@ -19,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - `click` from the `cli` optional dependencies, since it's no longer imported directly
+- Unused `contextily` from the documentation dependencies
 
 ## [0.8.0] - 2026-11-08
 

@@ -94,7 +94,6 @@ docs = [
     "seaborn>=0.10.0",
     "py-cpuinfo",
     "adjustText",
-    "contextily",
 ]
 license = ["licensecheck==2024.3", "pipdeptree"]
 cli-dev = [
