@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Install cells for Google Colab in the example notebooks, replaced by the "Open in Colab" badge in the documentation
+
+### Removed
+
+- Unused `contextily` from the documentation dependencies
+
 ## [0.8.0] - 2026-11-08
 
 ### Changed
