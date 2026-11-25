@@ -16,6 +16,12 @@ This module contains dedicated functions for specific use cases.
 #     convert_geometry_to_roads_geodataframe,
 #     convert_geometry_to_roads_parquet,
 # )
+from overturemaestro.advanced_functions.divisions import (
+    convert_bounding_box_to_divisions_geodataframe,
+    convert_bounding_box_to_divisions_parquet,
+    convert_geometry_to_divisions_geodataframe,
+    convert_geometry_to_divisions_parquet,
+)
 from overturemaestro.advanced_functions.functions import (
     convert_bounding_box_to_wide_form_geodataframe,
     convert_bounding_box_to_wide_form_geodataframe_for_all_types,
@@ -32,12 +38,16 @@ from overturemaestro.advanced_functions.functions import (
 )
 
 __all__ = [
+    "convert_bounding_box_to_divisions_geodataframe",
+    "convert_bounding_box_to_divisions_parquet",
     "convert_bounding_box_to_wide_form_geodataframe",
     "convert_bounding_box_to_wide_form_geodataframe_for_all_types",
     "convert_bounding_box_to_wide_form_geodataframe_for_multiple_types",
     "convert_bounding_box_to_wide_form_parquet",
     "convert_bounding_box_to_wide_form_parquet_for_all_types",
     "convert_bounding_box_to_wide_form_parquet_for_multiple_types",
+    "convert_geometry_to_divisions_geodataframe",
+    "convert_geometry_to_divisions_parquet",
     "convert_geometry_to_wide_form_geodataframe",
     "convert_geometry_to_wide_form_geodataframe_for_all_types",
     "convert_geometry_to_wide_form_geodataframe_for_multiple_types",
