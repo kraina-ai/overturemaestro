@@ -10,6 +10,7 @@ __all__ = [
     "VERBOSITY_MODE",
     "ProgressTask",
     "add_steps",
+    "is_in_step_group",
     "progress_display",
     "skip_step",
     "step_group",
@@ -21,6 +22,12 @@ def add_steps(count: int) -> None:
     with progress_display() as display:
         if display.steps:
             display.steps.add_steps(count)
+
+
+def is_in_step_group() -> bool:
+    """Whether the current step is shown under a major step."""
+    with progress_display() as display:
+        return display.steps is not None and display.steps.minor_steps_total is not None
 
 
 def step_group(description: str, total: int = 0) -> None:

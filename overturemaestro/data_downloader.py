@@ -534,6 +534,8 @@ def _download_data(
     verbosity_mode: "VERBOSITY_MODE",
     max_workers: Optional[int],
 ) -> list[list[Path]]:
+    from overturemaestro._rich_progress import add_steps, is_in_step_group
+
     if pyarrow_filters is not None and len(theme_type_pairs) != len(pyarrow_filters):
         raise ValueError("Pyarrow filters length doesn't match length of theme type pairs.")
 
@@ -542,6 +544,10 @@ def _download_data(
 
     # force tuple structure
     theme_type_pairs = [(theme_value, type_value) for theme_value, type_value in theme_type_pairs]
+
+    if is_in_step_group() and not geometry_filter.equals(geometry_filter.envelope):
+        # filtering by geometry runs as three steps of the outer group instead of a single one
+        add_steps(2)
 
     all_row_groups_to_download = _prepare_row_groups_for_download(
         release=release,

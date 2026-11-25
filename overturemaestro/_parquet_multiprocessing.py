@@ -9,6 +9,7 @@ from overturemaestro._constants import PARQUET_COMPRESSION, PARQUET_ROW_GROUP_SI
 from overturemaestro._rich_progress import (
     VERBOSITY_MODE,
     ProgressTask,
+    is_in_step_group,
     progress_display,
     step_group,
 )
@@ -173,7 +174,9 @@ def map_parquet_dataset(
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
     """
-    step_group("Filtering data", 3)
+    # an outer group counts these steps in its total before it starts
+    if not is_in_step_group():
+        step_group("Filtering data", 3)
     with (
         progress_display(verbosity_mode) as display,
         display.spinner("Preparing multiprocessing environment", step="minor"),
