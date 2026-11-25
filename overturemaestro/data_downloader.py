@@ -700,7 +700,7 @@ def _filter_downloaded_files(
         if len(theme_type_pairs) == 1
         else f"{len(theme_type_pairs)} datasets"
     )
-    if not geometry_filter.equals(geometry_filter.envelope):
+    if downloaded_parquet_files:
         destination_path = working_directory / Path("intersected_data")
         fn = partial(_filter_data_properly, geometry_filter=geometry_filter)
         map_parquet_dataset(

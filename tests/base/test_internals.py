@@ -3,13 +3,19 @@
 from pathlib import Path
 from urllib.parse import urljoin
 
+import geopandas as gpd
+import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
+import pytest
 import requests
+from shapely import MultiPolygon, Point, box
+from shapely.geometry.base import BaseGeometry
 
 from overturemaestro._constants import GEOMETRY_COLUMN, INDEX_COLUMN
 from overturemaestro.data_downloader import (
     _download_single_parquet_row_group_multiprocessing,
+    _filter_downloaded_files,
     _generate_empty_file,
 )
 
@@ -73,3 +79,44 @@ def test_generate_empty_file_with_selected_columns(
     assert schema.metadata[b"_theme"] == b"places"
     assert schema.metadata[b"_type"] == b"place"
     assert pq.read_metadata(result_path).num_rows == 0
+
+
+@pytest.mark.parametrize(
+    "geometry_filter", [box(1, 1, 2, 2), Point(1.5, 1.5)], ids=["rectangle", "point"]
+)  # type: ignore
+def test_filter_by_geometry_not_bounds(geometry_filter: BaseGeometry, tmp_path: Path) -> None:
+    """Test if features intersecting the filter only with their bounds are removed."""
+    features = gpd.GeoDataFrame(
+        {INDEX_COLUMN: ["intersecting", "around"]},
+        geometry=[box(0, 0, 3, 3), MultiPolygon([box(-180, 0, -179, 3), box(179, 0, 180, 3)])],
+        crs=4326,
+    )
+    features_path = tmp_path / "features.parquet"
+    pq.write_table(pa.table(features.to_arrow(index=False)), features_path)
+
+    result_paths = _filter_downloaded_files(
+        downloaded_parquet_files=[features_path],
+        theme_type_pairs=[("divisions", "division_area")],
+        geometry_filter=geometry_filter,
+        working_directory=tmp_path,
+        verbosity_mode="silent",
+        max_workers=1,
+    )
+
+    assert [pq.read_table(path)[INDEX_COLUMN].to_pylist() for path in result_paths] == [
+        ["intersecting"]
+    ]
+
+
+def test_filter_without_downloaded_files(tmp_path: Path) -> None:
+    """Test if lack of downloaded files is properly handled for any geometry."""
+    result_paths = _filter_downloaded_files(
+        downloaded_parquet_files=[],
+        theme_type_pairs=[("divisions", "division_area")],
+        geometry_filter=Point(0, 0).buffer(1),
+        working_directory=tmp_path,
+        verbosity_mode="silent",
+        max_workers=1,
+    )
+
+    assert not result_paths
