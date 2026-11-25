@@ -5,7 +5,7 @@ import shutil
 import sys
 from collections.abc import Generator
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 from pytest import Item
@@ -57,10 +57,12 @@ def check_step_counts(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, 
     Major steps are compared with `total_steps` and minor steps with the total of their group. Every
     step is checked for exceeding the total. Missing steps are checked when a group ends and when an
     operation finishes, unless it failed with an exception. Steps abandoned by a retry aren't
-    missing, so a group ending at a rewound step number isn't checked.
+    missing, so a group ending at a rewound step number isn't checked. The total of a group can't
+    change after its first step, because the label of that step was already shown.
     """
     errors: list[str] = []
     highest_major_steps: dict[StepCounter, int] = {}
+    shown_minor_totals: dict[StepCounter, Optional[int]] = {}
     original_next_step = StepCounter.next_step
     original_reset = StepCounter.reset
     original_close = ProgressDisplay._close
@@ -96,11 +98,16 @@ def check_step_counts(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, 
             self.minor_steps_total or 0
         ):
             errors.append(f"Step {label.strip()} exceeds its total.")
+        if self.minor_step_number is None:
+            shown_minor_totals.pop(self, None)
+        elif shown_minor_totals.setdefault(self, self.minor_steps_total) != self.minor_steps_total:
+            errors.append(f"Step {label.strip()} changes the total of its group.")
         return label  # type: ignore[no-any-return]
 
     def reset(self: StepCounter, *args: Any, **kwargs: Any) -> None:
         check_finished(self)
         highest_major_steps.pop(self, None)
+        shown_minor_totals.pop(self, None)
         original_reset(self, *args, **kwargs)
 
     def close(self: ProgressDisplay) -> None:
