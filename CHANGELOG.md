@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Functions for downloading divisions of a given subtype with their hierarchy
 - Install cells for Google Colab in the example notebooks, replaced by the "Open in Colab" badge in the documentation
 
 ### Changed
