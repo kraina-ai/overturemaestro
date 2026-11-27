@@ -545,10 +545,6 @@ def _download_data(
     # force tuple structure
     theme_type_pairs = [(theme_value, type_value) for theme_value, type_value in theme_type_pairs]
 
-    if is_in_step_group() and not geometry_filter.equals(geometry_filter.envelope):
-        # filtering by geometry runs as three steps of the outer group instead of a single one
-        add_steps(2)
-
     all_row_groups_to_download = _prepare_row_groups_for_download(
         release=release,
         theme_type_pairs=theme_type_pairs,
@@ -557,6 +553,11 @@ def _download_data(
         columns_to_download=columns_to_download,
         verbosity_mode=verbosity_mode,
     )
+
+    if is_in_step_group() and all_row_groups_to_download:
+        # downloaded data is filtered by geometry in three steps of the outer group, not in a
+        # single skipped one, and the total can't change after the group shows its first step
+        add_steps(2)
 
     downloaded_parquet_files = _download_prepared_row_groups(
         all_row_groups_to_download=all_row_groups_to_download,
