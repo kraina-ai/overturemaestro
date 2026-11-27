@@ -545,10 +545,6 @@ def _download_data(
     # force tuple structure
     theme_type_pairs = [(theme_value, type_value) for theme_value, type_value in theme_type_pairs]
 
-    if is_in_step_group() and not geometry_filter.equals(geometry_filter.envelope):
-        # filtering by geometry runs as three steps of the outer group instead of a single one
-        add_steps(2)
-
     all_row_groups_to_download = _prepare_row_groups_for_download(
         release=release,
         theme_type_pairs=theme_type_pairs,
@@ -557,6 +553,11 @@ def _download_data(
         columns_to_download=columns_to_download,
         verbosity_mode=verbosity_mode,
     )
+
+    if is_in_step_group() and all_row_groups_to_download:
+        # downloaded data is filtered by geometry in three steps of the outer group, not in a
+        # single skipped one, and the total can't change after the group shows its first step
+        add_steps(2)
 
     downloaded_parquet_files = _download_prepared_row_groups(
         all_row_groups_to_download=all_row_groups_to_download,
@@ -706,7 +707,7 @@ def _filter_downloaded_files(
         if len(theme_type_pairs) == 1
         else f"{len(theme_type_pairs)} datasets"
     )
-    if not geometry_filter.equals(geometry_filter.envelope):
+    if downloaded_parquet_files:
         destination_path = working_directory / Path("intersected_data")
         fn = partial(_filter_data_properly, geometry_filter=geometry_filter)
         map_parquet_dataset(
@@ -895,11 +896,12 @@ def _download_single_parquet_row_group(
     from overturemaps.core import geoarrow_schema_adapter
 
     xmin, ymin, xmax, ymax = bbox
+    # inclusive, like the `intersects` predicate of the exact filter applied later
     pyarrow_filter = (
-        (pc.field("bbox", "xmin") < xmax)
-        & (pc.field("bbox", "xmax") > xmin)
-        & (pc.field("bbox", "ymin") < ymax)
-        & (pc.field("bbox", "ymax") > ymin)
+        (pc.field("bbox", "xmin") <= xmax)
+        & (pc.field("bbox", "xmax") >= xmin)
+        & (pc.field("bbox", "ymin") <= ymax)
+        & (pc.field("bbox", "ymax") >= ymin)
     )
 
     if user_defined_pyarrow_filter is not None:
