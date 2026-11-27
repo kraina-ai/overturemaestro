@@ -896,11 +896,12 @@ def _download_single_parquet_row_group(
     from overturemaps.core import geoarrow_schema_adapter
 
     xmin, ymin, xmax, ymax = bbox
+    # inclusive, like the `intersects` predicate of the exact filter applied later
     pyarrow_filter = (
-        (pc.field("bbox", "xmin") < xmax)
-        & (pc.field("bbox", "xmax") > xmin)
-        & (pc.field("bbox", "ymin") < ymax)
-        & (pc.field("bbox", "ymax") > ymin)
+        (pc.field("bbox", "xmin") <= xmax)
+        & (pc.field("bbox", "xmax") >= xmin)
+        & (pc.field("bbox", "ymin") <= ymax)
+        & (pc.field("bbox", "ymax") >= ymin)
     )
 
     if user_defined_pyarrow_filter is not None:

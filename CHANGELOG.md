@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CLI compatibility with `typer>=0.29.0`, which removed the `click_type` parameter - custom parsers are now passed with `parser` and `metavar`
 - Rectangle and point filters returning features that intersect them only with their bounding boxes
+- Features touching the bounding box of the geometry filter skipped during the download
 - Error when there is no data to download for a geometry filter that isn't a rectangle
 - Missing required CLI input now shows a usage error (exit code 2) instead of a traceback on `typer>=0.26.0`
 - Total number of steps no longer grows in the middle of a wide form download with a non-rectangular geometry filter
